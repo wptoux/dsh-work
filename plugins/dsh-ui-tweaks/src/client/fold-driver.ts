@@ -135,17 +135,16 @@ export function createFoldDriver(source: FoldSessionSource, options: FoldDriverO
     run()
     // The header leads the block and does not move on toggle; the only way it
     // can leave the viewport is the chat's at-bottom scroll-follow racing the
-    // layout change. Re-assert it after the frame (rAF runs after ResizeObserver
-    // callbacks), only when it actually left the scroller's visible area.
+    // layout change: the kernel's ResizeObserver pins the view to the new
+    // bottom AFTER rAF callbacks run, so a single rAF is undone by it. Wait a
+    // second frame (rAF2 runs after the observer delivery) and only then
+    // re-assert the header when it left the scroller's visible area.
     if (header !== null && header.isConnected && typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(() => {
         if (!header.isConnected) return
-        const container = header.parentElement
-        const scroller = container === null ? null : scrollerOf(container)
-        if (scroller === null) return
-        const h = header.getBoundingClientRect()
-        const s = scroller.getBoundingClientRect()
-        if (h.bottom < s.top || h.top > s.bottom) header.scrollIntoView({ block: 'nearest' })
+        requestAnimationFrame(() => {
+          if (header.isConnected) ensureHeaderInView(header)
+        })
       })
     }
   }
@@ -161,6 +160,25 @@ export function createFoldDriver(source: FoldSessionSource, options: FoldDriverO
 /** The scroll container the header moves in (the ChatView scroll column). */
 function scrollerOf(container: HTMLElement): HTMLElement | null {
   return container.closest('[data-conversation-scroll]') ?? container.parentElement ?? null
+}
+
+/**
+ * Scroll the fold header back into the scroller's visible area (no-op when it
+ * is already visible). Returns whether it actually scrolled. Used after a
+ * toggle, once the chat's at-bottom scroll-follow has settled.
+ */
+export function ensureHeaderInView(header: HTMLElement): boolean {
+  const container = header.parentElement
+  if (container === null) return false
+  const scroller = scrollerOf(container)
+  if (scroller === null) return false
+  const h = header.getBoundingClientRect()
+  const s = scroller.getBoundingClientRect()
+  if (h.bottom < s.top || h.top > s.bottom) {
+    if (typeof header.scrollIntoView === 'function') header.scrollIntoView({ block: 'nearest' })
+    return true
+  }
+  return false
 }
 
 function findFoldHeader(containers: readonly HTMLElement[], turn: number): HTMLElement | null {

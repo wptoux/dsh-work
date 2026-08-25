@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFoldDriver,
+  ensureHeaderInView,
   windowFromSnapshot,
   type DriverNode,
   type DriverSnapshot,
@@ -272,5 +273,32 @@ describe('createFoldDriver', () => {
     expect(before).toBe('a1')
     expect(after).toBe('a1')
     expect(collapsed).toBe('a1')
+  })
+
+  it('ensureHeaderInView scrolls a header the bottom-follow pushed out of view', () => {
+    const scroller = document.createElement('div')
+    scroller.dataset.conversationScroll = ''
+    const flow = flowContainer([['u1', 'user']])
+    scroller.appendChild(flow)
+    document.body.replaceChildren(scroller)
+    const header = document.createElement('button')
+    header.setAttribute('data-dsh-fold-header', '')
+    flow.appendChild(header)
+    const rect = (top: number, bottom: number): DOMRect => ({
+      top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}),
+    } as DOMRect)
+    // The at-bottom follow left the header far above the scroller's viewport.
+    Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(-3000, -2968) })
+    Object.defineProperty(scroller, 'getBoundingClientRect', { configurable: true, value: () => rect(0, 900) })
+    const scrollIntoView = vi.fn()
+    header.scrollIntoView = scrollIntoView
+    expect(ensureHeaderInView(header)).toBe(true)
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+    // Already visible → no scrolling.
+    Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(100, 132) })
+    const second = vi.fn()
+    header.scrollIntoView = second
+    expect(ensureHeaderInView(header)).toBe(false)
+    expect(second).not.toHaveBeenCalled()
   })
 })
