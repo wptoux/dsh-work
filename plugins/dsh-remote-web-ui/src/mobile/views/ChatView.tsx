@@ -472,6 +472,15 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
     return undefined
   }, [messages])
 
+  /**
+   * Completed turns render folded behind 已处理 (see groupMessages). The
+   * grouping is derived from the live fold rows and recomputed only when
+   * the message list changes.
+   */
+  const chatItems = useMemo(() => groupMessages(messages), [messages])
+  /** Id of the newest message: the only row allowed to skip the long-text fold. */
+  const lastMessageId = messages[messages.length - 1]?.id
+
   return (
     <div className="chat">
       <header className="mobile-header">
@@ -491,15 +500,25 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
             {loading ? '加载中…' : '加载更早的消息'}
           </button>
         )}
-        {messages.map((message, index) => (
-          <MessageRow
-            key={message.id}
-            message={message}
-            expanded={index === messages.length - 1}
-            showToolCalls={showToolCalls}
-            showSystemMessages={showSystemMessages}
-          />
-        ))}
+        {chatItems.map(item => item.kind === 'row'
+          ? (
+            <MessageRow
+              key={item.message.id}
+              message={item.message}
+              expanded={item.message.id === lastMessageId}
+              showToolCalls={showToolCalls}
+              showSystemMessages={showSystemMessages}
+            />
+          )
+          : (
+            <CompletedTurn
+              key={item.messages[0]!.id}
+              messages={item.messages}
+              expanded={item.messages[item.messages.length - 1]!.id === lastMessageId}
+              showToolCalls={showToolCalls}
+              showSystemMessages={showSystemMessages}
+            />
+          ))}
         {loading && messages.length === 0 && <p className="chat-typing">加载中…</p>}
         {!loading && messages.length === 0 && <p className="chat-typing">还没有消息，发一句话开始吧</p>}
         {running && (
@@ -598,6 +617,45 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
 
 /* ── message rows ─────────────────────────────────────────────────────── */
 
+/** One item of the rendered chat: a plain row or a completed-turn fold. */
+type ChatItem =
+  | { kind: 'row'; message: RenderMessage }
+  | { kind: 'turn'; messages: RenderMessage[] }
+
+/**
+ * Bucket consecutive assistant messages of a completed turn into one
+ * 已处理 fold; everything else stays a plain row. A message groups only
+ * when it carries a turn AND the turn ended (turn/end) — still-running
+ * turns keep streaming unfolded, and messages without a turn (older /
+ * alias wire shapes) never group. Keys stay unique because each group is
+ * identified by its first message's id.
+ */
+function groupMessages(messages: readonly RenderMessage[]): ChatItem[] {
+  const items: ChatItem[] = []
+  for (let index = 0; index < messages.length;) {
+    const message = messages[index]!
+    if (message.kind !== 'assistant' || message.turn === undefined || message.turnEnded !== true) {
+      items.push({ kind: 'row', message })
+      index += 1
+      continue
+    }
+    const turn = message.turn
+    const group: RenderMessage[] = [message]
+    index += 1
+    while (index < messages.length) {
+      const next = messages[index]!
+      if (next.kind === 'assistant' && next.turn === turn && next.turnEnded === true) {
+        group.push(next)
+        index += 1
+      } else {
+        break
+      }
+    }
+    items.push({ kind: 'turn', messages: group })
+  }
+  return items
+}
+
 /**
  * One rendered message row (user bubble or assistant bubble with folds).
  * Memoized: live streaming updates exactly one message object per frame, so
@@ -637,6 +695,51 @@ const MessageRow = memo(function MessageRow({ message, expanded, showToolCalls, 
     </div>
   )
 })
+
+/**
+ * A completed turn folded behind a 已处理 header (Codex-style): while
+ * collapsed only the last reply stays visible — with its reasoning/tool
+ * disclosures — and tapping the header expands the whole turn. Fold state
+ * is pure render state; `expanded` marks the newest session message so the
+ * long-text rule keeps the visible reply fully readable.
+ */
+function CompletedTurn({ messages, expanded, showToolCalls, showSystemMessages }: {
+  messages: RenderMessage[]
+  expanded?: boolean
+  showToolCalls: boolean
+  showSystemMessages: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const last = messages[messages.length - 1]!
+  return (
+    <div className="chat-turn-done">
+      <button
+        type="button"
+        className="chat-turn-done-head"
+        aria-expanded={open}
+        onClick={() => { setOpen(value => !value) }}
+      >
+        <span className="chat-disclosure-caret" aria-hidden>›</span>
+        <span className="chat-turn-done-label">已处理</span>
+        {messages.length > 1 && <span className="chat-turn-done-count">{messages.length} 条</span>}
+      </button>
+      {open ? (
+        <div className="chat-turn-done-body">
+          {messages.map(message => (
+            <MessageRow
+              key={message.id}
+              message={message}
+              showToolCalls={showToolCalls}
+              showSystemMessages={showSystemMessages}
+            />
+          ))}
+        </div>
+      ) : (
+        <MessageRow message={last} expanded={expanded} showToolCalls={showToolCalls} showSystemMessages={showSystemMessages} />
+      )}
+    </div>
+  )
+}
 
 /** Collapsed-by-default reasoning disclosure (web-UI Think-row parity). */
 function ReasoningDisclosure({ text, pending }: { text: string; pending: boolean }) {

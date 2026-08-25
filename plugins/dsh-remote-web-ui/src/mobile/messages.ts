@@ -82,6 +82,18 @@ export interface RenderMessage {
   readonly contextWindow?: number
   /** Wire source.kind of a user message (e.g. plugin or user). */
   readonly sourceKind?: string
+  /**
+   * Owning turn number, when the wire carried it. Drives the completed-turn
+   * fold (已处理): assistant messages of one turn group together once the
+   * turn ended. Messages without a turn (older/alias shapes) never group.
+   */
+  readonly turn?: number
+  /**
+   * True once the owning turn ended (turn/end, success or error). The fold
+   * collapses these messages behind a 已处理 disclosure; turns still
+   * running keep streaming unfolded.
+   */
+  readonly turnEnded?: boolean
 }
 
 /** One tool call attached to an assistant message (callId dedupes repeats). */
@@ -225,7 +237,8 @@ function createState(existing: readonly RenderMessage[] | undefined): FoldState 
     state.byId.set(message.id, message)
     if (message.kind !== 'assistant') continue
     // Rebuild the (turn, step) and turn index maps lost when `existing` was
-    // handed back to us as plain rows.
+    // handed back to us as plain rows. The wire `turn` field (when present)
+    // restores the turn index even for messages with real wire ids.
     const decoded = decodePendingTurnStep(message.id)
     const key = decoded === undefined ? undefined : tsKey(decoded.turn, decoded.step)
     if (message.pending === true && key !== undefined) {
@@ -234,6 +247,8 @@ function createState(existing: readonly RenderMessage[] | undefined): FoldState 
     }
     if (decoded !== undefined) {
       state.messageTurn.set(message.id, decoded.turn)
+    } else if (message.turn !== undefined) {
+      state.messageTurn.set(message.id, message.turn)
     }
   }
   return state
@@ -376,6 +391,7 @@ function applyAssistantMessage(state: FoldState, event: WireEvent): void {
       ...(finalReasoning !== '' ? { reasoning: finalReasoning } : {}),
       ...(usage !== undefined ? { usage } : {}),
       ...(usage !== undefined && contextWindow !== undefined ? { contextWindow } : {}),
+      ...(turn !== undefined ? { turn } : {}),
       seq: event.seq,
       time: event.time,
       pending: false,
@@ -393,6 +409,7 @@ function applyAssistantMessage(state: FoldState, event: WireEvent): void {
     ...(finalReasoning !== '' ? { reasoning: finalReasoning } : {}),
     ...(usage !== undefined ? { usage } : {}),
     ...(usage !== undefined && contextWindow !== undefined ? { contextWindow } : {}),
+    ...(turn !== undefined ? { turn } : {}),
     seq: event.seq,
     time: event.time,
   }
@@ -447,8 +464,8 @@ function applyChunk(state: FoldState, event: WireEvent): void {
   const id = target.id
     ?? (key !== undefined ? syntheticId(`assistant,${key}`, event.seq) : syntheticId('assistant', event.seq))
   const created: RenderMessage = target.kind === 'reasoning'
-    ? { id, kind: 'assistant', text: '', reasoning: target.text, seq: event.seq, time: event.time, pending: true }
-    : { id, kind: 'assistant', text: target.text, seq: event.seq, time: event.time, pending: true }
+    ? { id, kind: 'assistant', text: '', reasoning: target.text, seq: event.seq, time: event.time, pending: true, ...(target.turn !== undefined ? { turn: target.turn } : {}) }
+    : { id, kind: 'assistant', text: target.text, seq: event.seq, time: event.time, pending: true, ...(target.turn !== undefined ? { turn: target.turn } : {}) }
   state.messages.push(created)
   state.byId.set(id, created)
   if (key !== undefined) {
@@ -555,6 +572,7 @@ function applyToolCall(state: FoldState, event: WireEvent): void {
     ...target,
     ...(isNewName ? { toolSummary: `使用 ${[...names].join(' / ')}` } : {}),
     ...(isNewCall || args !== undefined ? { tools: nextTools } : {}),
+    ...(turn !== undefined ? { turn } : {}),
     seq: event.seq,
     time: event.time,
   }
@@ -589,6 +607,9 @@ function applyTurnEnd(state: FoldState, event: WireEvent): void {
       ...message,
       ...(wasPending ? { pending: false } : {}),
       ...(failed ? { failed: true } : {}),
+      // The turn closed: fold these messages behind 已处理 once rendered.
+      ...(turn !== undefined ? { turn } : {}),
+      turnEnded: true,
       // Preserve each step's own final-event seq. Collapsing every message
       // onto turn/end makes same-turn ordering depend on arbitrary ids.
       time: event.time,

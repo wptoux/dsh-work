@@ -206,8 +206,11 @@ mounts both halves.
      behind a collapsed 深度思考 disclosure, tool calls behind a collapsed
      工具 row (tap to see each call's arguments), very long answers behind
      an explicit 展开全文 toggle — the **newest message always renders in
-     full** and only folds once a newer one arrives — each row carries its
-     time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
+     full** and only folds once a newer one arrives — and once a turn ends
+     (turn/end, success or failure) its agent messages collapse behind a
+     **已处理** header (Codex-style): only the final reply stays visible
+     and tapping the header expands the whole turn with every intermediate
+     step; each row carries its time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
    - the three levels mirror the browser's own history: the hardware/系统
      返回键 and swipe-back move **one level up at a time** (chat → sessions →
      workspaces) and only leave the page from the workspaces root, while

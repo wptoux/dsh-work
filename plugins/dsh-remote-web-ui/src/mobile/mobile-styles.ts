@@ -533,6 +533,54 @@ body {
 .chat-md-body hr { border: none; border-top: 1px solid var(--m-border); margin: 10px 0; }
 .chat-md-body img { max-width: 100%; border-radius: 8px; }
 
+/* ── completed-turn fold (已处理) ───────────────────────────────────── */
+
+.chat-turn-done {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 8px 10px;
+  border: 1px solid var(--m-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--m-bg) 45%, transparent);
+}
+
+.chat-turn-done-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: var(--m-text);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-turn-done-label {
+  color: var(--m-accent);
+  font-weight: 600;
+}
+
+.chat-turn-done-count {
+  margin-left: auto;
+  color: var(--m-text-tertiary);
+  font-size: 11px;
+}
+
+.chat-turn-done-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Bubbles inside the fold keep the full container width. */
+.chat-turn-done .chat-msg {
+  max-width: 100%;
+}
+
 /* ── message disclosures (reasoning / tools) ─────────────────────────── */
 
 .chat-disclosure {
@@ -1217,6 +1265,7 @@ body {
 .chat-msg-toggle:focus-visible,
 .chat-load-older:focus-visible,
 .chat-disclosure-head:focus-visible,
+.chat-turn-done-head:focus-visible,
 .sheet-option:focus-visible,
 .sheet-confirm-danger:focus-visible,
 .sheet-toggle-switch:focus-visible,
