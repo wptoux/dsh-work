@@ -1,0 +1,56 @@
+/**
+ * dsh-ui-tweaks fold styles. Token-driven where DSH exposes them
+ * (--dsw-alias-* / --dsw-font-*), with neutral fallbacks otherwise. The
+ * hidden-row rule keys off the row attribute so a row only hides while it is
+ * a member of a fold and not expanded — removing the attribute (plan change)
+ * restores it without touching React's classes.
+ */
+
+.dsh-fold-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font: var(--dsw-font-xs-13, 13px/1.5 system-ui, -apple-system, sans-serif);
+  color: var(--dsw-alias-label-secondary, #8f8d99);
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+}
+
+.dsh-fold-header:hover {
+  color: var(--dsw-alias-label-primary, #dcdae1);
+  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128, 128, 128, 0.1));
+}
+
+.dsh-fold-caret {
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.dsh-fold-header[aria-expanded='true'] .dsh-fold-caret {
+  transform: rotate(90deg);
+}
+
+.dsh-fold-label {
+  font-weight: 600;
+}
+
+.dsh-fold-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary, #6e6c78);
+}
+
+/* Rows inside a collapsed fold are hidden; an expanded fold restores them. */
+[data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {
+  display: none !important;
+}

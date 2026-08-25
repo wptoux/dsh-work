@@ -14,6 +14,7 @@
 | `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `d9b8f15`（tag v0.15.2） | 增强侧边栏 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
 | `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
+| `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 桌面端对话整洁：已完成回合折叠成「已处理」块，只显示最后一条回复（Codex 风格），未来桌面 UI 调整统一收纳于此 |
 
 > 已移除：**dshmarket**（插件市场，与"冻结"策略冲突——唯一的用途就是发现/安装新插件，
 > 冻结后不再需要）。如需恢复，从 `~/.dsh/work` 的 `.git-backup/dsh-market.bundle`（含本地
@@ -34,15 +35,16 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
   "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
   "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
   "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats",
-  "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager"
+  "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager",
+  "dsh-ui-tweaks":           "link:../../../dsh-work/plugins/dsh-ui-tweaks"
 }
 ```
 
-> 换机器 / 换用户名都不需要动这 3 行（两目录都挂在 `$HOME` 下）。唯一的约束：
-> 若把 `~/dsh-work` 挪到 `$HOME` 之外，或不再与 `~/.dsh` 平级，改这里 3 行即可
+> 换机器 / 换用户名都不需要动这几行（两目录都挂在 `$HOME` 下）。唯一的约束：
+> 若把 `~/dsh-work` 挪到 `$HOME` 之外，或不再与 `~/.dsh` 平级，改这里几行即可
 > （`cd ~/.dsh/profiles/web && pnpm install` 更新 lockfile）。
 
-`dsh.profile.bundles` 同步列出这 4 个包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
+`dsh.profile.bundles` 同步列出这 5 个包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
 
 **依赖模型（重要）**：pnpm 对 `link:` 依赖采用"插件目录自管依赖"——profile 的 lockfile
 只记录 link 本身，**每个插件目录必须自带完整 node_modules**（含原生二进制）。所以：
