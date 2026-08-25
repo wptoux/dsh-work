@@ -17,8 +17,8 @@ import type { SessionModels } from '@deepseek-ai/dsh-host-apiproxy/api/sessions'
 import { loadHistory, prompt, type SessionView } from './App.tsx'
 import { errorText, formatTime, staleHostHint } from './App.tsx'
 import { fetchMobilePreferences, models, selectModel, sendCommand, fetchPending, respondApproval, respondQuestion } from '../api.ts'
-import type { PendingApproval, PendingQuestionItem } from '../api.ts'
-import { EventFolder, foldEvents, type RenderMessage, type ToolCallInfo, type WireEvent } from '../messages.ts'
+import type { HistoryPage, PendingApproval, PendingQuestionItem } from '../api.ts'
+import { EventFolder, foldEvents, rangeStartsAtTurnBoundary, type RenderMessage, type ToolCallInfo, type WireEvent } from '../messages.ts'
 import { renderMarkdown } from '../markdown.ts'
 import { MuxClient } from '../mux.ts'
 import { usePullToOlder } from '../pull-to-older.ts'
@@ -38,6 +38,47 @@ export interface ChatViewProps {
  * history tail re-pull closes the seam.
  */
 export const MAX_TAIL_BUFFER_EVENTS = 500
+
+/**
+ * Extra pages a boundary fetch may pull to reach a complete turn. The host
+ * pages history by message count (boundaries can cut mid-turn), so a fetch
+ * keeps going older until the range's oldest edge starts a turn — or runs
+ * into this cap (or the host's own tail).
+ */
+export const MAX_BOUNDARY_FETCH_PAGES = 4
+
+/**
+ * Fetch history pages until the merged range's oldest edge lands on a turn
+ * boundary (or the host reports no more). Every loaded chunk is therefore
+ * whole turns, which the completed-turn fold (已处理) needs to fold its full
+ * content. Returns the merged events in ascending seq order, the last
+ * page's hasMore, and the first page's projection baseline.
+ */
+async function fetchHistoryToTurnBoundary(
+  sessionId: string,
+  beforeSeq: number | undefined,
+  signal?: AbortSignal,
+): Promise<{ events: WireEvent[]; hasMore: boolean; projections?: HistoryPage['projections'] }> {
+  const pages: WireEvent[][] = []
+  let hasMore = true
+  let currentBefore = beforeSeq
+  let projections: HistoryPage['projections'] | undefined
+  for (let depth = 0; depth <= MAX_BOUNDARY_FETCH_PAGES; depth += 1) {
+    // loadHistory(sessionId, beforeSeq?, signal?) — maxMessages stays default.
+    const page = await loadHistory(sessionId, currentBefore, signal)
+    const events = page.events.map(eventOf)
+    if (projections === undefined) projections = page.projections
+    pages.push(events)
+    hasMore = page.hasMore
+    if (!hasMore) break
+    if (rangeStartsAtTurnBoundary(events)) break
+    // The oldest edge is mid-turn: fetch one page further back and merge.
+    const oldest = events[0]
+    if (oldest === undefined) break
+    currentBefore = oldest.seq
+  }
+  return { events: [...pages].reverse().flat(), hasMore, projections }
+}
 
 /** localStorage key for the tool-call display toggle (persisted on the /m origin). */
 const SHOW_TOOL_CALLS_KEY = 'dsh.mobile.showToolCalls'
@@ -202,7 +243,9 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
     setLoading(true)
     setError(undefined)
     setMessages([])
-    void loadHistory(session.sessionId, undefined, controller.signal).then(
+    // Load the tail and, if needed, older pages until the oldest edge is a
+    // turn boundary — folded turns must arrive complete (已处理).
+    void fetchHistoryToTurnBoundary(session.sessionId, undefined, controller.signal).then(
       (page) => {
         if (cancelled) return
         // Buffered live events re-fold on top of the snapshot; the watermark
@@ -210,7 +253,7 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
         const buffered = liveBufferRef.current
         liveBufferRef.current = []
         tailLoadingRef.current = false
-        const folder = new EventFolder(foldEvents(page.events.map(eventOf)))
+        const folder = new EventFolder(foldEvents(page.events))
         folderRef.current = folder
         setMessages(folder.fold(buffered))
         setHasOlder(page.hasMore)
@@ -403,11 +446,13 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
       setLoading(false)
       return
     }
-    void loadHistory(session.sessionId, first.seq).then(
-      (page) => {
+    // Pull at least one whole turn per older load: the host pages by message
+    // count, so extending to a turn boundary keeps every folded turn complete.
+    void fetchHistoryToTurnBoundary(session.sessionId, first.seq).then(
+      ({ events, hasMore }) => {
         pendingRef.current = false
         setLoading(false)
-        const older = foldEvents(page.events.map(eventOf))
+        const older = foldEvents(events)
         const folder = folderRef.current
         if (folder === undefined) {
           setMessages(previous => [...older, ...previous])
@@ -415,7 +460,7 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
           folder.prepend(older)
           setMessages(folder.snapshot())
         }
-        setHasOlder(page.hasMore)
+        setHasOlder(hasMore)
       },
       (reason: unknown) => {
         pendingRef.current = false
@@ -623,35 +668,41 @@ type ChatItem =
   | { kind: 'turn'; messages: RenderMessage[] }
 
 /**
- * Bucket consecutive assistant messages of a completed turn into one
- * 已处理 fold; everything else stays a plain row. A message groups only
- * when it carries a turn AND the turn ended (turn/end) — still-running
- * turns keep streaming unfolded, and messages without a turn (older /
- * alias wire shapes) never group. Keys stay unique because each group is
- * identified by its first message's id.
+ * Bucket the assistant messages of each completed turn into one 已处理
+ * fold; everything else stays a plain row. The fold holds ALL members of
+ * the turn — intermediate steps from any model, even when another row
+ * (e.g. an injected system message) sits between them — and is placed at
+ * the position of the turn's newest member, so the reading order stays
+ * prompt → … → [已处理]. A message groups only when it carries a turn AND
+ * that turn ended (turn/end, any reason): still-running turns keep
+ * streaming unfolded, and messages without a turn never group. Keys stay
+ * unique because each group is identified by its newest member's id.
  */
 function groupMessages(messages: readonly RenderMessage[]): ChatItem[] {
-  const items: ChatItem[] = []
-  for (let index = 0; index < messages.length;) {
+  // Position of each completed turn's fold = its newest member.
+  const foldAt = new Map<number, number>()
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index]!
-    if (message.kind !== 'assistant' || message.turn === undefined || message.turnEnded !== true) {
-      items.push({ kind: 'row', message })
-      index += 1
+    if (message.kind !== 'assistant' || message.turnEnded !== true) continue
+    const turn = message.turn
+    if (turn !== undefined && !foldAt.has(turn)) foldAt.set(turn, index)
+  }
+  const items: ChatItem[] = []
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index]!
+    const turn = message.kind === 'assistant' ? message.turn : undefined
+    if (turn !== undefined && message.turnEnded === true && foldAt.get(turn) === index) {
+      // Emit the whole turn here (all members, in seq order); member rows
+      // elsewhere in the list are consumed by this block.
+      items.push({
+        kind: 'turn',
+        messages: messages.filter(candidate =>
+          candidate.kind === 'assistant' && candidate.turn === turn && candidate.turnEnded === true),
+      })
       continue
     }
-    const turn = message.turn
-    const group: RenderMessage[] = [message]
-    index += 1
-    while (index < messages.length) {
-      const next = messages[index]!
-      if (next.kind === 'assistant' && next.turn === turn && next.turnEnded === true) {
-        group.push(next)
-        index += 1
-      } else {
-        break
-      }
-    }
-    items.push({ kind: 'turn', messages: group })
+    if (turn !== undefined && message.turnEnded === true) continue
+    items.push({ kind: 'row', message })
   }
   return items
 }
@@ -712,7 +763,7 @@ function CompletedTurn({ messages, expanded, showToolCalls, showSystemMessages }
   const [open, setOpen] = useState(false)
   const last = messages[messages.length - 1]!
   return (
-    <div className="chat-turn-done">
+    <div className={'chat-turn-done' + (open ? ' chat-turn-done-open' : '')}>
       <button
         type="button"
         className="chat-turn-done-head"

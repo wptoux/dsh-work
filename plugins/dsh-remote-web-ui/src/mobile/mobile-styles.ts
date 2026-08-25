@@ -559,6 +559,11 @@ body {
   cursor: pointer;
 }
 
+/* 展开时箭头 › 旋转为 v（与推理/工具折叠一致）。 */
+.chat-turn-done-open .chat-disclosure-caret {
+  transform: rotate(90deg);
+}
+
 .chat-turn-done-label {
   color: var(--m-accent);
   font-weight: 600;

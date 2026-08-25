@@ -191,10 +191,11 @@ mounts both halves.
    - one workspace's sessions load **incrementally** (20 rows per page,
      "加载更多会话" continues; never the whole list at once),
    - opening a session fetches its chat content **on demand** (history
-     pages, "加载更早的消息" goes further back), and a **pull-down at the
-     top of the chat loads the previous history page** instead of the
-     browser's native pull-to-refresh (the gesture is inert when the
-     session has no older pages),
+     pages, "加载更早的消息" goes further back; each load extends to whole
+     turns, so an upward pull always brings at least one complete turn),
+     and a **pull-down at the top of the chat loads the previous history
+     page** instead of the browser's native pull-to-refresh (the gesture
+     is inert when the session has no older pages),
    - a live stream shows new messages as they arrive, with a prompt box
      for sending your own (**Enter sends and Shift+Enter inserts a newline
      by default**; set `mobileEnterToSend: false` to make Enter insert a
@@ -209,8 +210,10 @@ mounts both halves.
      full** and only folds once a newer one arrives — and once a turn ends
      (turn/end, success or failure) its agent messages collapse behind a
      **已处理** header (Codex-style): only the final reply stays visible
-     and tapping the header expands the whole turn with every intermediate
-     step; each row carries its time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
+     (the header arrow › turns into v when expanded) and tapping the
+     header expands the whole turn with every intermediate step — all
+     members of the turn fold together, from any model, even when another
+     row sits between them; each row carries its time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
    - the three levels mirror the browser's own history: the hardware/系统
      返回键 and swipe-back move **one level up at a time** (chat → sessions →
      workspaces) and only leave the page from the workspaces root, while

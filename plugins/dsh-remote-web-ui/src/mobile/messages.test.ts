@@ -1,6 +1,6 @@
 /** foldEvents: message-list folding from a session event stream. */
 import { describe, expect, it } from 'vitest'
-import { EventFolder, foldEvents, type WireEvent } from './messages.ts'
+import { EventFolder, foldEvents, rangeStartsAtTurnBoundary, type WireEvent } from './messages.ts'
 
 /** Assemble one event with an auto-incrementing seq / time. */
 function makeEvent(
@@ -398,5 +398,72 @@ describe('EventFolder incremental folding', () => {
     folder.seed(foldEvents([makeEvent('user/message', userMessageData('u-2', '新'), 5)]))
     expect(folder.snapshot().map(message => message.id)).toEqual(['u-2'])
     expect(folder.fold([textChunk(0, 0, '追加', 6)]).map(message => message.id)).toEqual(['u-2', 'assistant,0.0#6'])
+  })
+})
+
+describe('completed-turn cross-batch fold', () => {
+  it('marks the prepended head messages of a turn whose tail already ended', () => {
+    // Newer page first: the turn's tail messages + turn/end.
+    const folder = new EventFolder(foldEvents([
+      makeEvent('user/message', userMessageData('u-1', '改代码'), 0),
+      makeEvent('assistant/message', assistantMessageData('a-3', 0, 2, '最后回复'), 5),
+      makeEvent('turn/end', { turn: 0, reason: { kind: 'success' } }, 6),
+    ]))
+    expect(folder.snapshot().filter(message => message.kind === 'assistant')).toHaveLength(1)
+    expect(folder.snapshot()[1]).toMatchObject({ id: 'a-3', turnEnded: true, turn: 0 })
+
+    // Older page (pulled up later): turn/start + head messages, no turn/end.
+    const head = foldEvents([
+      makeEvent('turn/start', { turn: 0 }, 1),
+      makeEvent('assistant/message', assistantMessageData('a-1', 0, 0, '第一步'), 2),
+      makeEvent('tool/call', { turn: 0, step: 0, callId: 'c1', name: 'bash', arguments: '{}' }, 3),
+      makeEvent('assistant/message', assistantMessageData('a-2', 0, 1, '第二步'), 4),
+    ])
+    expect(head.every(message => message.kind === 'user' || message.turnEnded !== true)).toBe(true)
+
+    folder.prepend(head)
+    const rows = folder.snapshot()
+    expect(rows.find(message => message.id === 'a-1')).toMatchObject({ turn: 0, turnEnded: true })
+    expect(rows.find(message => message.id === 'a-2')).toMatchObject({ turn: 0, turnEnded: true })
+    expect(rows.find(message => message.id === 'a-3')).toMatchObject({ turn: 0, turnEnded: true })
+  })
+
+  it('folds a message that arrives in a later batch of an already-completed turn', () => {
+    const folder = new EventFolder(foldEvents([
+      makeEvent('user/message', userMessageData('u-1', 'hi'), 0),
+      makeEvent('assistant/message', assistantMessageData('a-1', 0, 0, '第一步'), 1),
+      makeEvent('turn/end', { turn: 0, reason: { kind: 'success' } }, 2),
+    ]))
+    const rows = folder.fold([makeEvent('assistant/message', assistantMessageData('a-2', 0, 1, '第二步'), 3)])
+    expect(rows.find(message => message.id === 'a-2')).toMatchObject({ turn: 0, turnEnded: true })
+  })
+})
+
+describe('rangeStartsAtTurnBoundary', () => {
+  it('accepts a range starting at a user prompt', () => {
+    expect(rangeStartsAtTurnBoundary([
+      makeEvent('user/message', userMessageData('u-1', 'hi'), 0),
+      makeEvent('assistant/message', assistantMessageData('a-1', 0, 0, 'ok'), 1),
+      makeEvent('turn/end', { turn: 0, reason: { kind: 'success' } }, 2),
+    ])).toBe(true)
+  })
+
+  it('rejects a range whose oldest event is mid-turn (its turn/start is older)', () => {
+    expect(rangeStartsAtTurnBoundary([
+      makeEvent('assistant/message', assistantMessageData('a-2', 0, 1, '第二步'), 3),
+      makeEvent('turn/end', { turn: 0, reason: { kind: 'success' } }, 4),
+    ])).toBe(false)
+  })
+
+  it('accepts a range that starts exactly at a turn/start', () => {
+    expect(rangeStartsAtTurnBoundary([
+      makeEvent('turn/start', { turn: 1 }, 5),
+      makeEvent('assistant/message', assistantMessageData('a-1', 1, 0, '开始'), 6),
+      makeEvent('turn/end', { turn: 1, reason: { kind: 'success' } }, 7),
+    ])).toBe(true)
+  })
+
+  it('accepts an empty range', () => {
+    expect(rangeStartsAtTurnBoundary([])).toBe(true)
   })
 })

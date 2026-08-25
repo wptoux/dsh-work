@@ -213,6 +213,13 @@ interface FoldState {
   turnStepMessage: Map<string, RenderMessage>
   /** Owning turn per assistant message id (for turn/end targeting). */
   messageTurn: Map<string, number>
+  /**
+   * Turns closed by turn/end in any folded batch. A message whose turn is in
+   * here is completed even when it was folded in a different batch than the
+   * turn/end — the cross-page anchor that keeps a turn split across history
+   * pages folding whole (已处理).
+   */
+  completedTurns: Set<number>
   /** Deduped tool names per assistant message id. */
   toolNames: Map<string, Set<string>>
   /** Context window for the current model (from request/context). */
@@ -229,6 +236,7 @@ function createState(existing: readonly RenderMessage[] | undefined): FoldState 
     pendingByTurnStep: new Map(),
     turnStepMessage: new Map(),
     messageTurn: new Map(),
+    completedTurns: new Set(),
     toolNames: new Map(),
     maxSeq: -1,
   }
@@ -250,8 +258,22 @@ function createState(existing: readonly RenderMessage[] | undefined): FoldState 
     } else if (message.turn !== undefined) {
       state.messageTurn.set(message.id, message.turn)
     }
+    if (message.turnEnded === true && message.turn !== undefined) {
+      state.completedTurns.add(message.turn)
+    }
   }
   return state
+}
+
+/**
+ * Mark a message of an already-completed turn as ended. Folded in a
+ * different batch than its turn/end (a turn split across history pages),
+ * the message still folds into its completed turn (已处理).
+ */
+function completedAware<T extends RenderMessage>(state: FoldState, message: T): T {
+  if (message.turnEnded === true) return message
+  if (message.turn === undefined || !state.completedTurns.has(message.turn)) return message
+  return { ...message, turnEnded: true }
 }
 
 function tsKey(turn: number | undefined, step: number | undefined): string | undefined {
@@ -396,13 +418,13 @@ function applyAssistantMessage(state: FoldState, event: WireEvent): void {
       time: event.time,
       pending: false,
     }
-    replaceMessage(state, target, next)
+    replaceMessage(state, target, completedAware(state, next))
     retargetTurnStep(state, key, target, next)
     if (turn !== undefined) state.messageTurn.set(next.id, turn)
     return
   }
 
-  const message: RenderMessage = {
+  const message: RenderMessage = completedAware(state, {
     id,
     kind: 'assistant',
     text: finalText,
@@ -412,7 +434,7 @@ function applyAssistantMessage(state: FoldState, event: WireEvent): void {
     ...(turn !== undefined ? { turn } : {}),
     seq: event.seq,
     time: event.time,
-  }
+  })
   state.messages.push(message)
   state.byId.set(id, message)
   if (key !== undefined) {
@@ -456,16 +478,16 @@ function applyChunk(state: FoldState, event: WireEvent): void {
     const next: RenderMessage = target.kind === 'reasoning'
       ? { ...message, reasoning: (message.reasoning ?? '') + target.text, seq: event.seq, time: event.time }
       : { ...message, text: message.text + target.text, seq: event.seq, time: event.time }
-    replaceMessage(state, message, next)
+    replaceMessage(state, message, completedAware(state, next))
     retargetTurnStep(state, key, message, next)
     return
   }
 
   const id = target.id
     ?? (key !== undefined ? syntheticId(`assistant,${key}`, event.seq) : syntheticId('assistant', event.seq))
-  const created: RenderMessage = target.kind === 'reasoning'
+  const created: RenderMessage = completedAware(state, target.kind === 'reasoning'
     ? { id, kind: 'assistant', text: '', reasoning: target.text, seq: event.seq, time: event.time, pending: true, ...(target.turn !== undefined ? { turn: target.turn } : {}) }
-    : { id, kind: 'assistant', text: target.text, seq: event.seq, time: event.time, pending: true, ...(target.turn !== undefined ? { turn: target.turn } : {}) }
+    : { id, kind: 'assistant', text: target.text, seq: event.seq, time: event.time, pending: true, ...(target.turn !== undefined ? { turn: target.turn } : {}) })
   state.messages.push(created)
   state.byId.set(id, created)
   if (key !== undefined) {
@@ -568,14 +590,14 @@ function applyToolCall(state: FoldState, event: WireEvent): void {
     : tools.map((tool, index) => index === existingIndex
       ? { ...tool, ...(args !== undefined ? { arguments: args } : {}) }
       : tool)
-  const next: RenderMessage = {
+  const next: RenderMessage = completedAware(state, {
     ...target,
     ...(isNewName ? { toolSummary: `使用 ${[...names].join(' / ')}` } : {}),
     ...(isNewCall || args !== undefined ? { tools: nextTools } : {}),
     ...(turn !== undefined ? { turn } : {}),
     seq: event.seq,
     time: event.time,
-  }
+  })
   replaceMessage(state, target, next)
   retargetTurnStep(state, key, target, next)
 }
@@ -585,6 +607,7 @@ function applyTurnEnd(state: FoldState, event: WireEvent): void {
   const turn = pickNumber(data['turn'])
   const reason = isRecord(data['reason']) ? data['reason'] : {}
   const failed = reason['kind'] === 'error'
+  if (turn !== undefined) state.completedTurns.add(turn)
 
   let targets: RenderMessage[]
   if (turn !== undefined) {
@@ -670,6 +693,15 @@ export class EventFolder {
   /** Prepend an older history page (exact seam; no overlapping seqs). */
   prepend(older: readonly RenderMessage[]): void {
     this.state = createState([...older, ...this.state.messages])
+    // Head messages of a turn whose tail already completed in an earlier
+    // batch (its turn/end lives on a newer page) join the completed fold:
+    // without this the older half of a split turn would render unfolded.
+    for (const message of older) {
+      if (message.kind !== 'assistant' || message.turnEnded === true) continue
+      const turn = message.turn
+      if (turn === undefined || !this.state.completedTurns.has(turn)) continue
+      replaceMessage(this.state, message, { ...message, turnEnded: true })
+    }
     this.snapshotList = undefined
   }
 
@@ -679,6 +711,38 @@ export class EventFolder {
     this.snapshotList = snapshotOf(this.state)
     return this.snapshotList
   }
+}
+
+/**
+ * Does a contiguous raw event range start at a turn boundary? The host
+ * pages history by message count, so the oldest edge of a page can land
+ * mid-turn; loading older pages until this returns true keeps every loaded
+ * chunk a whole turn, which the completed-turn fold (已处理) needs. A user
+ * prompt, a turn/start, or a turn/end at the edge are all valid boundaries.
+ */
+export function rangeStartsAtTurnBoundary(events: readonly WireEvent[]): boolean {
+  const started = new Set<number>()
+  for (const event of events) {
+    if (event.type !== 'turn/start') continue
+    const turn = isRecord(event.data) ? pickNumber(event.data['turn']) : undefined
+    if (turn !== undefined) started.add(turn)
+  }
+  for (const event of events) {
+    if (event.type === 'user/message' || event.type === 'turn/start' || event.type === 'turn/end') {
+      return true
+    }
+    if (event.type === 'assistant/message'
+      || event.type === 'assistant/chunk'
+      || event.type === 'message/chunk'
+      || event.type === 'message/update'
+      || event.type === 'tool/call') {
+      const turn = isRecord(event.data) ? pickNumber(event.data['turn']) : undefined
+      // A message without a turn is not interior to any turn: treat as a boundary.
+      if (turn === undefined) return true
+      return started.has(turn)
+    }
+  }
+  return true
 }
 
 /** Copy the folder's rows and keep them seq-ordered (skips re-sorting the common ordered case). */

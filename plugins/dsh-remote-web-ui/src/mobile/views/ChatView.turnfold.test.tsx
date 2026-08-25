@@ -217,3 +217,56 @@ describe('ChatView completed-turn fold', () => {
     expect(screen.queryByRole('button', { name: /展开全文/ })).toBeNull()
   })
 })
+describe('ChatView completed-turn loading and grouping', () => {
+  it('pulls older pages until the oldest edge reaches a turn boundary', async () => {
+    // The first (tail) page is cut mid-turn: its head lives on an older page.
+    loadHistoryMock
+      .mockResolvedValueOnce(historyPage([
+        makeEntry('assistant/message', { turn: 0, step: 2, message: { id: 'a-3', role: 'assistant', content: [{ type: 'text', text: '第三步' }] } }, 3),
+        makeEntry('assistant/message', { turn: 0, step: 3, message: { id: 'a-4', role: 'assistant', content: [{ type: 'text', text: '最后回复' }] } }, 4),
+        makeEntry('turn/end', { turn: 0, reason: { kind: 'success' } }, 5),
+      ], { hasMore: true }))
+      .mockResolvedValueOnce(historyPage([
+        makeEntry('user/message', { id: 'u-1', role: 'user', content: [{ type: 'text', text: '改一下' }] }, 0),
+        makeEntry('turn/start', { turn: 0 }, 1),
+        makeEntry('assistant/message', { turn: 0, step: 0, message: { id: 'a-1', role: 'assistant', content: [{ type: 'text', text: '第一步' }] } }, 2),
+      ]))
+    render(<ChatView session={session} onBack={() => {}} />)
+
+    // The split turn folds as ONE complete 已处理 block (3 members).
+    const head = await screen.findByRole('button', { name: /已处理/ })
+    expect(head.textContent).toContain('3 条')
+    expect(screen.getByText('最后回复')).toBeTruthy()
+    expect(screen.queryByText('第一步')).toBeNull()
+    expect(loadHistoryMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('folds all members of a completed turn even with an injected row between them', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage([
+      makeEntry('user/message', { id: 'u-1', role: 'user', content: [{ type: 'text', text: '改一下' }] }, 0),
+      makeEntry('assistant/message', { turn: 0, step: 0, message: { id: 'a-1', role: 'assistant', content: [{ type: 'text', text: '中间一' }] } }, 1),
+      makeEntry('user/message', { id: 'i-1', role: 'user', content: [{ type: 'text', text: '系统注入' }], source: { kind: 'plugin', name: 'react-extension' } }, 2),
+      makeEntry('assistant/message', { turn: 0, step: 1, message: { id: 'a-2', role: 'assistant', content: [{ type: 'text', text: '最后回复' }] } }, 3),
+      makeEntry('turn/end', { turn: 0, reason: { kind: 'success' } }, 4),
+    ]))
+    render(<ChatView session={session} onBack={() => {}} />)
+
+    const head = await screen.findByRole('button', { name: /已处理/ })
+    expect(head.textContent).toContain('2 条')
+    expect(screen.getByText('最后回复')).toBeTruthy()
+    // Both turn members are inside the fold; the injected row is its own
+    // system-message row (hidden by default), not folded into the turn.
+    expect(screen.queryByText('中间一')).toBeNull()
+    expect(screen.queryByText('系统注入')).toBeNull()
+  })
+
+  it('rotates the fold caret when the 已处理 header expands', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage(completedTurn()))
+    render(<ChatView session={session} onBack={() => {}} />)
+
+    const head = await screen.findByRole('button', { name: /已处理/ })
+    fireEvent.click(head)
+    const container = head.closest('.chat-turn-done')
+    expect(container?.className ?? '').toContain('chat-turn-done-open')
+  })
+})

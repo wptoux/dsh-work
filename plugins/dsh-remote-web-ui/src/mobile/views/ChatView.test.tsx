@@ -609,7 +609,7 @@ describe('ChatView pull-to-load-older', () => {
     // The older page loads before the first rendered message's seq; the
     // initial tail load (undefined cursor) stays the only earlier call.
     await waitFor(() => {
-      expect(loadHistoryMock).toHaveBeenLastCalledWith('s-1', 0)
+      expect(loadHistoryMock).toHaveBeenLastCalledWith('s-1', 0, undefined)
     })
   })
 
