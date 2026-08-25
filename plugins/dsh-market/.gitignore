@@ -1,0 +1,9 @@
+node_modules/
+lib/
+client/client.js*
+research/
+*.tgz
+.DS_Store
+npm-cache/
+docs/
+data/readmes-snapshot.json

@@ -1,0 +1,20 @@
+{
+  "name": "dsh-web-ui",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Frozen local fork of dsh-web-ui, trimmed to the dsh-remote-web-ui package only.",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "runtime-deps:check": "node scripts/runtime-deps-check.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "sync-shared": "node scripts/sync-shared.mjs",
+    "sync-shared:check": "node scripts/sync-shared.mjs --check"
+  },
+  "devDependencies": {
+    "lightningcss": "^1.32.0",
+    "tsdown": "^0.22.2"
+  },
+  "license": "Apache-2.0"
+}
