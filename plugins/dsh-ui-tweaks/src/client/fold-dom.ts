@@ -27,6 +27,9 @@ export const FOLD_HEADER_MARKER = 'data-dsh-fold-header'
 export const FOLD_TURN_ATTR = 'data-dsh-fold-turn'
 export const FOLD_ROW_ATTR = 'data-dsh-fold-row'
 export const FOLD_EXPANDED_ATTR = 'data-dsh-fold-expanded'
+/** Marker on the fold's visible last reply (its think block hides while folded). */
+export const FOLD_LAST_ATTR = 'data-dsh-fold-last'
+export const FOLD_LAST_EXPANDED_ATTR = 'data-dsh-fold-last-expanded'
 
 /** Flow rows are direct children of the flow column carrying their node key. */
 const FLOW_ROW_SELECTOR = '[data-chat-flow-key]'
@@ -113,6 +116,8 @@ export function applyFoldPlan(
   for (const row of rows.values()) {
     row.removeAttribute(FOLD_ROW_ATTR)
     row.removeAttribute(FOLD_EXPANDED_ATTR)
+    row.removeAttribute(FOLD_LAST_ATTR)
+    row.removeAttribute(FOLD_LAST_EXPANDED_ATTR)
   }
 
   // 3. Apply each planned fold.
@@ -127,6 +132,10 @@ export function applyFoldPlan(
       row.setAttribute(FOLD_ROW_ATTR, String(fold.turn))
       row.setAttribute(FOLD_EXPANDED_ATTR, open ? 'true' : 'false')
     }
+    // Mark the visible last reply so the folded view can hide its think
+    // disclosure (restored once the fold is expanded).
+    lastRow.setAttribute(FOLD_LAST_ATTR, String(fold.turn))
+    lastRow.setAttribute(FOLD_LAST_EXPANDED_ATTR, open ? 'true' : 'false')
 
     let header = directHeaders(container).find(h => h.getAttribute(FOLD_TURN_ATTR) === String(fold.turn))
     if (header === undefined) {

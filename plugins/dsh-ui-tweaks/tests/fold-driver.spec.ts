@@ -249,4 +249,49 @@ describe('createFoldDriver', () => {
     source.set(fakeHandle('s2', snapshotA))
     expect(containers[0].querySelector('[data-dsh-fold-turn="1"]')?.getAttribute('aria-expanded')).toBe('false')
   })
+
+  it('keeps the toggled header anchored in view when expanding shoves it down', () => {
+    const scroller = document.createElement('div')
+    scroller.dataset.conversationScroll = ''
+    const container = flowContainer([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    scroller.appendChild(container)
+    document.body.replaceChildren(scroller)
+    containers = [container]
+    const snapshot = () => snap({
+      turns: [[1, true, true]],
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 1],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 1],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    })
+    source.set(fakeHandle('s1', snapshot))
+    const driver = createFoldDriver(source.source, { containers: () => containers, copy: COPY })
+    driver.start()
+    const header = container.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
+    expect(header).not.toBeNull()
+    // Simulate the layout push: the header reports 100px from the viewport top
+    // before the toggle and 400px after the re-apply (the hidden rows above it
+    // became visible and pushed it down).
+    let calls = 0
+    Object.defineProperty(header as HTMLElement, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => {
+        calls += 1
+        return { top: calls === 1 ? 100 : 400 } as unknown as DOMRect
+      },
+    })
+    scroller.scrollTop = 50
+    driver.toggle(1)
+    // The driver scrolls the container back so the header stays at y=100.
+    expect(scroller.scrollTop).toBe(350)
+  })
 })

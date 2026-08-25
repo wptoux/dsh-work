@@ -140,4 +140,19 @@ describe('applyFoldPlan', () => {
     expect(header?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a2')
     expect(container.querySelectorAll('[data-dsh-fold-header]').length).toBe(1)
   })
+
+  it('marks the fold\'s last reply row so the folded view can hide its think block', () => {
+    applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
+    const last = container.querySelector<HTMLElement>('[data-chat-flow-key="a2"]')
+    expect(last?.getAttribute('data-dsh-fold-last')).toBe('1')
+    // middle rows are fold members, not the visible last reply
+    expect(container.querySelector('[data-chat-flow-key="a1"]')?.hasAttribute('data-dsh-fold-last')).toBe(false)
+    expect(container.querySelector('[data-chat-flow-key="t1"]')?.hasAttribute('data-dsh-fold-last')).toBe(false)
+  })
+
+  it('clears the last-reply marker when the fold disappears from the plan', () => {
+    applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
+    applyFoldPlan(container, { folds: [], completionRequest: null }, new Set(), COPY)
+    expect(container.querySelector('[data-chat-flow-key="a2"]')?.hasAttribute('data-dsh-fold-last')).toBe(false)
+  })
 })

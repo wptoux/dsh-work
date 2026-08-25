@@ -54,3 +54,12 @@
 [data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {
   display: none !important;
 }
+
+/*
+ * The folded view shows only the turn's last reply — hide its Think
+ * disclosure so the reasoning doesn't leak into the collapsed block.
+ * Expanding the fold re-shows it (the row carries the expanded state).
+ */
+[data-dsh-fold-last][data-dsh-fold-last-expanded='false'] [data-variant='think'] {
+  display: none !important;
+}
