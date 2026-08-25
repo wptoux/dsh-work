@@ -23,6 +23,7 @@ plugins/
 ├── dsh-remote-web-ui/    # 单包（扁平化自全家桶）：手机远程控制
 ├── dsh-better-sidebar/   # 增强侧边栏
 ├── dsh-usage-stats/      # 用量统计（lib/ 入库，无需构建）
+├── dsh-archive-manager/  # 会话归档管理（lib/ 入库，无需构建）
 └── README.md             # 维护手册：流程/回滚/更新上游/恢复已删组件
 ```
 
@@ -53,6 +54,7 @@ plugins/
 | `dsh-remote-web-ui` | `cd plugins/dsh-remote-web-ui && pnpm build` | `node -e "require('./lib/index.js')"` |
 | `dsh-better-sidebar` | `cd plugins/dsh-better-sidebar && pnpm build` | `node -e "require('./lib/index.js')"` |
 | `dsh-usage-stats` | 无需构建 | lib/ 已入库 |
+| `dsh-archive-manager` | 无需构建 | lib/ 已入库 |
 
 完整验证（声称完成前必须）：
 

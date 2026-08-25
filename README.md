@@ -16,6 +16,7 @@ dsh 插件源码本地化，锁死版本，自己修、自己裁、自己优化�
 | `plugins/dsh-remote-web-ui/` | `dsh-remote-web-ui` | 手机远程控制（扫码配对 + 自动隧道） | [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)（19 子包全家桶中**单独提取并裁剪**） | `a3b44d9`（v0.3.2） |
 | `plugins/dsh-better-sidebar/` | `dsh-better-sidebar` | 增强侧边栏 | [omdsh-dev/DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) | `d9b8f15`（v0.15.2） |
 | `plugins/dsh-usage-stats/` | `dsh-usage-stats` | 用量统计 | [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats) | `8373659`（v0.2.5） |
+| `plugins/dsh-archive-manager/` | `dsh-archive-manager` | 会话归档管理（设置页归档卡片） | [z953218350/dsh-archive-manager](https://github.com/z953218350/dsh-archive-manager) | `9e611af`（= npm 1.0.7） |
 
 > 已移除：`dshmarket`（插件市场）——与"冻结"策略冲突，不再需要；恢复方式见
 > `plugins/README.md`。迁移前的完整上游历史备份在 `./.git-backup/*.bundle`（本地保险，
@@ -53,7 +54,8 @@ web profile 的 `~/.dsh/profiles/web/package.json` 通过 `link:` 依赖指向�
 "dependencies": {
   "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
   "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
-  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats"
+  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats",
+  "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager"
 }
 ```
 

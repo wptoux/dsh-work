@@ -13,6 +13,7 @@
 | `dsh-remote-web-ui/` | `dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui | `a3b44d9`（tag v0.3.2） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下） |
 | `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `d9b8f15`（tag v0.15.2） | 增强侧边栏 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
+| `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
 
 > 已移除：**dshmarket**（插件市场，与"冻结"策略冲突——唯一的用途就是发现/安装新插件，
 > 冻结后不再需要）。如需恢复，从 `~/.dsh/work` 的 `.git-backup/dsh-market.bundle`（含本地
@@ -32,7 +33,8 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
 "dependencies": {
   "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
   "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
-  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats"
+  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats",
+  "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager"
 }
 ```
 
@@ -40,7 +42,7 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
 > 若把 `~/dsh-work` 挪到 `$HOME` 之外，或不再与 `~/.dsh` 平级，改这里 3 行即可
 > （`cd ~/.dsh/profiles/web && pnpm install` 更新 lockfile）。
 
-`dsh.profile.bundles` 同步列出这 3 个包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
+`dsh.profile.bundles` 同步列出这 4 个包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
 
 **依赖模型（重要）**：pnpm 对 `link:` 依赖采用"插件目录自管依赖"——profile 的 lockfile
 只记录 link 本身，**每个插件目录必须自带完整 node_modules**（含原生二进制）。所以：
@@ -58,6 +60,7 @@ node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得
    - `dsh-remote-web-ui`：`cd ~/dsh-work/plugins/dsh-remote-web-ui && pnpm build`
    - `dsh-better-sidebar`：`cd ~/dsh-work/plugins/dsh-better-sidebar && pnpm build`
    - `dsh-usage-stats`：无构建步骤（lib/ 已入库）
+   - `dsh-archive-manager`：无构建步骤（lib/ 已入库）
 3. **重启 dsh 服务**（`Ctrl+C` 后重新 `dsh web`，或退出后 `dsh web`）使改动生效。
    临时验证可以用 `dsh --profile web --dump-config`（只读，不打扰运行中的服务）。
 4. 提交（Conventional Commits，无 emoji）——**在统一仓库根提交**：
@@ -98,6 +101,9 @@ node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得
     tsdown 版本对齐 `^0.22.14`。
   - 新增 `pnpm-workspace.yaml`（allowBuilds: cloudflared）保证自管依赖含隧道二进制。
 - `dsh-better-sidebar` / `dsh-usage-stats`：无源码改动。
+- `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、
+  cordis patch、预构建 lib 里的 client bundle id 一并替换）；README 安装说明为上游文档，
+  本 fork 内不适用（本地 link 安装）。
 
 ## 备注
 
