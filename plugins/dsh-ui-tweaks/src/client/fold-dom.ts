@@ -20,6 +20,19 @@ export interface FoldCopy {
   readonly header: () => string
   /** e.g. (7) => '7 条' — the hidden-row count badge (incl. tool rows). */
   readonly count: (n: number) => string
+  /** e.g. (196_000) => '3m16s' — the turn's wall-clock duration. */
+  readonly duration: (ms: number) => string
+}
+
+/** Compact wall-clock duration: 3m16s / 45s / 1h02m (locale-neutral). */
+export function formatDuration(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = total % 60
+  if (hours > 0) return `${hours}h${String(minutes).padStart(2, '0')}m`
+  if (minutes > 0) return `${minutes}m${String(seconds).padStart(2, '0')}s`
+  return `${seconds}s`
 }
 
 /** CSS class / attribute vocabulary (plain CSS lives in fold.css, injected by the client entry). */
@@ -91,6 +104,24 @@ function setCountBadge(button: HTMLElement, count: number, copy: FoldCopy): void
   }
 }
 
+/** Set or clear the header's duration badge (shown when the turn duration is known). */
+function setDurationBadge(button: HTMLElement, durationMs: number | undefined, copy: FoldCopy): void {
+  const existing = button.querySelector<HTMLElement>('.dsh-fold-duration')
+  if (durationMs === undefined) {
+    existing?.remove()
+    return
+  }
+  if (existing === null) {
+    const badge = document.createElement('span')
+    badge.className = 'dsh-fold-duration'
+    // Sit between the caret and the count (the count keeps its auto right margin).
+    button.insertBefore(badge, button.querySelector<HTMLElement>('.dsh-fold-count'))
+    badge.textContent = copy.duration(durationMs)
+  } else {
+    existing.textContent = copy.duration(durationMs)
+  }
+}
+
 /**
  * Apply one fold plan to a flow container. Pure DOM — no event wiring (the
  * driver owns the delegated click), no session reads.
@@ -157,6 +188,7 @@ export function applyFoldPlan(
       }
     }
     setCountBadge(header, fold.hiddenCount, copy)
+    setDurationBadge(header, fold.durationMs, copy)
   }
 }
 

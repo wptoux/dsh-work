@@ -26,7 +26,8 @@ export interface DriverSnapshot {
   readonly openState: 'cold' | 'loading' | 'open' | 'error'
   readonly hasMore: boolean
   readonly loadingOlder: boolean
-  readonly turns: ReadonlyMap<number, { readonly start?: unknown; readonly end?: unknown }>
+  /** Turn boundary timestamps (Unix epoch ms); a missing start/end means the boundary is outside the window. */
+  readonly turns: ReadonlyMap<number, { readonly startTime?: number; readonly endTime?: number }>
   readonly order: readonly string[]
   readonly nodes: { get(key: string): DriverNode | undefined }
 }
@@ -66,7 +67,14 @@ export function windowFromSnapshot(snapshot: DriverSnapshot): FoldWindow | null 
   if (snapshot.openState !== 'open') return null
   const turns = new Map<number, FoldTurn>()
   for (const [number, t] of snapshot.turns) {
-    turns.set(number, { turn: number, startLoaded: t.start !== undefined, endLoaded: t.end !== undefined })
+    const startLoaded = t.startTime !== undefined
+    const endLoaded = t.endTime !== undefined
+    turns.set(number, {
+      turn: number,
+      startLoaded,
+      endLoaded,
+      ...startLoaded && endLoaded ? { durationMs: Math.max(0, (t.endTime as number) - (t.startTime as number)) } : {},
+    })
   }
   const nodes: FoldNode[] = []
   for (const key of snapshot.order) {

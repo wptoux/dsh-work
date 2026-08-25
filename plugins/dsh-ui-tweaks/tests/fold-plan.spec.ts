@@ -11,8 +11,8 @@ function node(key: string, kind: string, anchorSeq: number, turn: number | undef
   return { key, kind, anchorSeq, turn }
 }
 
-function turn(number: number, startLoaded: boolean, endLoaded: boolean): FoldTurn {
-  return { turn: number, startLoaded, endLoaded }
+function turn(number: number, startLoaded: boolean, endLoaded: boolean, durationMs?: number): FoldTurn {
+  return { turn: number, startLoaded, endLoaded, ...durationMs === undefined ? {} : { durationMs } }
 }
 
 function windowOf(turns: FoldTurn[], nodes: FoldNode[], hasMore = false, loadingOlder = false): FoldWindow {
@@ -183,5 +183,21 @@ describe('planFolds — completed-turn folding', () => {
       { turn: 1, hiddenKeys: [], lastAssistantKey: 'a1', hiddenCount: 0 },
     ])
     expect(plan.completionRequest).toEqual({ turn: 5 })
+  })
+
+  it('carries the turn\'s wall-clock duration onto its planned fold', () => {
+    const w = windowOf(
+      [turn(1, true, true, 196_000)],
+      [node('u1', 'user', 10, 1), node('a1', 'assistant-step', 20, 1)],
+    )
+    expect(planFolds(w).folds[0].durationMs).toBe(196_000)
+  })
+
+  it('plans folds without a duration when the turn has none loaded', () => {
+    const w = windowOf(
+      [turn(1, true, true)],
+      [node('u1', 'user', 10, 1), node('a1', 'assistant-step', 20, 1)],
+    )
+    expect(planFolds(w).folds[0].durationMs).toBeUndefined()
   })
 })

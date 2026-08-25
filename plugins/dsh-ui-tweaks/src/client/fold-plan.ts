@@ -38,6 +38,8 @@ export interface FoldTurn {
   readonly startLoaded: boolean
   /** Whether turn/end is inside the window (the turn is closed, not streaming). */
   readonly endLoaded: boolean
+  /** Wall-clock duration of the turn (end - start), when both boundaries are loaded. */
+  readonly durationMs?: number
 }
 
 /** Immutable view of the chat window (test-injectable; project from the session snapshot in the client). */
@@ -58,6 +60,8 @@ export interface CompletedFold {
   readonly lastAssistantKey: string
   /** Total hidden rows (the fold's count badge). */
   readonly hiddenCount: number
+  /** Wall-clock duration of the turn (end - start), when loaded. */
+  readonly durationMs?: number
 }
 
 /** The whole fold plan for one pass. */
@@ -107,6 +111,7 @@ export function planFolds(window: FoldWindow): FoldPlan {
       hiddenKeys,
       lastAssistantKey: last.key,
       hiddenCount: hiddenKeys.length,
+      ...t.durationMs === undefined ? {} : { durationMs: t.durationMs },
     })
   }
   return { folds, completionRequest }

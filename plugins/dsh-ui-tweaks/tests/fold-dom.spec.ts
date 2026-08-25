@@ -5,11 +5,12 @@
  * cleanup. Pure DOM — no React, no session wiring (the driver owns those).
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { applyFoldPlan, type FoldCopy } from '../src/client/fold-dom'
+import { applyFoldPlan, formatDuration, type FoldCopy } from '../src/client/fold-dom'
 
 const COPY: FoldCopy = {
   header: () => '已处理',
   count: (n: number) => `${n} 条`,
+  duration: formatDuration,
 }
 
 function row(key: string, kind: string): HTMLElement {
@@ -162,5 +163,56 @@ describe('applyFoldPlan', () => {
     applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
     applyFoldPlan(container, { folds: [], completionRequest: null }, new Set(), COPY)
     expect(container.querySelector('[data-chat-flow-key="a2"]')?.hasAttribute('data-dsh-fold-last')).toBe(false)
+  })
+
+  it('renders the turn duration after the caret (已处理 › 3m16s) with the count still right-aligned', () => {
+    applyFoldPlan(container, {
+      folds: [{ ...FOLD_1, durationMs: 196_000 }],
+      completionRequest: null,
+    }, new Set(), COPY)
+    const header = container.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
+    const kids = [...(header?.children ?? [])]
+    expect(kids.map(k => k.className)).toEqual(['dsh-fold-label', 'dsh-fold-caret', 'dsh-fold-duration', 'dsh-fold-count'])
+    expect((kids[2] as HTMLElement).textContent).toBe('3m16s')
+    expect((kids[3] as HTMLElement).textContent).toBe('2 条')
+  })
+
+  it('omits the duration badge while the turn duration is unknown', () => {
+    applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
+    expect(container.querySelector('[data-dsh-fold-turn="1"] .dsh-fold-duration')).toBeNull()
+  })
+
+  it('removes a stale duration badge when the fold loses its duration', () => {
+    applyFoldPlan(container, {
+      folds: [{ ...FOLD_1, durationMs: 1000 }],
+      completionRequest: null,
+    }, new Set(), COPY)
+    expect(container.querySelector('[data-dsh-fold-turn="1"] .dsh-fold-duration')?.textContent).toBe('1s')
+    applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
+    expect(container.querySelector('[data-dsh-fold-turn="1"] .dsh-fold-duration')).toBeNull()
+  })
+
+  it('re-renders the duration badge when the duration changes', () => {
+    applyFoldPlan(container, {
+      folds: [{ ...FOLD_1, durationMs: 60_000 }],
+      completionRequest: null,
+    }, new Set(), COPY)
+    expect(container.querySelector('[data-dsh-fold-turn="1"] .dsh-fold-duration')?.textContent).toBe('1m00s')
+    applyFoldPlan(container, {
+      folds: [{ ...FOLD_1, durationMs: 121_000 }],
+      completionRequest: null,
+    }, new Set(), COPY)
+    expect(container.querySelector('[data-dsh-fold-turn="1"] .dsh-fold-duration')?.textContent).toBe('2m01s')
+  })
+})
+
+describe('formatDuration', () => {
+  it('formats seconds, minutes and hours compactly (locale-neutral)', () => {
+    expect(formatDuration(0)).toBe('0s')
+    expect(formatDuration(45_000)).toBe('45s')
+    expect(formatDuration(60_000)).toBe('1m00s')
+    expect(formatDuration(196_000)).toBe('3m16s')
+    expect(formatDuration(3_661_000)).toBe('1h01m')
+    expect(formatDuration(-5_000)).toBe('0s')
   })
 })

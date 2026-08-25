@@ -18,6 +18,7 @@ import type { ClientContext, ConversationSnapshot } from '@deepseek-ai/dsh-clien
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import { createFoldChrome } from './fold-chrome'
 import { createFoldDriver, type DriverSnapshot, type FoldSessionSource } from './fold-driver'
+import { formatDuration } from './fold-dom'
 import { en, zh, type UiTweaksKey } from './locales'
 import './fold.css'
 
@@ -36,9 +37,9 @@ export const inject = ['sessions', 'locale']
 
 /** Project the runtime snapshot onto the planner's minimal window shape. */
 function projectSnapshot(snapshot: ConversationSnapshot): DriverSnapshot {
-  const turns = new Map<number, { start?: unknown; end?: unknown }>()
+  const turns = new Map<number, { startTime?: number; endTime?: number }>()
   for (const [number, location] of snapshot.chat.timeline.turns) {
-    turns.set(number, { start: location.start, end: location.end })
+    turns.set(number, { startTime: location.start?.time, endTime: location.end?.time })
   }
   return {
     openState: snapshot.openState,
@@ -119,6 +120,7 @@ export function apply(ctx: ClientContext): void {
     const copy = {
       header: () => t('fold.header'),
       count: (n: number) => t('fold.count', { n }),
+      duration: formatDuration,
     }
     const raf = typeof requestAnimationFrame === 'function'
       ? requestAnimationFrame

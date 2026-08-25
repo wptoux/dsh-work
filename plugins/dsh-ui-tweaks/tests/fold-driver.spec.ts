@@ -15,12 +15,13 @@ import {
   type FoldSessionHandle,
   type FoldSessionSource,
 } from '../src/client/fold-driver'
-import type { FoldCopy } from '../src/client/fold-dom'
+import { formatDuration, type FoldCopy } from '../src/client/fold-dom'
 
 /** @vitest-environment jsdom */
 const COPY: FoldCopy = {
   header: () => '已处理',
   count: (n: number) => `${n} 条`,
+  duration: formatDuration,
 }
 
 function node(key: string, kind: string, anchorSeq: number, turn?: number): DriverNode {
@@ -31,15 +32,19 @@ interface SnapBuild {
   openState?: DriverSnapshot['openState']
   hasMore?: boolean
   loadingOlder?: boolean
-  turns?: Array<[number, boolean, boolean]>
+  /** [turn, startLoaded, endLoaded, startTime?, endTime?] — times default to 1000/2000 when loaded. */
+  turns?: Array<[number, boolean, boolean, startTime?: number, endTime?: number]>
   order?: readonly string[]
   nodes?: Array<[key: string, kind: string, seq: number, turn?: number]>
 }
 
 function snap(build: SnapBuild): DriverSnapshot {
-  const turns = new Map<number, { start?: unknown; end?: unknown }>()
-  for (const [n, startLoaded, endLoaded] of build.turns ?? []) {
-    turns.set(n, { start: startLoaded ? {} : undefined, end: endLoaded ? {} : undefined })
+  const turns = new Map<number, { startTime?: number; endTime?: number }>()
+  for (const [n, startLoaded, endLoaded, startTime, endTime] of build.turns ?? []) {
+    turns.set(n, {
+      startTime: startLoaded ? startTime ?? 1000 : undefined,
+      endTime: endLoaded ? endTime ?? 2000 : undefined,
+    })
   }
   const store = new Map<string, DriverNode>()
   for (const [key, kind, seq, turn] of build.nodes ?? []) store.set(key, node(key, kind, seq, turn))
@@ -110,7 +115,7 @@ describe('windowFromSnapshot', () => {
     })
     const w = windowFromSnapshot(s)
     expect(w).not.toBeNull()
-    expect(w?.turns.get(1)).toEqual({ turn: 1, startLoaded: true, endLoaded: true })
+    expect(w?.turns.get(1)).toEqual({ turn: 1, startLoaded: true, endLoaded: true, durationMs: 1000 })
     expect(w?.nodes.map(n => [n.key, n.turn])).toEqual([['u1', 1], ['a1', 1], ['ctx1', undefined]])
     expect(w?.hasMore).toBe(false)
   })
@@ -118,6 +123,28 @@ describe('windowFromSnapshot', () => {
   it('returns null while the session is not open', () => {
     expect(windowFromSnapshot(snap({ openState: 'loading' }))).toBeNull()
     expect(windowFromSnapshot(snap({ openState: 'cold' }))).toBeNull()
+  })
+
+  it('derives the turn duration from the boundary timestamps', () => {
+    const s = snap({
+      turns: [[1, true, true, 500_000, 696_000]],
+      nodes: [['u1', 'user', 10, 1], ['a1', 'assistant-step', 20, 1]],
+    })
+    const w = windowFromSnapshot(s)
+    expect(w?.turns.get(1)).toMatchObject({ startLoaded: true, endLoaded: true, durationMs: 196_000 })
+  })
+
+  it('leaves the duration undefined while either boundary timestamp is missing', () => {
+    const open = windowFromSnapshot(snap({
+      turns: [[1, true, false, 500_000]],
+      nodes: [],
+    }))
+    expect(open?.turns.get(1)?.durationMs).toBeUndefined()
+    const split = windowFromSnapshot(snap({
+      turns: [[1, false, true, undefined, 696_000]],
+      nodes: [],
+    }))
+    expect(split?.turns.get(1)?.durationMs).toBeUndefined()
   })
 })
 

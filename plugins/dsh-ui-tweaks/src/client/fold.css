@@ -51,6 +51,12 @@
   color: var(--dsw-alias-label-tertiary, #6e6c78);
 }
 
+.dsh-fold-duration {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-tertiary, #6e6c78);
+}
+
 /* Rows inside a collapsed fold are hidden; an expanded fold restores them. */
 [data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {
   display: none !important;
