@@ -156,12 +156,11 @@ describe('innerPathOf / loopbackOnlyDenial', () => {
     expect(innerPathOf('/remote/api/%5csecret')).toBeUndefined()
   })
 
-  it('denies privileged SDK methods, pairing, update, plugin-manager, desktop-launcher, and the settings bridge', () => {
+  it('denies privileged SDK methods, pairing, plugin-manager, desktop-launcher, and the settings bridge', () => {
     expect(loopbackOnlyDenial('/api/settings.update')).toBeDefined()
     expect(loopbackOnlyDenial('/api/pair')).toBeDefined()
     expect(loopbackOnlyDenial('/api/pair/status')).toBeDefined()
     expect(loopbackOnlyDenial('/api/pair/revoke')).toBeDefined()
-    expect(loopbackOnlyDenial('/api/update/run')).toBeDefined()
     expect(loopbackOnlyDenial('/api/plugin-manager/install')).toBeDefined()
     expect(loopbackOnlyDenial('/api/dsh-desktop-launcher')).toBeDefined()
     expect(loopbackOnlyDenial('/api/dsh-desktop-launcher/shutdown')).toBeDefined()

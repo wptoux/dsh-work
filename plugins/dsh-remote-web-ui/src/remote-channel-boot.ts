@@ -35,7 +35,6 @@ export function buildRemoteChannelBootScript(rules: RemoteChannelRules = REMOTE_
     'var R=' + json + ';' +
     'function sf(p){' +
     'if(p.indexOf(R.pairPrefix)===0)return false;' +
-    'if(p.indexOf(R.updatePrefix)===0)return false;' +
     'if(p===R.desktopLauncherPrefix||p.indexOf(R.desktopLauncherPrefix+"/")===0)return false;' +
     'if(p===R.settingsBridgePrefix||p.indexOf(R.settingsBridgePrefix+"/")===0)return false;' +
     'if(p.indexOf(R.apiPrefix)===0)return true;' +

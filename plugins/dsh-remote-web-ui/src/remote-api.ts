@@ -14,7 +14,7 @@
  * - The SDK's loopback-only privileged methods (native dialogs, the settings
  *   plane, credentials — the `PRIVILEGED_METHODS` set of client-connection)
  *   are denied here. The set is pinned by tests/remote-contract.spec.ts.
- * - `/api/pair/*`, `/api/update/*`, `/api/plugin-manager/*`,
+ * - `/api/pair/*`, `/api/plugin-manager/*`,
  *   `/api/dsh-desktop-launcher/*` and `/api/dsh-web-ui-settings/*` stay physically local.
  * - Everything else is HTTP- or WebSocket-proxied to the local port with
  *   Host rewritten, Origin and cookies dropped, and a synthetic same-origin
@@ -110,9 +110,6 @@ export function innerPathOf(pathname: string): string | undefined {
 export function loopbackOnlyDenial(innerPath: string): string | undefined {
   if (innerPath === '/api/pair' || innerPath.startsWith('/api/pair/')) {
     return 'pairing endpoints stay loopback-only and stay unreachable from a paired remote desktop'
-  }
-  if (innerPath === '/api/update' || innerPath.startsWith('/api/update/')) {
-    return 'update endpoints stay loopback-only and stay unreachable from a paired remote desktop'
   }
   if (innerPath === PLUGIN_MANAGER_PATH || innerPath.startsWith(`${PLUGIN_MANAGER_PATH}/`)) {
     return 'plugin-manager stays loopback-only and stays unreachable from a paired remote desktop'

@@ -2,18 +2,16 @@
 
 
 English | [中文](README.zh.md)
-> Remote access for phones and computers + one-click updates: pair a phone to use the current dsh web workspace remotely, or pair a computer browser through the same token to run the full Web GUI from another device; the sidebar checks for a newer dsh-web-ui release after it loads and marks the update button when one is available; clicking it updates the family.
+> Remote access for phones and computers: pair a phone to use the current dsh web workspace remotely, or pair a computer browser through the same token to run the full Web GUI from another device.
 
 This repository is an external plugin package for DeepSeek Harness (DSH):
-pairing-based remote access for the dsh web GUI on phones and computers, plus
-a one-click self-update for the dsh-web-ui family. It is a single
-dual-face package — the host half owns pairing tokens, device sessions, the
-`/api/pair` route family, the gated `/remote` desktop channel, and the
-`/api/update` surface; the browser half renders the sidebar-foot entries (the
-download trigger and an icon-only remote-access entry beside the settings
-button), the pairing panel with a QR code, live device status, an
-authorized-device list, and stop/refresh/copy actions, and the update panel
-that probes and runs the update.
+pairing-based remote access for the dsh web GUI on phones and computers. It is
+a single dual-face package — the host half owns pairing tokens, device
+sessions, the `/api/pair` route family and the gated `/remote` desktop
+channel; the browser half renders the sidebar-foot remote-access entry (an
+icon-only entry beside the settings button), the pairing panel with a QR
+code, live device status, an authorized-device list, and stop/refresh/copy
+actions.
 
 ## What it does
 
@@ -90,7 +88,7 @@ that probes and runs the update.
   SDK's loopback-only privileged methods (native dialogs, the settings and
   credentials plane) stay unreachable from a paired remote desktop;
   `/api/pair/*` (including the paired model-catalog routes),
-  `/api/update/*`, `/api/plugin-manager/*`, `/api/dsh-desktop-launcher/*`
+  `/api/plugin-manager/*`, `/api/dsh-desktop-launcher/*`
   and `/api/dsh-web-ui-settings/*` control endpoints stay loopback-only. Unpaired desktop browsers get a persistent
   full-page block instead of data (the page keys off the `unpaired` error
   code, not every 403). The block retires once a gated call succeeds or the
@@ -108,26 +106,9 @@ that probes and runs the update.
 - **Live status**: the desktop panel mirrors the pairing state in real time
   (waiting → connected → disconnected) over an SSE stream, including the
   authorized-device list.
-- **Remote update**: the download trigger in the sidebar foot (left of the
-  phone icon) performs a silent status probe after the sidebar loads. When a
-  newer registry release is available, the trigger shows a dot and the "New
-  version available. Check for updates" tooltip. Clicking the trigger opens the
-  update panel, which probes the npm registry for the installed
-  `@linxin666/dsh-*` family releases. Without the aggregate package, checks and
-  updates cover every registry-managed direct `@linxin666/*` dependency in the
-  profile; local link/file development dependencies are skipped. When a newer
-  release exists, the panel shows the version comparison and waits for
-  confirmation — clicking "Update now" runs the update (`pnpm update --latest` inside the
-  owning dsh profile; when pnpm is missing it falls back to `corepack pnpm`
-  and then `npx --yes pnpm`, and on Windows the command runs through
-  `cmd.exe` so npm-installed `.cmd` shims resolve; the loopback-only
-  `/api/update/status` + `/api/update/run` endpoints drive it) and asks for
-  a dsh web restart to pick it up. After a green pnpm exit the installed
-  versions are re-checked against the registry: a green exit that left every
-  version in place (e.g. the pnpm `minimumReleaseAge` gate silently skipping
-  same-day releases) is reported as a stale update with configuration
-  guidance instead of a false success. When the anchor itself is a local link
-  install (development mode), it reports the npm state without updating.
+- **Remote update**: removed in this frozen fork — the dsh-web-ui
+  self-update surface (sidebar download trigger, `/api/update` endpoints, npm
+  registry probes) was cut; the fork never updates plugins from npm.
 
 ## Screenshots
 

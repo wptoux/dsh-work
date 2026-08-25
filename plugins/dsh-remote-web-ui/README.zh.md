@@ -2,9 +2,9 @@
 
 [English](README.md) | 中文
 
-> 手机与电脑远程访问 + 一键远程更新：扫码配对后用手机远程使用当前 dsh web 工作区，同一枚令牌也可配对电脑浏览器、在其他设备上运行完整 Web GUI；侧边栏加载后静默检查 dsh-web-ui 全家桶新版本，发现时标记更新按钮；点击按钮后自动更新全家桶。
+> 手机与电脑远程访问：扫码配对后用手机远程使用当前 dsh web 工作区，同一枚令牌也可配对电脑浏览器、在其他设备上运行完整 Web GUI。
 
-本仓库是 DeepSeek Harness（DSH）的外部插件包：为 dsh web GUI 提供基于配对的手机与电脑远程访问，外加 dsh-web-ui 全家桶的一键自更新。它是单一双半区包——host 半区持有配对令牌、设备会话、`/api/pair` 路由族、门控的 `/remote` 桌面通道与 `/api/update` 面板；浏览器半区渲染侧边栏底部入口（下载触发按钮与设置按钮旁的手机图标入口）、带二维码的配对面板、实时设备状态、已授权设备列表，以及停止/刷新/复制操作，还渲染探测并执行更新的更新面板。
+本仓库是 DeepSeek Harness（DSH）的外部插件包：为 dsh web GUI 提供基于配对的手机与电脑远程访问。它是单一双半区包——host 半区持有配对令牌、设备会话、`/api/pair` 路由族与门控的 `/remote` 桌面通道；浏览器半区渲染侧边栏底部入口（设置按钮旁的手机图标入口）、带二维码的配对面板、实时设备状态、已授权设备列表，以及停止/刷新/复制操作。
 
 ## 功能
 
@@ -14,10 +14,10 @@
 - **PC 侧（远程桌面配对）**：同一份二维码链接和配对令牌也能配对 PC 浏览器——把手机侧配对流扩展到桌面 Web GUI。从面板复制链接，在另一台电脑的浏览器打开（局域网 URL 或隧道 URL 均可）；接受往返后，完整 Web GUI 在那台设备上运行——工作区、会话、聊天、切模型——受围栏保护的同源流量走门控的 `/remote` 通道，而不是直接调用仅 loopback 的 host 路由。手机进 `/m/`，PC 进桌面 UI：一枚令牌、一套配对流、两种界面。未配对的 PC 只看到不渲染底层数据的完整阻断页，其中提供电脑配对步骤与「重新检测」操作。
 - **安全**：一个有效的一次性令牌（刷新会使旧链接失效；已接受的令牌不可复用；令牌会过期）。停止会撤销每一台已配对设备与当前令牌——已配对设备在下一次请求时被切断。配对是本插件对自己远程通道的访问控制：手机走 `/m/api`，非 loopback origin 打开的桌面浏览器走 `/remote`。未配对调用方在 `requirePairingForLan` 开启（默认）时会在读取请求体之前就被 `/remote` 拒绝。loopback（127.0.0.1）继续直接使用 `/api`。默认的远程桌面路径不使用 `--trusted-host`：连接插件的 `/api` 围栏对公网和局域网主机保持关闭，已配对 PC 改走 `/remote`。`--trusted-host` 是 SDK 的另一种用法，会让该主机被信任访问 `/api` 本身——配对不门控 `/api`（任何插件都无法做到；围栏是 SDK 自己的接缝）。当 `/api` 无需配对即可到达时，下方姿态探测会报告该姿态。
 - **已配对模型目录**：已认证的已配对设备可使用 `GET /api/pair/model-catalog`、`POST /api/pair/model-catalog/discover` 和 `POST /api/pair/model-catalog/upsert`，仅查看并采纳一个现有、活跃的 `llm-pi-ai` provider 的模型。该能力在内部固定 provider 的 settings 地址，不能创建 provider，也不能读取或修改凭据、通用 settings、端点、header 或任意配置。这三条精确路由在 connection 插件的 `/api` 前缀之前匹配，已配对的局域网或隧道客户端可直接调用，并套用与 `/api/pair` 兄弟端点相同的 Host/Origin 信任围栏：仅接受 loopback、广告的局域网字面量或配置的公网 base URL。经 `/remote` 桌面通道访问时，所有 `/api/pair/*` 路径仍保持仅 loopback。当 provider 的实时模型目录不可用或未知时，采纳会被拒绝。解析后的 `models` 列表缺失或为空时，provider 会继续继承已安装目录；只有加入未知的自定义模型时才会实体化完整目录，现有模型 override 会保留并转换到对应条目。格式错误或相互冲突的模型配置会被拒绝，不会被破坏性重写。停止或撤销设备会立即禁用它；通用 `settings.*`、`credentials.*` 和 `llm.discoverModels` RPC 方法仍然仅限 loopback。
-- **远程桌面通道**：`requirePairingForLan` 开启（默认）时，经局域网 URL 或隧道打开的桌面 Web GUI 透明地改走 `/remote`——同一套 UI，同一枚配对 cookie 门控。改写补丁在解析期即生效：宿主把一段内联 classic script 注入到 `<head>` 开标签之后（`webserver/index-inject`），使 fetch/WebSocket/EventSource 与资源 `src` 改写在任何启动条目执行前就绪（连接插件最先打开事件流）；浏览器半边随后接管已安装的 seat 而非重复打补丁。loopback 来源完全跳过该补丁。浏览器中 `/api`、`/sidebar`、`/git`、`/pet` 下的请求，以及已知的事件、终端与 SSH WebSocket，会在不转发远程 Origin 或配对 cookie 的前提下重新发给本机 Web Server；认证反代会为兄弟路由围栏提供自己生成的同源浏览器标记。SDK 的 loopback 专属特权方法（原生对话框、settings 与 credentials 面）对已配对远程桌面保持不可达；`/api/pair/*`（包括三条模型目录路由）、`/api/update/*`、`/api/plugin-manager/*`、`/api/dsh-desktop-launcher/*` 与 `/api/dsh-web-ui-settings/*` 控制端点保持仅 loopback。未配对的桌面浏览器看到持久的全页阻断界面而不是数据（阻断页按错误码 `unpaired` 触发，不是任意 403）。阻断页在任一门控调用成功后，或通道本身被拆除时退出——把 `requirePairingForLan` 关掉（或关闭插件）也会清掉通道短暂激活期间弹出的提示。
+- **远程桌面通道**：`requirePairingForLan` 开启（默认）时，经局域网 URL 或隧道打开的桌面 Web GUI 透明地改走 `/remote`——同一套 UI，同一枚配对 cookie 门控。改写补丁在解析期即生效：宿主把一段内联 classic script 注入到 `<head>` 开标签之后（`webserver/index-inject`），使 fetch/WebSocket/EventSource 与资源 `src` 改写在任何启动条目执行前就绪（连接插件最先打开事件流）；浏览器半边随后接管已安装的 seat 而非重复打补丁。loopback 来源完全跳过该补丁。浏览器中 `/api`、`/sidebar`、`/git`、`/pet` 下的请求，以及已知的事件、终端与 SSH WebSocket，会在不转发远程 Origin 或配对 cookie 的前提下重新发给本机 Web Server；认证反代会为兄弟路由围栏提供自己生成的同源浏览器标记。SDK 的 loopback 专属特权方法（原生对话框、settings 与 credentials 面）对已配对远程桌面保持不可达；`/api/pair/*`（包括三条模型目录路由）、`/api/plugin-manager/*`、`/api/dsh-desktop-launcher/*` 与 `/api/dsh-web-ui-settings/*` 控制端点保持仅 loopback。未配对的桌面浏览器看到持久的全页阻断界面而不是数据（阻断页按错误码 `unpaired` 触发，不是任意 403）。阻断页在任一门控调用成功后，或通道本身被拆除时退出——把 `requirePairingForLan` 关掉（或关闭插件）也会清掉通道短暂激活期间弹出的提示。
 - **姿态探测**：插件用伪造 Host 头（公网 base 与每个 LAN base）探测 SDK 的 `/api` 围栏。403 是默认姿态（围栏关闭，远程访问走配对）。任何非 403 结果——`--trusted-host`，或 `--host 0.0.0.0` 下 SDK 的局域网自动信任——都会以 CRITICAL 日志与配对面板红色横幅呈现，因此 SDK 的 `/api` 信任姿态是被看见的，而不是被假设的。探测失败会丢掉进行中的目标缓存，相同 origin 会在下次触发时重试。
 - **实时状态**：桌面面板经 SSE 流实时镜像配对状态（等待 → 已连接 → 已断开），并展示已授权设备名单。
-- **远程更新**：侧边栏加载后，底部的下载触发按钮（手机图标左侧）会静默探测 npm registry 上已安装的 `@linxin666/dsh-*` 全家桶版本；发现可自动更新的新版本时，按钮显示圆点并提供“发现新版本，检查更新”提示。点击按钮打开更新面板；未安装聚合包时，检查和更新覆盖 profile 中 registry 管理的全部 `@linxin666/*` 直接依赖，本地 link / file 开发依赖会被跳过。当存在较新版本时，面板展示版本对比并等待确认——点击「开始更新」后执行更新（在所属 dsh profile 内 `pnpm update --latest`；pnpm 缺失时依次回退 `corepack pnpm`、`npx --yes pnpm`，Windows 上经 `cmd.exe` 执行以解析 npm 安装的 `.cmd` shim；由仅 loopback 的 `/api/update/status` + `/api/update/run` 端点驱动）并请求重启 dsh web 以生效。pnpm 绿色退出后还会对照 registry 复核已装版本：绿色退出但版本纹丝不动（例如 pnpm 的 `minimumReleaseAge` 门禁静默跳过同日发布的新版本）会报告为「未更新成功」并附配置指引，而不是误报成功。锚点自身是本地 link 安装（开发模式）时，只报告 npm 状态而不更新。
+- **远程更新**：本冻结 fork 已移除（侧边栏下载触发按钮、`/api/update` 端点与 npm registry 探测一并删除；本 fork 不从 npm 更新插件）。
 
 ## 截图
 

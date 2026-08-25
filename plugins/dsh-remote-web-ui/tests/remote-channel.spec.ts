@@ -27,11 +27,10 @@ describe('rewrite rules', () => {
     expect(isLoopbackHostname('dsh.example.com')).toBe(false)
   })
 
-  it('rewrites fenced paths but never pair, update, desktop-launcher, settings-bridge, mobile, or asset paths', () => {
+  it('rewrites fenced paths but never pair, desktop-launcher, settings-bridge, mobile, or asset paths', () => {
     expect(shouldRewriteFetchPath('/api/session.list')).toBe(true)
     expect(shouldRewriteFetchPath('/api/session.export')).toBe(true)
     expect(shouldRewriteFetchPath('/api/pair/accept')).toBe(false)
-    expect(shouldRewriteFetchPath('/api/update/status')).toBe(false)
     expect(shouldRewriteFetchPath('/api/dsh-desktop-launcher/shutdown')).toBe(false)
     expect(shouldRewriteFetchPath('/api/dsh-desktop-launcher/create')).toBe(false)
     expect(shouldRewriteFetchPath('/api/dsh-web-ui-settings/describe')).toBe(false)
@@ -160,17 +159,15 @@ describe('installRemoteChannel', () => {
     }
   })
 
-  it('leaves pair, update, cross-origin, and non-api fetches untouched', async () => {
+  it('leaves pair, cross-origin, and non-api fetches untouched', async () => {
     const window = makeWindow()
     const restore = installRemoteChannel(window)
     try {
       await window.fetch('/api/pair/accept', { method: 'POST' })
-      await window.fetch('/api/update/status')
       await window.fetch('https://evil.example.com/api/session.list')
       await window.fetch('/assets/app.js')
       expect(window.state.fetchCalls.map(call => call.url)).toEqual([
         'https://tunnel.example.com/api/pair/accept',
-        'https://tunnel.example.com/api/update/status',
         'https://evil.example.com/api/session.list',
         'https://tunnel.example.com/assets/app.js',
       ])

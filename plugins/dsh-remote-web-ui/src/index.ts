@@ -20,7 +20,7 @@ import { DEFAULT_IDLE_EXPIRE_MS, PairingService, type PairingConfig } from './pa
 import { dshHome } from './dsh-home.ts'
 import { isPairedDeviceRequest, makeGateListener } from './gate.ts'
 import { RemoteWebUiPairing } from './pairing-access.ts'
-import { isTrustedApiRequest, makeRoutes } from './routes.ts'
+import { makeRoutes } from './routes.ts'
 import { makeMobileRoutes } from './mobile-routes.ts'
 import { makeMobileApiRoutes } from './mobile-api.ts'
 import { PendingTracker } from './mobile-pending.ts'
@@ -29,15 +29,6 @@ import { makeRemoteApiRoutes, makeRemoteApiUpgradeRoutes } from './remote-api.ts
 import { claimPostureKey, postureTargets, probePosture, releasePostureKey } from './posture.ts'
 import { lanIPv4Addresses } from './lan.ts'
 import { TunnelManager, type TunnelInfo } from './tunnel.ts'
-import {
-  checkUpdates,
-  fetchLatestVersion,
-  resolveAnchorManifest,
-  resolveUpdateTarget,
-  runUpdateVerified,
-  type UpdateRunResult,
-} from './update.ts'
-import { makeUpdateRoutes } from './update-routes.ts'
 import { mountOnce } from './mount-once.ts'
 import { REMOTE_CHANNEL_BOOT_SCRIPT } from './remote-channel-boot.ts'
 import { UUID_POLYFILL_SCRIPT } from './uuid-polyfill.ts'
@@ -293,69 +284,6 @@ function applyImpl(ctx: Context, config?: Config): void {
   if (apiProxy === undefined) {
     console.warn('remote-web-ui: apiProxy service unavailable — the mobile data channel is disabled')
   }
-  // ── remote update ────────────────────────────────────────────────────────
-  // The dsh-web-ui self-update surface: probe the npm registry for family
-  // releases and run `pnpm update --latest` in the owning profile. Resolutions
-  // anchor on the host process's own module graph, so the update always
-  // targets the profile the running web GUI was booted from. The anchor path
-  // is re-resolved per operation: pnpm removes the old version's .pnpm
-  // directory on update, so a boot-time captured path would fail to read
-  // after a successful update; versions are re-read from disk per check.
-  const requireFromHost = createRequire(import.meta.url)
-  const resolveAnchorPath = (): string | undefined => resolveAnchorManifest(specifier => {
-    try {
-      return requireFromHost.resolve(specifier)
-    } catch {
-      return undefined
-    }
-  })
-  const updateRoutes = makeUpdateRoutes({
-    // Control endpoints are host-surface only: a LAN/phone origin must never
-    // trigger a real install on this machine.
-    fence: request => isTrustedApiRequest(request, []),
-    check: () => checkUpdates({
-      anchorManifestPath: resolveAnchorPath(),
-      resolve: specifier => {
-        try {
-          return requireFromHost.resolve(specifier)
-        } catch {
-          return undefined
-        }
-      },
-      fetchLatest: name => fetchLatestVersion(name, fetch),
-    }),
-    run: async (): Promise<UpdateRunResult> => {
-      const target = resolveUpdateTarget({ anchorManifestPath: resolveAnchorPath() })
-      if ('error' in target) {
-        const code = target.error
-        return {
-          ok: false,
-          exitCode: null,
-          output: '',
-          error: code === 'not-found' ? 'dsh-web-ui aggregate not installed' : 'local link install — update unavailable',
-          errorCode: code,
-        }
-      }
-      // Verify the versions actually moved after a green pnpm exit: the pnpm
-      // 11 minimumReleaseAge gate can silently keep the installed versions
-      // (same-day releases), which a plain exit-0 check would report as
-      // success — the user then restarts and nothing changed.
-      return runUpdateVerified({
-        run: { profileDir: target.profileDir, packages: target.packages },
-        check: {
-          anchorManifestPath: resolveAnchorPath(),
-          resolve: specifier => {
-            try {
-              return requireFromHost.resolve(specifier)
-            } catch {
-              return undefined
-            }
-          },
-          fetchLatest: name => fetchLatestVersion(name, fetch),
-        },
-      })
-    },
-  })
   const routes = [
     ...makeRoutes({ service, lanAddresses, requirePairingForLan: () => resolve().requirePairingForLan }),
     ...makeMobileRoutes(),
@@ -373,7 +301,6 @@ function applyImpl(ctx: Context, config?: Config): void {
       port: ctx.webServer.port,
       requirePairingForLan: () => resolve().requirePairingForLan,
     }),
-    ...updateRoutes,
   ]
   const upgrades = makeRemoteApiUpgradeRoutes({
     service,

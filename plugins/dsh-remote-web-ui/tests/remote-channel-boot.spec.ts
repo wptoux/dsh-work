@@ -16,7 +16,6 @@ const PATH_MATRIX = [
   '/api/session.list',
   '/api/events.mux',
   '/api/pair/accept',
-  '/api/update/status',
   '/api/dsh-desktop-launcher/shutdown',
   '/api/dsh-web-ui-settings/mutate',
   '/sidebar/api/fs.tree',
