@@ -137,18 +137,34 @@ export function applyFoldPlan(
     lastRow.setAttribute(FOLD_LAST_ATTR, String(fold.turn))
     lastRow.setAttribute(FOLD_LAST_EXPANDED_ATTR, open ? 'true' : 'false')
 
+    // The「已处理」header leads the block: it sits above the FIRST hidden row
+    // (or above the last reply for single-message turns) so the fold expands
+    // DOWNWARD from the header, which never moves out of place.
+    const anchorRow = firstHiddenRow(container, fold.hiddenKeys) ?? lastRow
+
     let header = directHeaders(container).find(h => h.getAttribute(FOLD_TURN_ATTR) === String(fold.turn))
     if (header === undefined) {
       header = makeHeader(fold.turn, open, copy)
-      lastRow.parentNode?.insertBefore(header, lastRow)
+      anchorRow.parentNode?.insertBefore(header, anchorRow)
     } else {
       header.setAttribute('aria-expanded', open ? 'true' : 'false')
       const label = header.querySelector<HTMLElement>('.dsh-fold-label')
       if (label !== null) label.textContent = copy.header()
-      if (header.nextElementSibling !== lastRow) {
-        lastRow.parentNode?.insertBefore(header, lastRow)
+      if (header.nextElementSibling !== anchorRow) {
+        anchorRow.parentNode?.insertBefore(header, anchorRow)
       }
     }
     setCountBadge(header, fold.hiddenCount, copy)
   }
+}
+
+/** First row in flow order whose key is a member of the fold's hidden set. */
+function firstHiddenRow(container: HTMLElement, hiddenKeys: readonly string[]): HTMLElement | undefined {
+  if (hiddenKeys.length === 0) return undefined
+  const hidden = new Set(hiddenKeys)
+  for (const child of container.children) {
+    const key = child.getAttribute('data-chat-flow-key')
+    if (key !== null && hidden.has(key)) return child as HTMLElement
+  }
+  return undefined
 }

@@ -154,7 +154,7 @@ describe('createFoldDriver', () => {
     const dispose = driver.start()
     expect(containers[0].querySelectorAll('[data-dsh-fold-header]').length).toBe(1)
     expect(containers[0].querySelectorAll('[data-dsh-fold-row]').length).toBe(2)
-    expect(containers[0].querySelector('[data-dsh-fold-turn="1"]')?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a2')
+    expect(containers[0].querySelector('[data-dsh-fold-turn="1"]')?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a1')
     dispose()
   })
 
@@ -250,19 +250,7 @@ describe('createFoldDriver', () => {
     expect(containers[0].querySelector('[data-dsh-fold-turn="1"]')?.getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('keeps the toggled header anchored in view when expanding shoves it down', () => {
-    const scroller = document.createElement('div')
-    scroller.dataset.conversationScroll = ''
-    const container = flowContainer([
-      ['u1', 'user'],
-      ['a1', 'assistant-step'],
-      ['t1', 'tool-result'],
-      ['a2', 'assistant-step'],
-      ['tail', 'turn-tail'],
-    ])
-    scroller.appendChild(container)
-    document.body.replaceChildren(scroller)
-    containers = [container]
+  it('keeps the fold header as the first row of its block through a toggle', () => {
     const snapshot = () => snap({
       turns: [[1, true, true]],
       nodes: [
@@ -276,22 +264,13 @@ describe('createFoldDriver', () => {
     source.set(fakeHandle('s1', snapshot))
     const driver = createFoldDriver(source.source, { containers: () => containers, copy: COPY })
     driver.start()
-    const header = container.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
-    expect(header).not.toBeNull()
-    // Simulate the layout push: the header reports 100px from the viewport top
-    // before the toggle and 400px after the re-apply (the hidden rows above it
-    // became visible and pushed it down).
-    let calls = 0
-    Object.defineProperty(header as HTMLElement, 'getBoundingClientRect', {
-      configurable: true,
-      value: () => {
-        calls += 1
-        return { top: calls === 1 ? 100 : 400 } as unknown as DOMRect
-      },
-    })
-    scroller.scrollTop = 50
-    driver.toggle(1)
-    // The driver scrolls the container back so the header stays at y=100.
-    expect(scroller.scrollTop).toBe(350)
+    const before = containers[0].querySelector('[data-dsh-fold-turn="1"]')?.nextElementSibling?.getAttribute('data-chat-flow-key')
+    driver.toggle(1) // expand — header stays at the top, messages expand below
+    const after = containers[0].querySelector('[data-dsh-fold-turn="1"]')?.nextElementSibling?.getAttribute('data-chat-flow-key')
+    driver.toggle(1) // collapse
+    const collapsed = containers[0].querySelector('[data-dsh-fold-turn="1"]')?.nextElementSibling?.getAttribute('data-chat-flow-key')
+    expect(before).toBe('a1')
+    expect(after).toBe('a1')
+    expect(collapsed).toBe('a1')
   })
 })

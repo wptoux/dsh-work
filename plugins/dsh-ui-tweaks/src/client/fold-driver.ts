@@ -131,12 +131,23 @@ export function createFoldDriver(source: FoldSessionSource, options: FoldDriverO
     if (next.has(turn)) next.delete(turn)
     else next.add(turn)
     expanded = next
-    // Expanding inserts the hidden rows ABOVE the header, shoving it down out
-    // of the viewport; anchor its position so the user can immediately click
-    // again to collapse (the fold opens in place).
-    const anchor = captureFoldHeaderAnchor(options.containers(), turn)
+    const header = findFoldHeader(options.containers(), turn)
     run()
-    restoreFoldHeaderAnchor(anchor)
+    // The header leads the block and does not move on toggle; the only way it
+    // can leave the viewport is the chat's at-bottom scroll-follow racing the
+    // layout change. Re-assert it after the frame (rAF runs after ResizeObserver
+    // callbacks), only when it actually left the scroller's visible area.
+    if (header !== null && header.isConnected && typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        if (!header.isConnected) return
+        const container = header.parentElement
+        const scroller = container === null ? null : scrollerOf(container)
+        if (scroller === null) return
+        const h = header.getBoundingClientRect()
+        const s = scroller.getBoundingClientRect()
+        if (h.bottom < s.top || h.top > s.bottom) header.scrollIntoView({ block: 'nearest' })
+      })
+    }
   }
 
   const start = (): (() => void) => {
@@ -147,36 +158,19 @@ export function createFoldDriver(source: FoldSessionSource, options: FoldDriverO
   return { run, toggle, start }
 }
 
-/** Viewport anchor of one fold header, captured before a toggle re-applies. */
-interface FoldHeaderAnchor {
-  readonly header: HTMLElement
-  readonly top: number
-  readonly scroller: HTMLElement | null
-}
-
 /** The scroll container the header moves in (the ChatView scroll column). */
 function scrollerOf(container: HTMLElement): HTMLElement | null {
   return container.closest('[data-conversation-scroll]') ?? container.parentElement ?? null
 }
 
-function captureFoldHeaderAnchor(
-  containers: readonly HTMLElement[],
-  turn: number,
-): FoldHeaderAnchor | null {
+function findFoldHeader(containers: readonly HTMLElement[], turn: number): HTMLElement | null {
   for (const container of containers) {
     for (const child of container.children) {
       const el = child as HTMLElement
       if (el.hasAttribute('data-dsh-fold-header') && el.getAttribute('data-dsh-fold-turn') === String(turn)) {
-        return { header: el, top: el.getBoundingClientRect().top, scroller: scrollerOf(container) }
+        return el
       }
     }
   }
   return null
-}
-
-/** Scroll the container back so the header returns to its captured viewport top. */
-function restoreFoldHeaderAnchor(anchor: FoldHeaderAnchor | null): void {
-  if (anchor === null || !anchor.header.isConnected || anchor.scroller === null) return
-  const delta = anchor.header.getBoundingClientRect().top - anchor.top
-  if (delta !== 0) anchor.scroller.scrollTop += delta
 }

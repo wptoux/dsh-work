@@ -44,11 +44,14 @@ describe('applyFoldPlan', () => {
     document.body.appendChild(container)
   })
 
-  it('inserts a「已处理」header directly before the last assistant row and hides the middle rows', () => {
+  it('inserts the「已处理」header at the TOP of the fold block (before the first hidden row) and hides the middle rows', () => {
     applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
     const header = container.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
     expect(header).not.toBeNull()
-    expect(header?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a2')
+    // The header leads the block; the hidden rows expand BELOW it, with the
+    // last reply at the block's end (downward expansion).
+    expect(header?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a1')
+    expect(header?.previousElementSibling?.getAttribute('data-chat-flow-key')).toBe('u1')
     expect(header?.getAttribute('aria-expanded')).toBe('false')
     expect(header?.textContent).toContain('已处理')
     expect(header?.textContent).toContain('2 条')
@@ -106,7 +109,7 @@ describe('applyFoldPlan', () => {
     expect(partial.querySelectorAll('[data-dsh-fold-row]').length).toBe(0)
   })
 
-  it('keeps multiple independent folds sorted with their own headers', () => {
+  it('keeps multiple independent folds sorted with their own headers at the top of each block', () => {
     const multi = containerWith([
       ...FULL_ROWS(),
       row('u2', 'user'),
@@ -124,20 +127,21 @@ describe('applyFoldPlan', () => {
     const headers = multi.querySelectorAll<HTMLElement>('[data-dsh-fold-header]')
     expect(headers.length).toBe(2)
     expect(headers[0].getAttribute('data-dsh-fold-turn')).toBe('1')
-    expect(headers[0].nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a2')
+    expect(headers[0].nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a1')
     expect(headers[1].getAttribute('data-dsh-fold-turn')).toBe('2')
     expect(headers[1].getAttribute('aria-expanded')).toBe('true')
-    expect(headers[1].nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a4')
+    expect(headers[1].nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a3')
   })
 
-  it('repositions a stale header when the flow reorders around it', () => {
+  it('re-anchors the header to the fold block\'s top when the rows reorder', () => {
     applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
-    // Simulate React reordering the last row to the end after a stream update.
-    const a2 = container.querySelector<HTMLElement>('[data-chat-flow-key="a2"]')
-    container.appendChild(a2)
+    // Simulate React moving the first hidden row to the end of the flow.
+    const a1 = container.querySelector<HTMLElement>('[data-chat-flow-key="a1"]')
+    container.appendChild(a1)
     applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
     const header = container.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
-    expect(header?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('a2')
+    // The block now starts at t1 (a1 moved after it).
+    expect(header?.nextElementSibling?.getAttribute('data-chat-flow-key')).toBe('t1')
     expect(container.querySelectorAll('[data-dsh-fold-header]').length).toBe(1)
   })
 
