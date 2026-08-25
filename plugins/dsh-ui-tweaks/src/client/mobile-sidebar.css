@@ -62,6 +62,24 @@
     grid-template-columns: 0 minmax(0, 1fr) 0 !important;
   }
 
+  /* Pin every column to its own grid line. Without this, hiding the sidebar
+     column (display:none) or turning it into the fixed drawer (position:
+     fixed) removes it from the grid flow, and CSS auto-placement then shifts
+     the center column into the zero-width first track (invisible) while the
+     details column lands in the full-width middle track — the message flow
+     disappears and only the details panel shows. */
+  [data-dsh-mobile-frame] [data-dsh-mobile-sidebar-col] {
+    grid-column: 1 / 2;
+  }
+
+  [data-dsh-mobile-frame] [data-dsh-mobile-center-col] {
+    grid-column: 2 / 3;
+  }
+
+  [data-dsh-mobile-frame] [data-dsh-mobile-details-col] {
+    grid-column: 3 / 4;
+  }
+
   /* Collapsed (rail): the column is gone entirely; only the trigger shows. */
   [data-dsh-mobile-frame][data-sidebar-collapsed] [data-dsh-mobile-sidebar-col] {
     display: none;

@@ -12,8 +12,8 @@
  * - the AppFrame is stamped with plugin-owned data attributes once it
  *   appears (the frame carries `data-sidebar-collapsed` /
  *   `data-details-collapsed` or an inline three-track
- *   `gridTemplateColumns`; its first child is the sidebar column — both
- *   verified against the served shell markup),
+ *   `gridTemplateColumns`; its grid children in DOM order are the sidebar,
+ *   center, and details columns — verified against the served shell markup),
  * - every visual rule lives in `mobile-sidebar.css`, scoped to the stamped
  *   attributes + the frame's own `data-sidebar-collapsed` state and gated
  *   by a `max-width: 767px` media query (the same breakpoint
@@ -33,6 +33,10 @@ import './mobile-sidebar.css'
 export const MOBILE_FRAME_ATTR = 'data-dsh-mobile-frame'
 /** Marker stamped onto the frame's first child, the sidebar column. */
 export const MOBILE_SIDEBAR_COL_ATTR = 'data-dsh-mobile-sidebar-col'
+/** Marker stamped onto the center (conversation) column. */
+export const MOBILE_CENTER_COL_ATTR = 'data-dsh-mobile-center-col'
+/** Marker stamped onto the details column. */
+export const MOBILE_DETAILS_COL_ATTR = 'data-dsh-mobile-details-col'
 /** The trigger/scrim host appended to <body>. */
 export const MOBILE_ROOT_ATTR = 'data-dsh-mobile-sidebar-root'
 
@@ -77,15 +81,27 @@ export function findMobileFrame(): HTMLElement | undefined {
 }
 
 /**
- * Stamp the frame and its sidebar column with plugin-owned markers.
+ * Stamp the frame and its three grid columns with plugin-owned markers.
+ * The column marks are what let the stylesheet pin each column to a fixed
+ * grid line: the sidebar column is hidden (collapsed) or turned into a
+ * fixed drawer (expanded), and either state would otherwise pull the
+ * remaining columns out of their tracks (CSS auto-placement skips items
+ * that leave the flow), collapsing the conversation to zero width.
  * @returns true once the frame is stamped (either now or already).
  */
 export function stampMobileFrame(): boolean {
   const frame = findMobileFrame()
   if (frame === undefined) return false
   frame.setAttribute(MOBILE_FRAME_ATTR, '')
-  const column = frame.firstElementChild
-  if (column instanceof HTMLElement) column.setAttribute(MOBILE_SIDEBAR_COL_ATTR, '')
+  const columns = [MOBILE_SIDEBAR_COL_ATTR, MOBILE_CENTER_COL_ATTR, MOBILE_DETAILS_COL_ATTR]
+  // DOM order of the frame's grid children (verified against the served
+  // shell): sidebar column, center column, details column — React fragments
+  // add no wrapper node; the overlay layer and drag handles that follow are
+  // absolute and stay out of the grid flow.
+  for (let index = 0; index < columns.length; index += 1) {
+    const node = frame.children[index]
+    if (node instanceof HTMLElement) node.setAttribute(columns[index], '')
+  }
   return true
 }
 

@@ -70,11 +70,13 @@ describe('frame discovery', () => {
     expect(findMobileFrame()).toBe(frame)
   })
 
-  it('stamps the frame and its sidebar column once, idempotently', () => {
+  it('stamps the frame and its three grid columns once, idempotently', () => {
     const { frame, sidebarCol } = hostFrame()
     expect(stampMobileFrame()).toBe(true)
     expect(frame.getAttribute('data-dsh-mobile-frame')).not.toBeNull()
     expect(sidebarCol.getAttribute(MOBILE_SIDEBAR_COL_ATTR)).not.toBeNull()
+    expect(frame.children[1]?.getAttribute('data-dsh-mobile-center-col')).not.toBeNull()
+    expect(frame.children[2]?.getAttribute('data-dsh-mobile-details-col')).not.toBeNull()
     expect(stampMobileFrame()).toBe(true)
     expect(frame.getAttribute('data-dsh-mobile-frame')).not.toBeNull()
   })
