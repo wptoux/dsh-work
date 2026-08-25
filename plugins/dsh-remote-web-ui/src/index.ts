@@ -202,7 +202,7 @@ const DEFAULTS: ResolvedConfig = {
  * @param ctx - host plugin context carrying webServer.
  * @param config - resolved plugin config (schema defaults applied by the loader).
  */
-export const apply = mountOnce('@linxin666/dsh-remote-web-ui', applyImpl)
+export const apply = mountOnce('dsh-remote-web-ui', applyImpl)
 
 function applyImpl(ctx: Context, config?: Config): void {
   const resolved: ResolvedConfig = {

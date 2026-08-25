@@ -10,7 +10,7 @@
 
 | 目录 | 包名 | 上游仓库 | 冻结 commit | 说明 |
 |---|---|---|---|---|
-| `dsh-remote-web-ui/` | `@linxin666/dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui | `a3b44d9`（tag v0.3.2） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下） |
+| `dsh-remote-web-ui/` | `dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui | `a3b44d9`（tag v0.3.2） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下） |
 | `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `d9b8f15`（tag v0.15.2） | 增强侧边栏 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
 
@@ -29,7 +29,7 @@ profile 依赖指向本地目录（symlink，改源码即生效）：
 ```json
 // ~/.dsh/profiles/web/package.json
 "dependencies": {
-  "@linxin666/dsh-remote-web-ui": "link:/root/dsh-work/plugins/dsh-remote-web-ui",
+  "dsh-remote-web-ui": "link:/root/dsh-work/plugins/dsh-remote-web-ui",
   "dsh-better-sidebar":      "link:/root/dsh-work/plugins/dsh-better-sidebar",
   "dsh-usage-stats":         "link:/root/dsh-work/plugins/dsh-usage-stats"
 }

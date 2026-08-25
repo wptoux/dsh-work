@@ -16,14 +16,22 @@ import { spawn } from 'node:child_process'
 /** npm registry base used for version probes. */
 export const NPM_REGISTRY = 'https://registry.npmjs.org'
 
-/** The family scope every dsh-web-ui package is published under. */
+/**
+ * The upstream family scope every dsh-web-ui package used to be published
+ * under. Kept as a legacy detection constant: the frozen fork no longer
+ * follows the family, but previously installed @linxin666/* packages in a
+ * profile must still be recognized by the update scanner.
+ */
 export const FAMILY_SCOPE = '@linxin666/'
 
-/** The aggregate package that is the canonical update entry point. */
+/**
+ * The upstream aggregate package (the canonical update entry point of the
+ * family). Legacy detection only — this fork never installs it.
+ */
 export const AGGREGATE_PACKAGE = '@linxin666/dsh-web-ui-all'
 
 /** Fallback anchor: this plugin's own package when the aggregate is absent. */
-export const SELF_PACKAGE = '@linxin666/dsh-remote-web-ui'
+export const SELF_PACKAGE = 'dsh-remote-web-ui'
 
 /** A profile manifest `name` prefix (e.g. `dsh-profile-web`). */
 const PROFILE_NAME_PREFIX = 'dsh-profile-'
@@ -334,7 +342,7 @@ function readInstalledVersion(
   } catch { /* fall through to the profile's direct dependency path */ }
   // Names originate in the profile dependency map, but still validate the
   // npm package shape before using one as path segments.
-  if (profileDir === undefined || !/^@linxin666\/[a-z0-9][a-z0-9._-]*$/.test(name)) return VERSION_UNKNOWN
+  if (profileDir === undefined || !/^(@linxin666\/)?[a-z0-9][a-z0-9._-]*$/.test(name)) return VERSION_UNKNOWN
   const version = readManifest(join(profileDir, 'node_modules', ...name.split('/'), 'package.json'))?.version
   return typeof version === 'string' ? version : VERSION_UNKNOWN
 }

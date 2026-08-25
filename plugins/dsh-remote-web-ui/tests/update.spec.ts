@@ -836,7 +836,7 @@ describe('fetchLatestVersion', () => {
       ok: true,
       json: async () => ({ version: '1.2.3' }),
     }))
-    const version = await fetchLatestVersion('@linxin666/dsh-remote-web-ui', fetchImpl)
+    const version = await fetchLatestVersion('dsh-remote-web-ui', fetchImpl)
     expect(version).toBe('1.2.3')
     expect(fetchImpl).toHaveBeenCalledTimes(1)
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit | undefined]
@@ -848,6 +848,6 @@ describe('fetchLatestVersion', () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('network down')
     })
-    await expect(fetchLatestVersion('@linxin666/dsh-remote-web-ui', fetchImpl)).resolves.toBeUndefined()
+    await expect(fetchLatestVersion('dsh-remote-web-ui', fetchImpl)).resolves.toBeUndefined()
   })
 })

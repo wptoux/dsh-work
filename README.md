@@ -13,7 +13,7 @@ dsh 插件源码本地化，锁死版本，自己修、自己裁、自己优化�
 
 | 目录 | 包名 | 功能 | 上游 | 冻结 commit |
 |---|---|---|---|---|
-| `plugins/dsh-remote-web-ui/` | `@linxin666/dsh-remote-web-ui` | 手机远程控制（扫码配对 + 自动隧道） | [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)（19 子包全家桶中**单独提取并裁剪**） | `a3b44d9`（v0.3.2） |
+| `plugins/dsh-remote-web-ui/` | `dsh-remote-web-ui` | 手机远程控制（扫码配对 + 自动隧道） | [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)（19 子包全家桶中**单独提取并裁剪**） | `a3b44d9`（v0.3.2） |
 | `plugins/dsh-better-sidebar/` | `dsh-better-sidebar` | 增强侧边栏 | [omdsh-dev/DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) | `d9b8f15`（v0.15.2） |
 | `plugins/dsh-usage-stats/` | `dsh-usage-stats` | 用量统计 | [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats) | `8373659`（v0.2.5） |
 
@@ -50,7 +50,7 @@ web profile 的 `~/.dsh/profiles/web/package.json` 通过 `link:` 依赖指向�
 
 ```json
 "dependencies": {
-  "@linxin666/dsh-remote-web-ui": "link:/root/dsh-work/plugins/dsh-remote-web-ui",
+  "dsh-remote-web-ui": "link:/root/dsh-work/plugins/dsh-remote-web-ui",
   "dsh-better-sidebar":      "link:/root/dsh-work/plugins/dsh-better-sidebar",
   "dsh-usage-stats":         "link:/root/dsh-work/plugins/dsh-usage-stats"
 }

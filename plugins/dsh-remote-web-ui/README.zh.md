@@ -41,7 +41,7 @@
 
 ```sh
 ### 从 npm 安装（推荐）
-dsh plugin --profile web add @linxin666/dsh-remote-web-ui@latest
+dsh plugin --profile web add dsh-remote-web-ui@latest
 
 ### 从仓库安装（开发调试）
 git clone https://github.com/zhu1090093659/dsh-web-ui.git
@@ -132,9 +132,9 @@ dsh web
 cd ~/code/dsh-web-ui
 export NPM_TOKEN='<token>'   # 仅当私有 @deepseek-ai 认证仍需要时
 pnpm install
-pnpm --filter @linxin666/dsh-remote-web-ui run build
-pnpm --filter @linxin666/dsh-remote-web-ui test
-pnpm --filter @linxin666/dsh-remote-web-ui run typecheck
+pnpm --filter dsh-remote-web-ui run build
+pnpm --filter dsh-remote-web-ui test
+pnpm --filter dsh-remote-web-ui run typecheck
 ```
 
 peer APIs 来自官方 NPM SDK：这里用到的每个 `@deepseek-ai/*` 包都声明在 devDependencies（rc.6）里，TypeScript/Vitest 直接从 node_modules 解析类型——无需 DSH 源码 checkout。消费者侧 `prepare` 构建（`tsdown.prepare.config.ts`）不做类型检查转译，因此 git 安装也无需任何 harness checkout。

@@ -12,7 +12,7 @@
  * The rewrite decisions are generated from REMOTE_CHANNEL_RULES, the same
  * data the browser patch consumes — the two cannot drift apart. The script
  * self-skips on loopback origins and never throws.
- * @module @linxin666/dsh-remote-web-ui/remote-channel-boot
+ * @module dsh-remote-web-ui/remote-channel-boot
  */
 
 import { REMOTE_CHANNEL_BOOT_GLOBAL, REMOTE_CHANNEL_RULES, type RemoteChannelRules } from './remote-channel-rules.ts'
