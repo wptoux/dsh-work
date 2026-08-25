@@ -57,6 +57,9 @@ body {
   font-size: 15px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
+  /* The app fills the viewport and owns every scroll region, so a downward
+     overscroll must never fall through to the browser's pull-to-refresh. */
+  overscroll-behavior-y: contain;
 }
 
 /* The app fills exactly one viewport: the page itself never scrolls, each
@@ -168,6 +171,8 @@ body {
   list-style: none;
   margin: 0;
   padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+  /* The session list must not chain a pull-down into a page refresh either. */
+  overscroll-behavior-y: contain;
 }
 
 .mobile-row {
@@ -358,6 +363,25 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Keep internal-scroller overscroll from bubbling into a page refresh. */
+  overscroll-behavior-y: contain;
+}
+
+/* Pull-to-load-older feedback row (see pull-to-older.ts). */
+.chat-pull {
+  align-self: center;
+  padding: 6px 14px;
+  border: 1px solid var(--m-border);
+  border-radius: 999px;
+  background: var(--m-bg-raised);
+  box-shadow: var(--m-shadow);
+  color: var(--m-text-secondary);
+  font-size: 12px;
+}
+
+.chat-pull-ready {
+  border-color: var(--m-accent);
+  color: var(--m-accent);
 }
 
 .chat-msg {

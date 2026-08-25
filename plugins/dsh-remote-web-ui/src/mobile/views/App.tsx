@@ -21,6 +21,26 @@ type Route =
   | { kind: 'sessions'; workspace: WorkspaceRow }
   | { kind: 'chat'; session: SessionView; workspace: WorkspaceRow }
 
+/**
+ * History-state marker for the mobile navigation levels. Every forward move
+ * pushes one entry so the hardware/system back (popstate) walks up a level
+ * at a time instead of leaving the /m page; the workspaces root leaves no
+ * entry, so back there exits the page as the last step.
+ */
+const HISTORY_DEPTH_KEY = 'dshMobile'
+const HISTORY_WORKSPACES = 0
+const HISTORY_SESSIONS = 1
+const HISTORY_CHAT = 2
+
+/** Push one navigation marker; a blocked history (sandbox) never breaks UI nav. */
+function pushNavigation(depth: number): void {
+  try {
+    window.history.pushState({ [HISTORY_DEPTH_KEY]: depth }, '')
+  } catch {
+    /* history unavailable: in-app navigation still works via route state */
+  }
+}
+
 /** The session-list row model (list + chat share it). */
 export interface SessionView {
   sessionId: string
@@ -128,6 +148,13 @@ function PairedApp() {
     () => mobileWorkspaceTarget(window.location.search),
   )
   const muxRef = useRef<MuxClient | undefined>(undefined)
+  /**
+   * Payloads of the last opened levels: a history pop needs the full rows
+   * again (the state marker only carries the depth), so the popstate
+   * handler restores them from these refs instead of re-fetching.
+   */
+  const workspaceRef = useRef<WorkspaceRow | undefined>(undefined)
+  const chatRef = useRef<{ session: SessionView; workspace: WorkspaceRow } | undefined>(undefined)
 
   // The mux stream lives for the page lifetime: session events keep the
   // open chat live, and reconnect is automatic.
@@ -145,25 +172,55 @@ function PairedApp() {
     muxRef.current?.observe(route.kind === 'chat' ? route.session.sessionId : undefined)
   }, [route])
 
+  // Browser back / forward (hardware back, swipe-back): step the route to
+  // the popped entry's level. The workspaces root has no marker — a back
+  // there falls through to the browser and leaves the page, which is the
+  // desired last step.
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const raw = (event.state as Record<string, unknown> | null)?.[HISTORY_DEPTH_KEY]
+      const depth = typeof raw === 'number' ? raw : HISTORY_WORKSPACES
+      setRoute(previous => {
+        if (depth === HISTORY_WORKSPACES) return { kind: 'workspaces' }
+        if (depth === HISTORY_SESSIONS) {
+          const workspace = workspaceRef.current
+          if (workspace !== undefined) return { kind: 'sessions', workspace }
+          return previous
+        }
+        if (depth === HISTORY_CHAT) {
+          const chat = chatRef.current
+          if (chat !== undefined) return { kind: 'chat', session: chat.session, workspace: chat.workspace }
+          return previous
+        }
+        return previous
+      })
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => { window.removeEventListener('popstate', onPopState) }
+  }, [])
+
   const back = useCallback(() => {
-    setRoute(previous => {
-      if (previous.kind === 'chat') return { kind: 'sessions', workspace: previous.workspace }
-      if (previous.kind === 'sessions') return { kind: 'workspaces' }
-      return previous
-    })
+    // The header back button rides the same history as the hardware back, so
+    // both stay in sync; the popstate handler performs the level-up.
+    window.history.back()
   }, [])
 
   const openChat = useCallback((session: SessionView, workspace: WorkspaceRow) => {
+    chatRef.current = { session, workspace }
+    workspaceRef.current = workspace
+    pushNavigation(HISTORY_CHAT)
     setRoute({ kind: 'chat', session, workspace })
   }, [])
 
   const openWorkspace = useCallback((workspace: WorkspaceRow) => {
+    workspaceRef.current = workspace
     if (initialWorkspaceId !== undefined) {
       const url = new URL(window.location.href)
       url.searchParams.delete('workspace')
       window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
       setInitialWorkspaceId(undefined)
     }
+    pushNavigation(HISTORY_SESSIONS)
     setRoute({ kind: 'sessions', workspace })
   }, [initialWorkspaceId])
 

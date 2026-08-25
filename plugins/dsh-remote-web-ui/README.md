@@ -191,7 +191,10 @@ mounts both halves.
    - one workspace's sessions load **incrementally** (20 rows per page,
      "加载更多会话" continues; never the whole list at once),
    - opening a session fetches its chat content **on demand** (history
-     pages, "加载更早的消息" goes further back),
+     pages, "加载更早的消息" goes further back), and a **pull-down at the
+     top of the chat loads the previous history page** instead of the
+     browser's native pull-to-refresh (the gesture is inert when the
+     session has no older pages),
    - a live stream shows new messages as they arrive, with a prompt box
      for sending your own (**Enter sends and Shift+Enter inserts a newline
      by default**; set `mobileEnterToSend: false` to make Enter insert a
@@ -202,7 +205,13 @@ mounts both halves.
    - messages render with the desktop fold discipline: reasoning hides
      behind a collapsed 深度思考 disclosure, tool calls behind a collapsed
      工具 row (tap to see each call's arguments), very long answers behind
-     an explicit 展开全文 toggle, each row carries its time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
+     an explicit 展开全文 toggle — the **newest message always renders in
+     full** and only folds once a newer one arrives — each row carries its
+     time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
+   - the three levels mirror the browser's own history: the hardware/系统
+     返回键 and swipe-back move **one level up at a time** (chat → sessions →
+     workspaces) and only leave the page from the workspaces root, while
+     the header ‹ button rides the same history,
    - a composer toolbar carries the **model** picker (provider-grouped
      catalog with a 思考强度 effort section per model) and the **权限**
      picker (permission presets; 完全权限 requires an explicit confirm

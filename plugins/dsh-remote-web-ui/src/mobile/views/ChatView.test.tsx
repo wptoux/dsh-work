@@ -519,6 +519,115 @@ describe('ChatView scrolling', () => {
   })
 })
 
+describe('ChatView newest-message fold', () => {
+  /** Text past LONG_TEXT_LIMIT so an intermediate row would clamp behind the fold. */
+  const longText = '长'.repeat(1800)
+
+  /** A user prompt followed by one long assistant reply (the tail page). */
+  const longReply = (): Array<{ event: WireEvent }> => [
+    makeEntry('user/message', { id: 'u-1', role: 'user', content: [{ type: 'text', text: '写一篇长文' }] }, 0),
+    makeEntry('assistant/message', {
+      turn: 0,
+      step: 0,
+      message: { id: 'a-1', role: 'assistant', content: [{ type: 'text', text: longText }] },
+    }, 1),
+  ]
+
+  /** Minimal mux stand-in: captures the ChatView's frame listener for hand-off. */
+  class FakeMux {
+    listeners = new Set<(frame: unknown) => void>()
+    onFrame(listener: (frame: unknown) => void): () => void {
+      this.listeners.add(listener)
+      return () => { this.listeners.delete(listener) }
+    }
+    emit(frame: unknown): void {
+      for (const listener of this.listeners) listener(frame)
+    }
+  }
+
+  it('renders the newest long assistant reply fully, not clamped behind the fold', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage(longReply()))
+    render(<ChatView session={session} onBack={() => {}} />)
+
+    await screen.findByText('写一篇长文')
+    // The last row is the newest message: it must show in full — no expand
+    // toggle and no height clamp (it must not be folded like a middle row).
+    expect(screen.queryByRole('button', { name: /展开全文/ })).toBeNull()
+    const markdown = document.querySelector('.chat-msg-assistant .chat-md')
+    expect(markdown?.className ?? '').not.toContain('chat-md-collapsed')
+  })
+
+  it('returns the long reply to the collapsed fold once a newer message arrives', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage(longReply()))
+    const mux = new FakeMux()
+    render(<ChatView session={session} mux={mux as never} onBack={() => {}} />)
+
+    await screen.findByText('写一篇长文')
+    expect(screen.queryByRole('button', { name: /展开全文/ })).toBeNull()
+
+    // A newer message makes the long reply an intermediate row again.
+    await act(async () => {
+      mux.emit({ type: 'session/event', sessionId: 's-1', event: makeEntry('assistant/message', {
+        turn: 1,
+        step: 0,
+        message: { id: 'a-2', role: 'assistant', content: [{ type: 'text', text: '第二条回复' }] },
+      }, 2).event })
+    })
+    expect(await screen.findByText('第二条回复')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /展开全文/ })).toBeTruthy()
+  })
+
+  it('renders a long newest user message expanded too', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage([
+      makeEntry('user/message', { id: 'u-1', role: 'user', content: [{ type: 'text', text: longText }] }, 0),
+    ]))
+    render(<ChatView session={session} onBack={() => {}} />)
+
+    // The user row exists, then the newest message must not be folded away.
+    await waitFor(() => {
+      expect(document.querySelector('.chat-msg')).not.toBeNull()
+    })
+    expect(screen.queryByRole('button', { name: /展开全文/ })).toBeNull()
+  })
+})
+
+describe('ChatView pull-to-load-older', () => {
+  it('loads an older history page when the user pulls down at the top', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage(turnEvents(), { hasMore: true }))
+    render(<ChatView session={session} onBack={() => {}} />)
+    await screen.findByText('已完成修改')
+
+    const scroller = document.querySelector('.chat-scroll')
+    expect(scroller).not.toBeNull()
+
+    fireEvent.touchStart(scroller!, { touches: [{ clientY: 0 }] })
+    fireEvent.touchMove(scroller!, { touches: [{ clientY: 180 }] })
+    // The armed state shows the release hint while the finger is down.
+    expect(await screen.findByText('松开加载更早的消息')).toBeTruthy()
+    fireEvent.touchEnd(scroller!)
+
+    // The older page loads before the first rendered message's seq; the
+    // initial tail load (undefined cursor) stays the only earlier call.
+    await waitFor(() => {
+      expect(loadHistoryMock).toHaveBeenLastCalledWith('s-1', 0)
+    })
+  })
+
+  it('does not load an older page when the session has no more history', async () => {
+    loadHistoryMock.mockResolvedValue(historyPage(turnEvents()))
+    render(<ChatView session={session} onBack={() => {}} />)
+    await screen.findByText('已完成修改')
+
+    const scroller = document.querySelector('.chat-scroll')
+    fireEvent.touchStart(scroller!, { touches: [{ clientY: 0 }] })
+    fireEvent.touchMove(scroller!, { touches: [{ clientY: 200 }] })
+    fireEvent.touchEnd(scroller!)
+
+    // Only the initial tail load ran — no older history to fetch.
+    expect(loadHistoryMock).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('ChatView display toggles and context usage', () => {
   /** jsdom in this setup ships a bare localStorage object; install a real fake. */
   const makeStorage = (): Storage => {

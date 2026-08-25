@@ -21,6 +21,7 @@ import type { PendingApproval, PendingQuestionItem } from '../api.ts'
 import { EventFolder, foldEvents, type RenderMessage, type ToolCallInfo, type WireEvent } from '../messages.ts'
 import { renderMarkdown } from '../markdown.ts'
 import { MuxClient } from '../mux.ts'
+import { usePullToOlder } from '../pull-to-older.ts'
 import { ThemeToggle } from '../theme-toggle.tsx'
 
 /** Props for the chat view. */
@@ -441,6 +442,13 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
     )
   }, [input, sending, session.sessionId])
 
+  /**
+   * Pull-down at the top of the history loads an older page instead of the
+   * browser's native pull-to-refresh (see pull-to-older.ts). The gesture is
+   * inert without older pages or while a page is in flight.
+   */
+  const pullHint = usePullToOlder(scrollRef, { hasOlder, loading, onLoad: loadOlder })
+
   const modelLabel = currentModel?.model ?? '模型'
   const permissionLabel = permissions === undefined
     ? undefined
@@ -473,15 +481,21 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
       </header>
       {error !== undefined && <p className="mobile-error mobile-pad">{error}</p>}
       <div className="chat-scroll" ref={ref => { scrollRef.current = ref ?? undefined }}>
+        {pullHint !== 'idle' && (
+          <div className={'chat-pull' + (pullHint === 'ready' ? ' chat-pull-ready' : '')} role="status">
+            {pullHint === 'ready' ? '松开加载更早的消息' : '下拉加载更早的消息'}
+          </div>
+        )}
         {hasOlder && (
           <button type="button" className="chat-load-older" disabled={loading} onClick={() => { void loadOlder() }}>
             {loading ? '加载中…' : '加载更早的消息'}
           </button>
         )}
-        {messages.map(message => (
+        {messages.map((message, index) => (
           <MessageRow
             key={message.id}
             message={message}
+            expanded={index === messages.length - 1}
             showToolCalls={showToolCalls}
             showSystemMessages={showSystemMessages}
           />
@@ -588,9 +602,14 @@ export function ChatView({ session, mux, onBack }: ChatViewProps) {
  * One rendered message row (user bubble or assistant bubble with folds).
  * Memoized: live streaming updates exactly one message object per frame, so
  * unchanged rows skip re-rendering their markdown/sub-components.
+ *
+ * The newest row (`expanded`) skips the long-text fold: the reply the user
+ * wants to read must render in full. When a newer message arrives the row
+ * loses `expanded` and folds like every intermediate message again.
  */
-const MessageRow = memo(function MessageRow({ message, showToolCalls, showSystemMessages }: {
+const MessageRow = memo(function MessageRow({ message, expanded, showToolCalls, showSystemMessages }: {
   message: RenderMessage
+  expanded?: boolean
   showToolCalls: boolean
   showSystemMessages: boolean
 }) {
@@ -611,8 +630,8 @@ const MessageRow = memo(function MessageRow({ message, showToolCalls, showSystem
         <ToolDisclosure tools={message.tools} />
       )}
       {message.kind === 'assistant'
-        ? <MarkdownText text={message.text} pending={message.pending === true} />
-        : <CollapsibleText text={message.text} />}
+        ? <MarkdownText text={message.text} pending={message.pending === true} expanded={expanded === true} />
+        : <CollapsibleText text={message.text} expanded={expanded === true} />}
       {message.failed === true && <span className="chat-msg-failtag">本次回复失败</span>}
       <span className="chat-msg-time">{formatTime(message.time)}</span>
     </div>
@@ -694,10 +713,11 @@ export const STREAM_RENDER_INTERVAL_MS = 120
  * Assistant text rendered as GFM markdown (escape-first, protocol
  * allow-list — see markdown.ts). Long replies collapse by clamping the
  * rendered block height instead of slicing the source, so half-cut code
- * fences or tables never leak malformed markup into the DOM. User
- * messages stay plain text (CollapsibleText).
+ * fences or tables never leak malformed markup into the DOM. The newest
+ * row (`expanded`) renders in full: no clamp, no toggle.
+ * User messages stay plain text (CollapsibleText).
  */
-function MarkdownText({ text, pending }: { text: string; pending: boolean }) {
+function MarkdownText({ text, pending, expanded }: { text: string; pending: boolean; expanded?: boolean }) {
   const [open, setOpen] = useState(false)
   const [html, setHtml] = useState<string>(() => renderMarkdown(text))
   /** Text of the last render actually applied to `html`. */
@@ -751,11 +771,11 @@ function MarkdownText({ text, pending }: { text: string; pending: boolean }) {
     }
   }, [])
   const long = text.length > LONG_TEXT_LIMIT
-  const collapsed = long && !open
+  const collapsed = long && !open && expanded !== true
   return (
     <div className={'chat-msg-text chat-md' + (collapsed ? ' chat-md-collapsed' : '')}>
       <div className="chat-md-body" dangerouslySetInnerHTML={{ __html: html }} />
-      {long && (
+      {long && expanded !== true && (
         <button type="button" className="chat-msg-toggle" onClick={() => { setOpen(value => !value) }}>
           {open ? '收起' : '展开全文（' + text.length + ' 字）'}
         </button>
@@ -764,10 +784,13 @@ function MarkdownText({ text, pending }: { text: string; pending: boolean }) {
   )
 }
 
-/** Long assistant text collapses behind an explicit expand toggle. */
-function CollapsibleText({ text }: { text: string }) {
+/**
+ * Long user text collapses with a preview + expand toggle — except the
+ * newest row (expanded), which renders in full.
+ */
+function CollapsibleText({ text, expanded }: { text: string; expanded?: boolean }) {
   const [open, setOpen] = useState(false)
-  if (text.length <= LONG_TEXT_LIMIT) {
+  if (text.length <= LONG_TEXT_LIMIT || expanded === true) {
     return <span className="chat-msg-text">{text}</span>
   }
   const shown = open ? text : text.slice(0, LONG_TEXT_PREVIEW)
