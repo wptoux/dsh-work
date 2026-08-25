@@ -101,6 +101,10 @@ node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得
     `./shared`）。
   - package.json 补 `lightningcss` devDep（上游由 monorepo 根提供，单包后缺失）；
     tsdown 版本对齐 `^0.22.14`。
+  - **设置卡片改注册官方槽位**：上游把远程控制设置卡注册进被裁掉的
+    `dsh-web-ui-settings`「Web UI 插件组」子槽 `web-ui.plugin.item`（该组随裁剪移除，
+    卡片因此不渲染）。改为注册官方 `settings.plugin.item`（按 `remote-web-ui` 命名空间
+    keyed），卡片出现在 设置 → 插件 → 插件配置 列表。
   - 新增 `pnpm-workspace.yaml`（allowBuilds: cloudflared）保证自管依赖含隧道二进制。
 - `dsh-better-sidebar` / `dsh-usage-stats`：无源码改动。
 - `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、

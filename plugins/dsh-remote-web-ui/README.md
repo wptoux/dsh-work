@@ -4,6 +4,11 @@
 English | [中文](README.zh.md)
 > Remote access for phones and computers: pair a phone to use the current dsh web workspace remotely, or pair a computer browser through the same token to run the full Web GUI from another device.
 
+> **Settings card**: the remote-control configuration (enable/disable, token
+> lifetime, device limits, pairing fence, tunnel) lives in the official
+> Settings → Plugins → Plugin configuration (设置 → 插件 → 插件配置) list as the
+> `remote-web-ui` card — it is not a standalone navigation entry.
+
 This repository is an external plugin package for DeepSeek Harness (DSH):
 pairing-based remote access for the dsh web GUI on phones and computers. It is
 a single dual-face package — the host half owns pairing tokens, device

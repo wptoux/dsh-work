@@ -54,12 +54,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar.remote': { kind: 'single'; scope: 'root'; owner: SidebarRemoteOwnerProps }
     /**
-     * The child slot the Web UI plugin group declares; this card registers
-     * into the group instead of the top-level `settings.plugin.item` list.
-     * Spelled here with the same shape so this package can register without
-     * depending on the sibling UI package.
+     * One plugin card inside the official Plugins settings section's
+     * configurable tab, keyed by the settings namespace the card edits. The
+     * tab (ui-settings-plugins, part of the stock web app) declares this
+     * slot; spelled here with the same shape so this package can register
+     * without depending on the sibling UI package.
      */
-    'web-ui.plugin.item': { kind: 'list'; scope: 'root'; owner: SettingsPluginItemOwnerProps }
+    'settings.plugin.item': { kind: 'keyed'; scope: 'root'; owner: SettingsPluginItemOwnerProps }
   }
 }
 
@@ -176,14 +177,19 @@ export function apply(ctx: ClientContext): void {
   })
 
   // Plugin configuration card: one staged form over the `remote-web-ui`
-  // settings namespace, contributed to the Web UI plugin group.
+  // settings namespace, contributed to the official Plugins settings section
+  // (设置 → 插件 → 插件配置). The card registers into `settings.plugin.item`
+  // keyed by its namespace, and the tab only dispatches namespaces the Host
+  // serves — the `remote-web-ui` namespace the host half registers via
+  // installSettingsSection. (The family-only `web-ui.plugin.item` group slot
+  // was dropped with the dsh-web-ui-settings trim, so this card has no other
+  // render site.)
   const remoteSettings = new RemoteSettingsCardController(settingsScope)
-  ctx.slots.inject('web-ui.plugin.item', () => {
+  ctx.slots.inject('settings.plugin.item', () => {
     try {
       const unregister = ctx.slots.register({
-        name: 'web-ui.plugin.item',
-        id: 'remote-web-ui',
-        order: 90,
+        name: 'settings.plugin.item',
+        key: REMOTE_WEB_UI_NS,
         locale: NS,
         inject: () => remoteSettings.inject(),
       }, RemoteSettingsCard)
