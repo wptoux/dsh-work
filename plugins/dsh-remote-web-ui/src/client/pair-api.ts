@@ -141,7 +141,7 @@ export async function acceptPair(token: string): Promise<{ ok: true } | AcceptFa
   return { ok: false, code: 'forbidden' }
 }
 
-/** Revoke mobile access (paired devices + the current token). */
+/** Revoke remote access (paired devices + the current token). */
 export async function stopPair(): Promise<void> {
   const response = await fetch('/api/pair/stop', { method: 'POST' })
   if (!response.ok) throw new Error(`remote-web-ui: stop failed with ${String(response.status)}`)
@@ -186,13 +186,6 @@ export function stripParam(name: string): string {
   const url = new URL(window.location.href)
   url.searchParams.delete(name)
   return url.search
-}
-
-/** Convert an issued `/m/` link into the desktop pairing form. */
-export function desktopPairUrl(mobileUrl: string): string {
-  const url = new URL(mobileUrl)
-  url.pathname = '/'
-  return url.href
 }
 
 /** Human-readable expiry clock, e.g. "10:35". */

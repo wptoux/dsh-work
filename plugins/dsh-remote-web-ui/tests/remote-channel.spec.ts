@@ -27,7 +27,7 @@ describe('rewrite rules', () => {
     expect(isLoopbackHostname('dsh.example.com')).toBe(false)
   })
 
-  it('rewrites fenced paths but never pair, desktop-launcher, settings-bridge, mobile, or asset paths', () => {
+  it('rewrites fenced paths but never pair, desktop-launcher, settings-bridge, already-rewritten, or asset paths', () => {
     expect(shouldRewriteFetchPath('/api/session.list')).toBe(true)
     expect(shouldRewriteFetchPath('/api/session.export')).toBe(true)
     expect(shouldRewriteFetchPath('/api/pair/accept')).toBe(false)
@@ -38,7 +38,7 @@ describe('rewrite rules', () => {
     expect(shouldRewriteFetchPath('/sidebar/api/fs.tree')).toBe(true)
     expect(shouldRewriteFetchPath('/git/api/status')).toBe(true)
     expect(shouldRewriteFetchPath('/pet/whale/sprite.webp')).toBe(true)
-    expect(shouldRewriteFetchPath('/m/api/session.list')).toBe(false)
+    expect(shouldRewriteFetchPath('/remote/api/session.list')).toBe(false)
     expect(shouldRewriteFetchPath('/assets/index.js')).toBe(false)
     expect(rewritePath('/api/session.list')).toBe(`${REMOTE_API_PREFIX}/session.list`)
   })
@@ -50,7 +50,7 @@ describe('rewrite rules', () => {
     expect(shouldRewriteWsPath('/sidebar/ws/agent-terminals')).toBe(true)
     expect(shouldRewriteWsPath('/api/dsh-ssh/terminal')).toBe(true)
     expect(shouldRewriteWsPath('/api/session.list')).toBe(false)
-    expect(shouldRewriteWsPath('/m/api/events.mux')).toBe(false)
+    expect(shouldRewriteWsPath('/remote/api/events.mux')).toBe(false)
   })
 
   it('preserves relative URL shape, query, and hash', () => {

@@ -273,7 +273,10 @@ export function makeRoutes(deps: PairRoutesDeps): WebRoute[] {
       const workspaceQuery = workspaceId === undefined ? '' : `&workspace=${encodeURIComponent(workspaceId)}`
       writeJson(res, 200, {
         ok: true,
-        url: `${base}/m/?pair=${token}${workspaceQuery}`,
+        // One link for every device: phones and computers both open the full
+        // Web GUI and pair through the same flow (/remote channel for
+        // non-loopback origins).
+        url: `${base}/?pair=${token}${workspaceQuery}`,
         token,
         expiresAt,
         // Every constructible base, so a multi-homed panel can switch the

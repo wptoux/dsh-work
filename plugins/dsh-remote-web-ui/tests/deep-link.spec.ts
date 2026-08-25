@@ -56,28 +56,28 @@ describe('runPairBootFlow', () => {
     expect(sessionStorage.getItem(PAIR_FAILED_MARKER)).toBeNull()
   })
 
-  it('routes accepted phones to the standalone /m surface instead of reloading', async () => {
+  it('reloads phone user agents too (no standalone /m reroute)', async () => {
     vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' })
     const { page, reload, navigate, replaceState } = fakePage('?pair=tok-1')
     const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
     vi.stubGlobal('fetch', fetch)
     const ctx = { get: () => undefined }
     runPairBootFlow(ctx as never, '?pair=tok-1', page)
-    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/m/'))
-    expect(reload).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce())
+    expect(navigate).not.toHaveBeenCalled()
     expect(replaceState).toHaveBeenCalledWith('/')
   })
 
-  it('preserves the workspace target when routing an accepted phone to /m', async () => {
+  it('keeps the workspace target after an accepted phone pairing', async () => {
     vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Android 16; Mobile)' })
-    const { page, navigate, replaceState } = fakePage('?pair=tok-1&workspace=ws-7')
+    const { page, reload, replaceState } = fakePage('?pair=tok-1&workspace=ws-7')
     const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
     vi.stubGlobal('fetch', fetch)
     const ctx = { get: () => undefined }
 
     runPairBootFlow(ctx as never, '?pair=tok-1&workspace=ws-7', page)
 
-    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/m/?workspace=ws-7'))
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce())
     expect(replaceState).toHaveBeenCalledWith('/?workspace=ws-7')
   })
 

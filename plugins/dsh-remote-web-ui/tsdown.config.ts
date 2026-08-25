@@ -1,4 +1,4 @@
-import { clientBundle, mobileBundle } from './shared/tsdown.client.ts'
+import { clientBundle } from './shared/tsdown.client.ts'
 
 export default clientBundle('dsh-remote-web-ui', ['src/index.ts', 'src/invariant.ts'], {
   libExternal: [
@@ -14,5 +14,4 @@ export default clientBundle('dsh-remote-web-ui', ['src/index.ts', 'src/invariant
     '@deepseek-ai/dsh-invariants',
     '@deepseek-ai/dsh-settings',
   ],
-  companions: [mobileBundle('dsh-remote-web-ui', 'src/mobile/index.tsx')],
 })

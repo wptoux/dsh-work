@@ -1,11 +1,12 @@
 /**
- * Mobile remote control for the dsh web GUI — host half. Mounts the pairing
- * service (one-time tokens, device sessions, revocation), the /api/pair
- * route family (issue/accept/stop/heartbeat/status/events), the api/gate
- * listener that enforces pairing on every other /api request from
+ * Phone and desktop remote control for the dsh web GUI — host half. Mounts
+ * the pairing service (one-time tokens, device sessions, revocation), the
+ * /api/pair route family (issue/accept/stop/heartbeat/status/events), the
+ * api/gate listener that enforces pairing on every other /api request from
  * non-loopback hosts, and the presence sweep. The browser half (the
  * `./client` entry) renders the sidebar entry, the pairing panel, and the
- * phone-side pair/accept + deep-link flow.
+ * pair/accept + deep-link flow. A paired phone opens the full Web GUI like
+ * a paired computer, riding the gated /remote channel.
  */
 
 import { createRequire } from 'node:module'
@@ -21,9 +22,6 @@ import { dshHome } from './dsh-home.ts'
 import { isPairedDeviceRequest, makeGateListener } from './gate.ts'
 import { RemoteWebUiPairing } from './pairing-access.ts'
 import { makeRoutes } from './routes.ts'
-import { makeMobileRoutes } from './mobile-routes.ts'
-import { makeMobileApiRoutes } from './mobile-api.ts'
-import { PendingTracker } from './mobile-pending.ts'
 import { makePairedModelCatalogRoutes } from './paired-model-catalog.ts'
 import { makeRemoteApiRoutes, makeRemoteApiUpgradeRoutes } from './remote-api.ts'
 import { claimPostureKey, postureTargets, probePosture, releasePostureKey } from './posture.ts'
@@ -110,13 +108,6 @@ export interface Config {
    * tunnel setup. The manual `publicBaseUrl` is ignored while this is on.
    */
   autoTunnel?: boolean
-  /**
-   * Mobile composer behavior: when true (default), a plain Enter in the
-   * phone chat textarea sends the prompt and Shift+Enter inserts a newline.
-   * When false, plain Enter inserts a newline and only the send button
-   * sends (Shift+Enter keeps inserting a newline).
-   */
-  mobileEnterToSend?: boolean
   /** Master switch for the plugin (browser half + host pairing surfaces). */
   enabled?: boolean
 }
@@ -131,7 +122,6 @@ export const Config: z<Config> = z.object({
   publicBaseUrl: z.string(),
   devicesFile: z.string(),
   autoTunnel: z.boolean().default(false),
-  mobileEnterToSend: z.boolean().default(true),
   enabled: z.boolean().default(true),
 })
 
@@ -184,7 +174,6 @@ const DEFAULTS: ResolvedConfig = {
   publicBaseUrl: undefined,
   devicesFile: defaultDevicesFile(),
   autoTunnel: false,
-  mobileEnterToSend: true,
   enabled: true,
 }
 
@@ -206,7 +195,6 @@ function applyImpl(ctx: Context, config?: Config): void {
     publicBaseUrl: config?.publicBaseUrl,
     devicesFile: config?.devicesFile ?? DEFAULTS.devicesFile,
     autoTunnel: config?.autoTunnel ?? DEFAULTS.autoTunnel,
-    mobileEnterToSend: config?.mobileEnterToSend ?? DEFAULTS.mobileEnterToSend,
     enabled: config?.enabled ?? DEFAULTS.enabled,
   }
   // The live source the pairing service and the gate read: the settings
@@ -225,7 +213,6 @@ function applyImpl(ctx: Context, config?: Config): void {
       publicBaseUrl: value.publicBaseUrl,
       devicesFile: value.devicesFile ?? DEFAULTS.devicesFile,
       autoTunnel: value.autoTunnel ?? DEFAULTS.autoTunnel,
-      mobileEnterToSend: value.mobileEnterToSend ?? DEFAULTS.mobileEnterToSend,
       enabled: value.enabled ?? DEFAULTS.enabled,
     }
   }
@@ -233,10 +220,10 @@ function applyImpl(ctx: Context, config?: Config): void {
 
   // ── auto tunnel ─────────────────────────────────────────────────────────
   // The minted public URL becomes the QR base (and the pairing fence's
-  // trusted host). Phone /api traffic rides the plugin's own /m/api channel,
-  // which is NOT subject to the connection trust fence — so no fence
-  // mutation is needed here (a distributable plugin must not change the
-  // harness's connection plugin).
+  // trusted host). A phone (non-loopback) rides the gated /remote desktop
+  // channel like any paired computer — no connection trust fence mutation is
+  // needed here (a distributable plugin must not change the harness's
+  // connection plugin).
   const tunnel = new TunnelManager()
   let autoTunnel = resolved.autoTunnel
   tunnel.onPhase((info: TunnelInfo) => {
@@ -278,18 +265,16 @@ function applyImpl(ctx: Context, config?: Config): void {
   // (now vetoing every non-loopback request) instead of opening the fence.
   let disposeRoutes: (() => void) | undefined
   let disposeSweep: (() => void) | undefined
-  // The phone's data channel: pairing routes + the /m page + the /m/api
-  // proxy (which needs the host ApiProxy service; the plugin injects it).
+  // The pairing surface: /api/pair routes, the paired model catalog (needs
+  // the host ApiProxy service; the plugin injects it), and the gated
+  // /remote desktop channel every non-loopback device (phone or computer)
+  // rides.
   const apiProxy = ctx.get('apiProxy')
   if (apiProxy === undefined) {
-    console.warn('remote-web-ui: apiProxy service unavailable — the mobile data channel is disabled')
+    console.warn('remote-web-ui: apiProxy service unavailable — the paired model catalog is disabled')
   }
   const routes = [
     ...makeRoutes({ service, lanAddresses, requirePairingForLan: () => resolve().requirePairingForLan }),
-    ...makeMobileRoutes(),
-    ...(apiProxy !== undefined
-      ? makeMobileApiRoutes({ service, apiProxy, pendingTracker: new PendingTracker(), mobileEnterToSend: () => resolve().mobileEnterToSend })
-      : []),
     ...(apiProxy !== undefined ? makePairedModelCatalogRoutes({ service, apiProxy, lanAddresses }) : []),
     // The remote desktop channel: policy-gated `/remote` prefix that
     // re-issues fenced paths to loopback (see remote-api.ts). The live

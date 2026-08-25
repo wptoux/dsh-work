@@ -1,6 +1,8 @@
 /**
- * The remote desktop data channel: `/remote` is this plugin's own prefix, so
- * the paired-device cookie is the access control (exactly like `/m/api`).
+ * The remote data channel: `/remote` is this plugin's own prefix, so the
+ * paired-device cookie is the access control — the only channel a phone or
+ * computer outside loopback rides (the dedicated `/m/api` mobile surface
+ * was removed; every device now runs the full Web GUI through this gate).
  * After that gate, every fenced same-origin path the browser rewrote here is
  * re-issued to 127.0.0.1 as a loopback-shaped request so sibling plugin
  * fences (and the connection plugin's `/api`) accept it — no `--trusted-host`
@@ -137,7 +139,7 @@ export function makeRemoteApiRoutes(deps: RemoteApiDeps): WebRoute[] {
   const { service, port, requirePairingForLan = true } = deps
 
   const handler = (req: IncomingMessage, res: ServerResponse): void => {
-    // Cookie gate first — same order as /m/api. Do not buffer an unpaired body.
+    // Cookie gate first. Do not buffer an unpaired body.
     // With the live policy off, untrusted-but-policy-open callers are proxied
     // (a stale client rewrite must not 403); loopback-only denials stay below.
     const require = typeof requirePairingForLan === 'function' ? requirePairingForLan() : requirePairingForLan

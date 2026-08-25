@@ -18,40 +18,28 @@ icon-only entry beside the settings button), the pairing panel with a QR
 code, live device status, an authorized-device list, and stop/refresh/copy
 actions.
 
+> **This fork removed the standalone `/m/` mobile surface**: phones and
+> computers use the same pairing link (`/?pair=...`) and both run the full
+> Web GUI after pairing (the narrow-screen layout comes from
+> `dsh-ui-tweaks` — the sidebar collapses to a whale-logo drawer at the
+> top-left).
+
 ## What it does
 
 - **Entry**: a phone icon beside the settings button in both the expanded sidebar and narrow rail; its tooltip and accessible label say "Remote access".
-- **Panel**: "Remote access" title, "Pair a phone or another computer to access this workspace remotely" subtitle, a "Pair a device" card with the status area ("Waiting for a device" + status badge), a large QR code, separate phone (`/m/?pair=...`) and computer (`/?pair=...`) links with their own copy buttons, plus Stop / Refresh QR actions and an authorized-device list (a device name inferred from User-Agent, online/offline, last active time, per-device unpair). Credential-bearing device ids and raw User-Agent values are never rendered. Both links share one single-use token, so pairing either device invalidates the other link.
-- **Phone side**: scanning the QR binds the phone with a one-time,
-  time-limited token and lands it on the **standalone mobile surface at
-  `/m/`** — a thin client purpose-built for a small screen (see
-  [Screenshots](#screenshots)), not the desktop UI squeezed into a phone.
-  The page is installable as a PWA. Each installed app uses its own
-  paired-device cookie; a storage-isolated mobile web-app context pairs by
-  opening a fresh QR link there or pasting a fresh desktop-issued link.
-  The link carries a `workspace` parameter so the phone lands in the same
-  workspace the desktop was looking at.
-- **PC side (remote desktop pairing)**: the same QR link and pairing token
-  also pair a PC browser — the phone flow extended to the desktop Web GUI.
-  Copy the link from the panel and open it in a browser on another
-  computer (LAN URL or tunnel URL); after the accept round trip the full
-  Web GUI runs there — workspaces, sessions, chat, model switching — with
-  its fenced same-origin traffic on the gated `/remote` channel instead of
-  calling loopback-only host routes directly. The
-  phone gets `/m/`, the PC gets the desktop UI: one token, one pairing
-  flow, two surfaces. An unpaired PC sees a full blocking page with computer
-  pairing steps and a retry action, with no workspace data rendered behind it.
+- **Panel**: "Remote access" title, "Pair a phone or another computer to access this workspace remotely" subtitle, a "Pair a device" card with the status area ("Waiting for a device" + status badge), a large QR code, one **unified pairing link** (`/?pair=...`) with a copy button, plus Stop / Refresh QR actions and an authorized-device list (a device name inferred from User-Agent, online/offline, last active time, per-device unpair). Credential-bearing device ids and raw User-Agent values are never rendered. The link carries one single-use token that dies as soon as any device pairs.
+- **Device side (the same path for phones and computers)**: scanning the QR or opening the copied link binds the device (a phone or another computer) with a one-time, time-limited token; after the accept round trip the **full Web GUI** runs there — workspaces, sessions, chat, model switching. The link carries a `workspace` parameter so the device lands in the same workspace the desktop was looking at. Phones get the narrow-screen layout from `dsh-ui-tweaks` (the sidebar hides, leaving a small whale logo at the top-left that opens the sidebar as a drawer overlay). An unpaired device sees a full blocking page with pairing steps and a retry action, with no workspace data rendered behind it.
 - **Security**: one active one-time token (a refresh invalidates the old
   link; an accepted token cannot be reused; tokens expire). 停止 revokes
   every paired device and the current token — paired devices are cut off on
   their next request. Pairing is this plugin's access control for its own
-  remote channels: `/m/api` for the phone and `/remote` for a desktop
-  browser opened at a non-loopback origin. Unpaired `/remote` callers
+  remote channel: any non-loopback origin (phone or computer) rides the
+  gated `/remote` channel. Unpaired `/remote` callers
   are refused before the request body is read while `requirePairingForLan` is
   on (default). Loopback (127.0.0.1) keeps using
-  `/api` directly. The default remote-desktop path does not use
+  `/api` directly. The default path does not use
   `--trusted-host`: the connection plugin's `/api` fence stays closed for
-  public and LAN hosts, and the paired PC rides `/remote` instead.
+  public and LAN hosts, and paired devices ride `/remote` instead.
   `--trusted-host` is a different SDK usage that trusts that host for `/api`
   itself — pairing does not gate `/api` (no plugin can; the fence is the
   SDK's own seam). The posture probe below reports that stance when `/api`
@@ -115,26 +103,6 @@ actions.
   self-update surface (sidebar download trigger, `/api/update` endpoints, npm
   registry probes) was cut; the fork never updates plugins from npm.
 
-## Screenshots
-
-The phone surface on a 390pt viewport. Light is the default theme; a
-sun/moon toggle in every header flips to the dark palette at any time.
-
-- **Workspaces** — the roster, each row a workspace with its own sessions:
-  ![Workspaces](docs/screenshots/mobile-workspaces.png)
-- **Sessions** — one workspace's sessions, headed by the 新建会话 button
-  (creates a blank session attached to the workspace and opens it
-  immediately):
-  ![Sessions](docs/screenshots/mobile-sessions.png)
-- **Chat** — messages with the desktop fold discipline (collapsed
-  深度思考 reasoning and 工具 tool-call rows), a pinned composer with
-  模型 / 权限 chips, and a live stream while the agent works:
-  ![Chat](docs/screenshots/mobile-chat.png)
-- **Model picker** — the bottom sheet with a provider-grouped catalog and a
-  思考强度 section per model (the same `session.models` directory the
-  desktop uses):
-  ![Model sheet](docs/screenshots/mobile-model-sheet.png)
-
 ## Requirements
 
 - A DSH installation whose `dsh` CLI supports profiles (`dsh --profile`,
@@ -153,7 +121,9 @@ sun/moon toggle in every header flips to the dark palette at any time.
   runtime download covers installers that skip postinstall scripts). No
   user-side tooling, account, or domain is needed — a Cloudflare quick
   tunnel is free and anonymous.
-- Installing `/m/` as a PWA requires a secure context: `localhost` and `127.0.0.1` work for local use, while phone installation requires HTTPS. Plain LAN HTTP keeps the online mobile remote usable but cannot register its Service Worker.
+- Phones need nothing installed: they open the plugin's pairing link and run
+  the full Web GUI in the browser (the narrow-screen layout comes from
+  `dsh-ui-tweaks`).
 
 ## Install
 
@@ -185,106 +155,43 @@ mounts both halves.
 
 1. `dsh web --host 0.0.0.0` (the printed LAN URL confirms reachability).
 2. Click the phone icon → the panel mints a fresh one-time QR.
-3. Scan with the phone (or open the copied link): the phone binds and
-   lands on the **standalone mobile surface at `/m/`** — no desktop UI on a
-   small screen. The surface is deliberately thin:
-   - workspaces straight away (each workspace's session list offers an Agent
-     mode picker before 新建会话: it selects the usable default preset, or the
-     first usable preset, and passes that roster id with the workspace id to
-     the host's `session.create`; an empty or unavailable roster keeps the
-     host-default creation flow),
-   - one workspace's sessions load **incrementally** (20 rows per page,
-     "加载更多会话" continues; never the whole list at once),
-   - opening a session fetches its chat content **on demand** (history
-     pages, "加载更早的消息" goes further back; each load extends to whole
-     turns, so an upward pull always brings at least one complete turn),
-     and a **pull-down at the top of the chat loads the previous history
-     page** instead of the browser's native pull-to-refresh (the gesture
-     is inert when the session has no older pages),
-   - a live stream shows new messages as they arrive, with a prompt box
-     for sending your own (**Enter sends and Shift+Enter inserts a newline
-     by default**; set `mobileEnterToSend: false` to make Enter insert a
-     newline and reserve sending for the 发送 button),
-   - a **light-first theme**: the surface ships a light palette by default;
-     a sun/moon toggle in every header flips to the dark palette and the
-     choice persists across visits (localStorage),
-   - messages render with the desktop fold discipline: reasoning hides
-     behind a collapsed 深度思考 disclosure, tool calls behind a collapsed
-     工具 row (tap to see each call's arguments), very long answers behind
-     an explicit 展开全文 toggle — the **newest message always renders in
-     full** and only folds once a newer one arrives — and once a turn ends
-     (turn/end, success or failure) its agent messages collapse behind a
-     **已处理** header (Codex-style): only the final reply stays visible
-     (the header arrow › turns into v when expanded) and tapping the
-     header expands the whole turn with every intermediate step — all
-     members of the turn fold together, from any model, even when another
-     row sits between them; each row carries its time, and assistant replies render as GFM Markdown (headings / bold / italic / inline code / code blocks / lists / tables / quotes / links / images; a zero-dependency renderer escapes first and allow-lists protocols, so the mobile bundle size barely moves; KaTeX is not supported yet and will be evaluated separately), while user messages stay plain text — and
-   - the three levels mirror the browser's own history: the hardware/系统
-     返回键 and swipe-back move **one level up at a time** (chat → sessions →
-     workspaces) and only leave the page from the workspaces root, while
-     the header ‹ button rides the same history,
-   - a composer toolbar carries the **model** picker (provider-grouped
-     catalog with a 思考强度 effort section per model) and the **权限**
-     picker (permission presets; 完全权限 requires an explicit confirm
-     step). Both ride the host's own `session.models` /
-     `session.selectModel` RPCs and the `/permission` command — the phone
-     changes the same session settings the desktop would — plus a **显示**
-     sheet with persistent toggles for 工具调用 (tool-call disclosures) and
-     系统提示词 (injected system messages), and a 上下文 usage chip that
-     shows the latest assistant answer's context-fill percentage.
- 4. On a secure origin, install the `/m/` page from the browser. The installed app retains the same mobile remote capabilities; when its browser context has no paired-device cookie, paste a fresh desktop-issued pairing link into its pairing screen.
- 5. **To pair a PC instead**: copy the same link and open it in a browser on
-    the other computer — the desktop URL form (`/?pair=<token>`, not `/m/`).
-    After the accept round trip the full Web GUI runs there over the gated
-    `/remote/api` channel; unpaired PCs see the guided blocking page and no
-    data. One active token pairs one device; mint a fresh QR for the
-    next device.
- 6. The desktop badge flips to 已连接 in real time; it falls back to
-    offline/断开 when the phone leaves.
- 7. 刷新二维码 invalidates the old link and issues a new one. 停止 revokes
-    mobile access: paired devices 403 on their next request, including their
-    live stream.
+3. Scan with the phone (or open the copied link): the phone binds, reloads
+   into the **full Web GUI**. On a narrow screen the layout comes from
+   `dsh-ui-tweaks` — the sidebar hides automatically, leaving a small whale
+   logo at the top-left that opens the sidebar as a drawer overlay;
+   workspaces, sessions, chat, and model switching are exactly the desktop's.
+4. **Pair another device (a computer or a phone — the same link)**: copy the
+   link and open it in a browser on that device (LAN URL or tunnel URL).
+   After the accept round trip the full Web GUI runs there over the gated
+   `/remote/api` channel; unpaired devices see the guided blocking page and
+   no data. One active token pairs one device; mint a fresh QR for the
+   next device.
+5. The desktop badge flips to 已连接 in real time; it falls back to
+   offline/断开 when the device leaves.
+6. 刷新二维码 invalidates the old link and issues a new one. 停止 revokes
+   remote access: paired devices 403 on their next request, including their
+   live stream.
 
-The mobile surface is fully self-contained in this plugin: the `/m` page
-and its data channel (`/m/api`) are served by the plugin's own routes and
-need **no harness source changes** — the phone's RPC calls ride the
-plugin's `/m/api` proxy (which delegates to the host ApiProxy service and
-pages `session.list` itself), so the tunneled Host never has to enter the
-connection plugin's trust fence. The phone is gated by its paired-device
-cookie and an explicit method allowlist. The allowlist constrains the
-`/m/api` proxy alone: the paired-device cookie itself also passes the global
-api/gate, so a paired device is a full-control credential for the host `/api`
-surface — settings/credentials/host-action domains stay unreachable only
-because the SDK pins those privileged methods to loopback. Pairing is full
-device trust; the `/m/api` proxy's model
-reads/writes are limited to the advisory `session.models` /
-`session.selectModel` pair. Separately, the exact paired-only model-catalog
-routes may adopt models for an existing eligible `llm-pi-ai` provider; they
-cannot create providers or access credentials or general settings. Agent preset
-access to read-only `agentPreset.list`, creation to `session.create`
-(workspace id plus an optional id from that roster — the phone never names a
-working directory of its own), and the permission picker only ever sends the
-mode-agnostic `/permission` command
-through the already-allowlisted `session.prompt`); the live stream arrives
-over Server-Sent Events on `/m/api/events.mux`. The canonical `/m/` page owns a same-scope manifest and Service Worker; its cache is limited to the static shell and an offline page, never mobile API responses, session data, or commands.
+The pairing link points straight at the full Web GUI; fenced non-loopback
+traffic (a phone or computer) rides the gated `/remote` channel, which
+re-issues the requests to the local web server (see `src/remote-api.ts`) —
+**no harness source changes** are needed. Devices are gated by their
+paired-device cookie and the `/remote` cookie gate. Note that the cookie also
+passes the global api/gate, so a paired device is a full-control credential
+for the host `/api` surface — settings/credentials/host-action domains stay
+unreachable only because the SDK pins those privileged methods to loopback:
+pairing is full device trust, exactly like a paired computer.
 
 ### Behavior notes
 
-- The mobile composer sends on Enter by default (Shift+Enter inserts a
-  newline). Set `mobileEnterToSend: false` in the plugin settings card (or
-  the profile patch) to make plain Enter insert a newline instead; sending
-  then happens only through the 发送 button. The phone reads the flag
-  through its own `/m/api` preferences method when a chat opens. On
-  browsers that support `field-sizing: content`, the input grows with the
-  draft up to its 120px cap in either mode.
-- The `/m/` worker uses network-first static-shell fallback and waits for current pages to close before an updated worker activates. It bypasses `/m/api`, `/api`, SSE, and every write request.
-- Installing this plugin routes fenced non-loopback desktop traffic onto the
-  gated `/remote` channel (see `requirePairingForLan` in `src/index.ts`).
-  While the flag is on (default), a desktop browser opened via the LAN URL or
+- Installing this plugin routes fenced non-loopback traffic (phone or
+  computer) onto the gated `/remote` channel (see `requirePairingForLan` in
+  `src/index.ts`).
+  While the flag is on (default), a browser opened via the LAN URL or
   the tunnel must pair like any remote device — the unpaired state shows a
   persistent blocking page instead of data; loopback (127.0.0.1) is unaffected
   and keeps `/api`. Set `requirePairingForLan: false` in the profile patch to
-  keep the desktop on plain `/api` and have a leftover `/remote` rewrite
+  keep the remote browser on plain `/api` and have a leftover `/remote` rewrite
   proxy unpaired calls (only useful with the open-LAN stance; loopback-only
   paths stay denied) while keeping tokens/status/revocation. Note the
   underlying `/api` route itself is the
@@ -323,12 +230,12 @@ The QR stays LAN-only until the tunnel reports its URL, and a tunnel
 restart mints a NEW hostname — the plugin clears the old link and mints a
 fresh one, so users never touch configuration. Note that a quick tunnel is
 public: anyone with the URL can load the static page; the paired-device
-cookie gates are the real fence (the phone's `/m/api` with its method
-allowlist, the remote desktop's `/remote/api`). The connection plugin's
+cookie gates are the real fence (every remote device rides `/remote/api`).
+The connection plugin's
 `/api` fence refuses the tunneled host outright — the tunneled Host never
 enters the connection trust fence — so **no profile or harness
 customization is required for the auto tunnel to work**. `--trusted-host`
-is not part of this path: a paired PC uses `/remote/api`.
+is not part of this path: paired devices use `/remote/api`.
 
 ### Manual tunnels (bring your own)
 
@@ -349,10 +256,10 @@ address — the QR is then built from the tunnel URL. One knob is involved;
   client-visible `X-Forwarded-For` hop so one internet client cannot
   exhaust the shared bucket behind the tunnel.
 - **`--trusted-host <tunnel-domain>`** (optional dsh web flag, not recommended
-  for this plugin on security grounds): prefer device pairing so phones use
-  `/m/api` and PCs use `/remote/api`. This flag makes the SDK trust the host
+  for this plugin on security grounds): prefer device pairing so remote
+  devices use `/remote/api`. This flag makes the SDK trust the host
   for `/api` itself, so unpaired callers can reach the ungated host API;
-  pairing still gates `/m/api` and `/remote/api`, but not `/api`. If it is
+  pairing still gates `/remote/api`, but not `/api`. If it is
   set, the posture probe reports the open `/api` fence.
 
 ### Cloudflare Tunnel (quick tunnel — no account, no domain)
@@ -376,33 +283,23 @@ dsh web
 Then set `publicBaseUrl: https://xxxx-xxxx-xxxx.trycloudflare.com` in the
 profile patch (or the plugin settings card — it hot-reloads). Open the
 phone icon at `http://127.0.0.1`, scan the QR from anywhere: the phone
-binds, reloads into the mobile surface, and heartbeats keep it online. A
-desktop browser opened at the same tunnel URL pairs the same way and then
-runs the full Web GUI over the gated `/remote/api` channel.
+binds, reloads into the full Web GUI, and heartbeats keep it online. A
+desktop browser opened at the same tunnel URL pairs the same way via the
+same link, running the full Web GUI over the gated `/remote/api` channel.
 
 Notes:
 
 - Quick tunnels are free and need no login, but the hostname is random per
   run: every `cloudflared` restart changes it, so update `publicBaseUrl`
   with it. Cloudflare documents no uptime guarantees;
-  in-flight-request concurrency is capped (HTTP 429 past it), and **Quick
-  Tunnels do not forward Server-Sent Events**. `Tailscale Serve` (and
-  `tailscale serve` on a single port) behaves the same way. SSE is how the
-  phone receives **live messages** in real time, so over a quick tunnel or
-  Tailscale Serve the mobile chat falls back to polling: the phone still
-  sends and receives messages (everything else rides plain HTTP, which does
-  forward), only a new message may arrive a few seconds late instead of
-  instantly. The plugin polls `session.history` on a short interval once the
-  SSE channel goes silent, and resumes streaming as soon as SSE works again.
-  For true real-time push, point the QR at a tunnel that forwards SSE — a
-  Cloudflare **named tunnel** (domain hosted on Cloudflare, see below), or a
-  plain TCP port forward (LAN address, the `tailscale up` virtual-interface
-  address, or a manual `ssh -L` / cloudflared TCP tunnel to the port). A
-  remote desktop browser is unaffected: its event streams ride WebSocket
-  upgrades, which quick tunnels forward.
+  in-flight-request concurrency is capped (HTTP 429 past it). **Quick
+  Tunnels do not forward Server-Sent Events but do forward WebSocket
+  upgrades** — and the full Web GUI's live event stream rides exactly a
+  WebSocket upgrade (`/api/events.mux`), so phones and remote computers get
+  live messages through a quick tunnel; plain HTTP always forwards.
 - A quick tunnel is public: anyone with the URL can load the static page.
   The paired-device cookie gates are the real fence (unpaired devices get
-  403 on every `/m/api` and `/remote/api` call) — keep `requirePairingForLan`
+  403 on every `/remote/api` call) — keep `requirePairingForLan`
   on. `--trusted-host` is not needed for this path and opens SDK `/api`
   outside pairing.
 - For a stable hostname, create a named tunnel from the Cloudflare
@@ -449,15 +346,15 @@ This plugin rides three harness seams that may not exist in older checkouts:
   event WebSocket upgrades are *designed* to emit this event after the trust
   fence so plugins can enforce application-level access control. Current
   published SDK lines do NOT emit it (the listener stays mounted for
-  deployments that gain the seam). Pairing for the phone and the PC therefore
-  lives on this plugin's own routes (`/m/api`, `/remote/api`); the posture
-  probe reports the SDK `/api` fence stance rather than assuming it.
+  deployments that gain the seam). Pairing and gating for every remote
+  device therefore lives on this plugin's own route (`/remote/api`); the
+  posture probe reports the SDK `/api` fence stance rather than assuming it.
 - **`sidebar.remote` foot seat** (packages/client/ui-sidebar): the sidebar
   declares and renders the seat the phone entry occupies.
 - **LAN runtime connection fixes** (host-apiproxy `mintRpcId` fallback for
   insecure-context origins; the 20260808-branch connection loop opening the
   host stream after the mux stream): without them the browser runtime cannot
-  run on a plain-HTTP LAN page at all (the mobile side of this feature).
+  run on a plain-HTTP LAN page at all (phones and remote computers alike).
 
 The fence helpers (`isTrustedApiRequest` / `isLoopbackHostname`) are
 reimplemented locally in `src/gate.ts` / `src/routes.ts`: the 20260810
@@ -495,11 +392,14 @@ opens at `http://127.0.0.1`.
 
 ## Security model
 
-- Mobile unary routes and the mux event stream require a live paired-device session. A missing or revoked session receives HTTP 403 with a JSON rejection carrying `error.code: "unpaired"`; the browser's `EventSource` API exposes only the stream failure, not that response body.
+- Every request on the remote channel requires a live paired-device session.
+  A missing or revoked session receives HTTP 403 with a JSON rejection
+  carrying `error.code: "unpaired"`; the browser `EventSource`/WebSocket API
+  exposes only the connection failure, not that response body.
 
 ## Known Limitations and Deferred Work
 
-- **Revocation is per-request**: a paired phone whose request is already in
+- **Revocation is per-request**: a paired device whose request is already in
   flight when 停止 lands completes that request; the next one 403s.
 - **Paired device sessions persist by default**: device sessions (not the
   one-time QR token) are written to `$DSH_HOME/remote-web-ui-devices.json`
@@ -517,16 +417,15 @@ opens at `http://127.0.0.1`.
   `Windows · Chrome`), online/offline state, and last active time, and can
   unpair one at a time. Credential-bearing device ids and raw User-Agent
   values are not rendered. `/api/pair/status` never returns the device id
-  list, even to a paired phone.
+  list, even to a paired device.
 - **The desktop gate policy is public**: `/api/pair/status` exposes only the
-  boolean `requirePairingForLan` policy so a remote desktop can choose the
+  boolean `requirePairingForLan` policy so a remote device can choose the
   correct transport before its settings scope is available. This field is
   not a credential and does not expose tokens, devices, counts, or tunnel URLs.
 - **Quick-tunnel hostnames change per run**: a `trycloudflare.com` URL is
   random on every `cloudflared` start, so `publicBaseUrl` must be updated
   whenever the tunnel restarts. A named tunnel (fixed hostname) avoids the
-  churn and is required for a durable installed-PWA address.
-- **PWA is online-first**: only the static shell and offline page are cached. The running DSH host remains required for all mobile remote capabilities; no session, API response, or command is available offline.
+  churn.
 - **Dev HMR**: `dsh web --dev` polls every roster bundle by path, so
   rebuilding this package (its own `tsdown --watch`) hot-reloads the client
   bundle; no harness-side watcher is involved.

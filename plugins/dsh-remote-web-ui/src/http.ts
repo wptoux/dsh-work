@@ -3,7 +3,7 @@
  * Shared JSON body/response helpers for the host route families: one strict
  * bounded body reader, one lenient bounded body reader, one JSON object
  * narrow, and one JSON writer. Previously these were copy-pasted across the
- * package route files (routes.ts, mobile-api.ts, and each
+ * package route files (routes.ts, remote-api.ts, and each
  * family's route module) with drifting contracts: body caps ranging 4 KiB to
  * 1 MiB and four distinct overflow behaviors (reject, undefined, null, throw).
  *

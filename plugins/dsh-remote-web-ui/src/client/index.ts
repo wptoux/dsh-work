@@ -1,10 +1,11 @@
 /**
- * Mobile remote control — browser half. Registers the `remote` dictionaries,
- * the sidebar-foot entry (phone trigger + pairing panel) into the
- * ui-sidebar-declared `sidebar.remote` seat, and runs the phone-side boot
- * flow (pair accept + workspace deep-link + presence heartbeats) plus the
- * one-time failed-pair notice. Export discipline: packages/client/AGENTS.md
- * — the /client surface carries only what cordis loading needs plus types.
+ * Phone and desktop remote control — browser half. Registers the `remote`
+ * dictionaries, the sidebar-foot entry (phone trigger + pairing panel) into
+ * the ui-sidebar-declared `sidebar.remote` seat, and runs the pair-accept
+ * boot flow (token accept + workspace deep-link + presence heartbeats) plus
+ * the one-time failed-pair notice. Export discipline:
+ * packages/client/AGENTS.md — the /client surface carries only what cordis
+ * loading needs plus types.
  */
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'

@@ -24,7 +24,7 @@ const PATH_MATRIX = [
   '/git',
   '/pet/whale/sprite.webp',
   '/pet',
-  '/m/api/session.list',
+  '/remote/api/session.list',
   '/assets/index.js',
 ]
 
@@ -35,7 +35,7 @@ const WS_MATRIX = [
   '/sidebar/ws/agent-terminals',
   '/api/dsh-ssh/terminal',
   '/api/session.list',
-  '/m/api/events.mux',
+  '/remote/api/events.mux',
 ]
 
 interface FakeWindow {
