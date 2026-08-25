@@ -55,6 +55,10 @@ describe('applyFoldPlan', () => {
     expect(header?.getAttribute('aria-expanded')).toBe('false')
     expect(header?.textContent).toContain('已处理')
     expect(header?.textContent).toContain('2 条')
+    // The label comes FIRST so「已处理」left-aligns with the reply text below;
+    // the caret trails it (已处理 ›, not › 已处理).
+    expect(header?.firstElementChild?.classList.contains('dsh-fold-label')).toBe(true)
+    expect(header?.children[1]?.classList.contains('dsh-fold-caret')).toBe(true)
     const a1 = container.querySelector('[data-chat-flow-key="a1"]')
     const t1 = container.querySelector('[data-chat-flow-key="t1"]')
     expect(a1?.getAttribute('data-dsh-fold-row')).toBe('1')

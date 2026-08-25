@@ -12,7 +12,8 @@
   gap: 6px;
   width: 100%;
   margin: 0;
-  padding: 6px 8px;
+  /* No horizontal padding so「已处理」left-aligns with the reply text below. */
+  padding: 6px 0;
   border: none;
   border-radius: 6px;
   background: transparent;

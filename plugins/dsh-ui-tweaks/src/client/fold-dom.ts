@@ -67,8 +67,10 @@ function makeHeader(turn: number, open: boolean, copy: FoldCopy): HTMLButtonElem
   const label = document.createElement('span')
   label.className = 'dsh-fold-label'
   label.textContent = copy.header()
-  button.appendChild(caret)
+  // Label first, caret trailing (「已处理 ›」not「› 已处理」) so the label
+  // left-aligns with the reply text below the header.
   button.appendChild(label)
+  button.appendChild(caret)
   return button
 }
 
