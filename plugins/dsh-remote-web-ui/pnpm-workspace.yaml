@@ -1,0 +1,7 @@
+packages:
+  - .
+
+allowBuilds:
+  # cloudflared postinstall downloads the tunnel binary; the auto-tunnel
+  # feature needs it at runtime.
+  cloudflared: true
