@@ -165,15 +165,15 @@ describe('applyFoldPlan', () => {
     expect(container.querySelector('[data-chat-flow-key="a2"]')?.hasAttribute('data-dsh-fold-last')).toBe(false)
   })
 
-  it('renders the turn duration after the caret (已处理 › 3m16s) with the count still right-aligned', () => {
+  it('renders the turn duration before the caret (已处理 3m16s ›) with the count still right-aligned', () => {
     applyFoldPlan(container, {
       folds: [{ ...FOLD_1, durationMs: 196_000 }],
       completionRequest: null,
     }, new Set(), COPY)
     const header = container.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
     const kids = [...(header?.children ?? [])]
-    expect(kids.map(k => k.className)).toEqual(['dsh-fold-label', 'dsh-fold-caret', 'dsh-fold-duration', 'dsh-fold-count'])
-    expect((kids[2] as HTMLElement).textContent).toBe('3m16s')
+    expect(kids.map(k => k.className)).toEqual(['dsh-fold-label', 'dsh-fold-duration', 'dsh-fold-caret', 'dsh-fold-count'])
+    expect((kids[1] as HTMLElement).textContent).toBe('3m16s')
     expect((kids[3] as HTMLElement).textContent).toBe('2 条')
   })
 

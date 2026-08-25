@@ -114,8 +114,8 @@ function setDurationBadge(button: HTMLElement, durationMs: number | undefined, c
   if (existing === null) {
     const badge = document.createElement('span')
     badge.className = 'dsh-fold-duration'
-    // Sit between the caret and the count (the count keeps its auto right margin).
-    button.insertBefore(badge, button.querySelector<HTMLElement>('.dsh-fold-count'))
+    // Sit between the label and the caret (已处理 3m16s ›), before the count.
+    button.insertBefore(badge, button.querySelector<HTMLElement>('.dsh-fold-caret'))
     badge.textContent = copy.duration(durationMs)
   } else {
     existing.textContent = copy.duration(durationMs)
