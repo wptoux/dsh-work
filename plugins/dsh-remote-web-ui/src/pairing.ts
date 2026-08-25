@@ -437,8 +437,8 @@ export class PairingService {
    * after stop() or idle expiry) are refused.
    *
    * Presence refreshes are throttled on purpose: every gated request (and
-   * the mobile SSE keepalive) lands here, so a broadcast per call would fan
-   * a full snapshot out to every status stream on the hot path. The refresh
+   * the remote-channel keepalives) lands here, so a broadcast per call would
+   * fan a full snapshot out to every status stream on the hot path. The refresh
    * only updates lastSeenAt and marks the store dirty; the snapshot reaches
    * listeners at the next sweep() (structural changes notify immediately).
    * @param deviceId - the cookie value of the requesting device.

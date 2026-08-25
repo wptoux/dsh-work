@@ -1,0 +1,106 @@
+/**
+ * Narrow-screen drawer for the host left sidebar (see mobile-sidebar.tsx).
+ * Every rule is gated to max-width: 767px (NARROW_MAX_WIDTH in the module):
+ * at ≥768px the host's native rail / wide sidebar keeps its behavior and the
+ * trigger + scrim are hidden. Selectors are plugin-owned data attributes
+ * plus the host frame's own `data-sidebar-collapsed` state — no hashed
+ * classes, no host changes.
+ */
+
+/* The trigger + scrim mount on every width but render only on phones. */
+@media (min-width: 768px) {
+  [data-dsh-mobile-sidebar-root] {
+    display: none;
+  }
+}
+
+[data-dsh-mobile-trigger] {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  left: max(8px, env(safe-area-inset-left, 0px));
+  z-index: 60;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.08));
+  background: var(--dsw-alias-button-elevated-fill, #ffffff);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+  cursor: pointer;
+}
+
+[data-dsh-mobile-trigger]:hover {
+  background: var(--dsw-alias-button-floating-hover, #f0f1f3);
+}
+
+[data-dsh-mobile-scrim] {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  display: none;
+  padding: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.36);
+  cursor: pointer;
+}
+
+/* The scrim shows only while the drawer is open (mirrors the frame's
+   collapsed attribute; set by the module's attribute observer). */
+[data-dsh-mobile-sidebar-root][data-dsh-mobile-open='true'] [data-dsh-mobile-scrim] {
+  display: block;
+}
+
+@media (max-width: 767px) {
+  /* Zero the sidebar's grid track: the column occupies no width and the
+     conversation takes the full viewport. The frame sets its track inline,
+     so the override needs !important. */
+  [data-dsh-mobile-frame] {
+    grid-template-columns: 0 minmax(0, 1fr) 0 !important;
+  }
+
+  /* Collapsed (rail): the column is gone entirely; only the trigger shows. */
+  [data-dsh-mobile-frame][data-sidebar-collapsed] [data-dsh-mobile-sidebar-col] {
+    display: none;
+  }
+
+  /* Expanded: the column becomes a fixed overlay drawer over the
+     conversation. */
+  [data-dsh-mobile-frame]:not([data-sidebar-collapsed]) [data-dsh-mobile-sidebar-col] {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px;
+    z-index: 58;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.28);
+    transform: translateX(-100%);
+    animation: dsh-mobile-drawer-in 220ms var(--ds-ease-in-out, ease) forwards;
+  }
+
+  /* The session header yields its left edge to the floating trigger. The
+     slot wrapper (not a hashed child class) is the stable seam; if the
+     shell renders it as display:contents the rule degrades to a no-op. */
+  [data-slot='conversation.session.header'] {
+    padding-left: 58px;
+    transition: padding-left var(--ds-transition-duration-slow, 0.2s) var(--ds-ease-in-out, ease);
+  }
+}
+
+@keyframes dsh-mobile-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dsh-mobile-frame]:not([data-sidebar-collapsed]) [data-dsh-mobile-sidebar-col] {
+    animation: none;
+  }
+}

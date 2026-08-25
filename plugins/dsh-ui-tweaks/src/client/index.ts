@@ -19,6 +19,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import { createFoldChrome } from './fold-chrome'
 import { createFoldDriver, type DriverSnapshot, type FoldSessionSource } from './fold-driver'
 import { formatDuration } from './fold-dom'
+import { mountMobileSidebar, type MobileLayoutFace } from './mobile-sidebar.tsx'
 import { en, zh, type UiTweaksKey } from './locales'
 import './fold.css'
 
@@ -114,6 +115,23 @@ export function apply(ctx: ClientContext): void {
       return () => {}
     }
   }, 'dsh-ui-tweaks: dictionaries')
+
+  ctx.effect(() => {
+    const t = ctx.locale.bind(NS)
+    // Narrow-screen drawer: phones run the full desktop GUI, so the sidebar
+    // is hidden behind a top-left whale-logo trigger that expands it as an
+    // overlay drawer. The toggle goes through the layout service's official
+    // action; the drawer's visual state mirrors the host frame (see the
+    // module doc) and the trigger/scrim stay hidden at ≥768px via CSS.
+    const disposeMobile = mountMobileSidebar({
+      label: t('mobile.openSidebar'),
+      toggleSidebar: () => {
+        const layout = ctx.get('layout') as MobileLayoutFace | undefined
+        layout?.toggleSidebar()
+      },
+    })
+    return () => { disposeMobile.dispose() }
+  }, 'dsh-ui-tweaks: mobile sidebar drawer')
 
   ctx.effect(() => {
     const t = ctx.locale.bind(NS)

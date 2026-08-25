@@ -106,6 +106,17 @@ node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得
     卡片因此不渲染）。改为注册官方 `settings.plugin.item`（按 `remote-web-ui` 命名空间
     keyed），卡片出现在 设置 → 插件 → 插件配置 列表。
   - 新增 `pnpm-workspace.yaml`（allowBuilds: cloudflared）保证自管依赖含隧道二进制。
+  - **移除 `/m/` 独立移动端**（本 fork 定制）：删除 `src/mobile/` 应用、`mobile-routes` /
+    `mobile-api` / `mobile-pending` / `mobile-pwa`、PWA 资源、`mobileBundle` 构建与
+    `mobileEnterToSend` 配置。二维码/配对链接统一为 `/?pair=...`（单一链接，手机与电脑
+    共用），面板「手机链接 / 电脑链接」两行合并为「配对链接」一行；手机配对后运行完整
+    Web GUI（非 loopback 走 `/remote` 门控通道），小屏布局由 `dsh-ui-tweaks` 适配。
+- `dsh-ui-tweaks`（本仓库自研）：
+  - 已完成回合折叠（如上 README）。
+  - **窄屏侧边栏抽屉**（本 fork 定制）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
+    彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`
+    把侧边栏展开为覆盖式抽屉（带遮罩）；≥768px 保持宿主原生行为。纯 DOM + CSS（自有
+    `data-dsh-mobile-*` 标记 + 宿主 `data-sidebar-collapsed` 状态），不动内核。
 - `dsh-better-sidebar` / `dsh-usage-stats`：无源码改动。
 - `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、
   cordis patch、预构建 lib 里的 client bundle id 一并替换）；README 安装说明为上游文档，
