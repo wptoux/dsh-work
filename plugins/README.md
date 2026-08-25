@@ -24,16 +24,21 @@
 
 ## 接线方式（已配置好，一般不用动）
 
-profile 依赖指向本地目录（symlink，改源码即生效）：
+profile 依赖指向本地目录（symlink，改源码即生效）。路径用**相对形式**（相对
+`~/.dsh/profiles/web/` 解析，依赖 `~/dsh-work` 与 `~/.dsh` 同在 `$HOME` 下）：
 
 ```json
 // ~/.dsh/profiles/web/package.json
 "dependencies": {
-  "dsh-remote-web-ui": "link:/root/dsh-work/plugins/dsh-remote-web-ui",
-  "dsh-better-sidebar":      "link:/root/dsh-work/plugins/dsh-better-sidebar",
-  "dsh-usage-stats":         "link:/root/dsh-work/plugins/dsh-usage-stats"
+  "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
+  "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
+  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats"
 }
 ```
+
+> 换机器 / 换用户名都不需要动这 3 行（两目录都挂在 `$HOME` 下）。唯一的约束：
+> 若把 `~/dsh-work` 挪到 `$HOME` 之外，或不再与 `~/.dsh` 平级，改这里 3 行即可
+> （`cd ~/.dsh/profiles/web && pnpm install` 更新 lockfile）。
 
 `dsh.profile.bundles` 同步列出这 3 个包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
 

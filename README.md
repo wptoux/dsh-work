@@ -46,13 +46,14 @@ cd ~/dsh-work && git add plugins/<目录> && git commit -m "fix(scope): what"
 
 ## 接线方式（已配置，一般不用动）
 
-web profile 的 `~/.dsh/profiles/web/package.json` 通过 `link:` 依赖指向本仓库：
+web profile 的 `~/.dsh/profiles/web/package.json` 通过 `link:` 依赖指向本仓库（相对路径，
+解析自 profile 目录，要求 `~/dsh-work` 与 `~/.dsh` 同在 `$HOME` 下）：
 
 ```json
 "dependencies": {
-  "dsh-remote-web-ui": "link:/root/dsh-work/plugins/dsh-remote-web-ui",
-  "dsh-better-sidebar":      "link:/root/dsh-work/plugins/dsh-better-sidebar",
-  "dsh-usage-stats":         "link:/root/dsh-work/plugins/dsh-usage-stats"
+  "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
+  "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
+  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats"
 }
 ```
 
