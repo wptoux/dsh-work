@@ -8,7 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFoldDriver,
-  ensureHeaderInView,
+  restoreHeaderPosition,
   windowFromSnapshot,
   type DriverNode,
   type DriverSnapshot,
@@ -275,7 +275,7 @@ describe('createFoldDriver', () => {
     expect(collapsed).toBe('a1')
   })
 
-  it('ensureHeaderInView scrolls a header the bottom-follow pushed out of view', () => {
+  it('restoreHeaderPosition returns the header to its exact pre-toggle viewport top', () => {
     const scroller = document.createElement('div')
     scroller.dataset.conversationScroll = ''
     const flow = flowContainer([['u1', 'user']])
@@ -284,21 +284,17 @@ describe('createFoldDriver', () => {
     const header = document.createElement('button')
     header.setAttribute('data-dsh-fold-header', '')
     flow.appendChild(header)
-    const rect = (top: number, bottom: number): DOMRect => ({
-      top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}),
+    const rect = (top: number): DOMRect => ({
+      top, bottom: top + 32, left: 0, right: 100, width: 100, height: 32, x: 0, y: top, toJSON: () => ({}),
     } as DOMRect)
-    // The at-bottom follow left the header far above the scroller's viewport.
-    Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(-3000, -2968) })
-    Object.defineProperty(scroller, 'getBoundingClientRect', { configurable: true, value: () => rect(0, 900) })
-    const scrollIntoView = vi.fn()
-    header.scrollIntoView = scrollIntoView
-    expect(ensureHeaderInView(header)).toBe(true)
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
-    // Already visible → no scrolling.
-    Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(100, 132) })
-    const second = vi.fn()
-    header.scrollIntoView = second
-    expect(ensureHeaderInView(header)).toBe(false)
-    expect(second).not.toHaveBeenCalled()
+    // The at-bottom follow pushed the header 200px up (was 500, now 300).
+    Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(300) })
+    scroller.scrollTop = 400
+    expect(restoreHeaderPosition(header, 500)).toBe(true)
+    expect(scroller.scrollTop).toBe(200) // scroll up by the 200px shift
+    // Already at the captured position → no scroll.
+    Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(500) })
+    expect(restoreHeaderPosition(header, 500)).toBe(false)
+    expect(scroller.scrollTop).toBe(200)
   })
 })

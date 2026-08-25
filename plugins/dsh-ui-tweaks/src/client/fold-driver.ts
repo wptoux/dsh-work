@@ -132,18 +132,20 @@ export function createFoldDriver(source: FoldSessionSource, options: FoldDriverO
     else next.add(turn)
     expanded = next
     const header = findFoldHeader(options.containers(), turn)
+    // Capture the header's viewport top BEFORE the re-apply: the chat's
+    // at-bottom scroll-follow (ResizeObserver, delivered after layout) pins
+    // the view to the new bottom on toggle, shifting the header up by the
+    // layout delta. Restore its exact position once the follow has settled
+    // (rAF2 runs after the observer callbacks — a single rAF is undone by it).
+    const captured = header !== null && header.isConnected && header.parentElement !== null
+      ? { header, top: header.getBoundingClientRect().top, scroller: scrollerOf(header.parentElement) }
+      : null
     run()
-    // The header leads the block and does not move on toggle; the only way it
-    // can leave the viewport is the chat's at-bottom scroll-follow racing the
-    // layout change: the kernel's ResizeObserver pins the view to the new
-    // bottom AFTER rAF callbacks run, so a single rAF is undone by it. Wait a
-    // second frame (rAF2 runs after the observer delivery) and only then
-    // re-assert the header when it left the scroller's visible area.
-    if (header !== null && header.isConnected && typeof requestAnimationFrame === 'function') {
+    if (captured !== null && captured.scroller !== null && typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(() => {
-        if (!header.isConnected) return
+        if (!captured.header.isConnected) return
         requestAnimationFrame(() => {
-          if (header.isConnected) ensureHeaderInView(header)
+          if (captured.header.isConnected) restoreHeaderPosition(captured.header, captured.top)
         })
       })
     }
@@ -163,19 +165,17 @@ function scrollerOf(container: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Scroll the fold header back into the scroller's visible area (no-op when it
- * is already visible). Returns whether it actually scrolled. Used after a
- * toggle, once the chat's at-bottom scroll-follow has settled.
+ * Scroll the scroller back so the header returns to its captured viewport top
+ * (undoing any at-bottom follow shift). Returns whether it scrolled.
  */
-export function ensureHeaderInView(header: HTMLElement): boolean {
+export function restoreHeaderPosition(header: HTMLElement, capturedTop: number): boolean {
   const container = header.parentElement
   if (container === null) return false
   const scroller = scrollerOf(container)
   if (scroller === null) return false
-  const h = header.getBoundingClientRect()
-  const s = scroller.getBoundingClientRect()
-  if (h.bottom < s.top || h.top > s.bottom) {
-    if (typeof header.scrollIntoView === 'function') header.scrollIntoView({ block: 'nearest' })
+  const delta = header.getBoundingClientRect().top - capturedTop
+  if (delta !== 0) {
+    scroller.scrollTop += delta
     return true
   }
   return false
