@@ -1,93 +1,102 @@
-# dsh plugins that just work
+# dsh-work
 
-Frozen, self-maintained local builds of the third-party DeepSeek Harness plugins
-you actually use — pinned forever, tuned by you, never broken by an upstream update.
+> English version: [README.en.md](README.en.md)
+
+### DeepSeek Harness plugins that just work.
+
+一套从社区 fork 而来的 DeepSeek Harness（dsh）Web 插件合集：基于实际使用需要挑选、裁剪，并做了精细化调整，让它们更贴合日常使用。
+
+**pnpm ≥ 9.5** · **5 款插件** · **MIT / Apache-2.0**
 
 ---
 
-本仓库是一个**个人维护的 dsh 插件冻结仓库**：把曾经"每次更新都可能 break"的第三方
-dsh 插件源码本地化，锁死版本，自己修、自己裁、自己优化。所有插件由**一个统一 git
-仓库**管理（本仓库），运行时通过 profile 的 `link:` 依赖直接挂载本地源码。
+## 关于 dsh-work
 
-## 包含的插件
+「work」一语双关：既指让这些插件真正**跑起来、正常工作**，也指**满足日常工作的需要**。
 
-| 目录 | 包名 | 功能 | 上游 | 冻结 commit |
-|---|---|---|---|---|
-| `plugins/dsh-remote-web-ui/` | `dsh-remote-web-ui` | 手机远程控制（扫码配对 + 自动隧道） | [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)（19 子包全家桶中**单独提取并裁剪**） | `a3b44d9`（v0.3.2） |
-| `plugins/dsh-better-sidebar/` | `dsh-better-sidebar` | 增强侧边栏 | [omdsh-dev/DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) | `d9b8f15`（v0.15.2） |
-| `plugins/dsh-usage-stats/` | `dsh-usage-stats` | 用量统计 | [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats) | `8373659`（v0.2.5） |
-| `plugins/dsh-archive-manager/` | `dsh-archive-manager` | 会话归档管理（设置页归档卡片） | [z953218350/dsh-archive-manager](https://github.com/z953218350/dsh-archive-manager) | `9e611af`（= npm 1.0.7） |
-| `plugins/dsh-ui-tweaks/` | `dsh-ui-tweaks` | 桌面 UI 整洁 / 已完成回合折叠 + 窄屏抽屉 | 本仓库自研（无上游） | — |
+社区里的 dsh 插件层出不穷，但彼此兼容性往往不好调试，用户体验也参差不齐。与其追着上游更新跑，不如自己 fork 下来，按需裁剪、精细调整，保证稳定好用。
 
-> 已移除：`dshmarket`（插件市场）——与"冻结"策略冲突，不再需要；恢复方式见
-> `plugins/README.md`。迁移前的完整上游历史备份在 `./.git-backup/*.bundle`（本地保险，
-> 不入库；`dsh-web-ui.bundle` 约 430MB，不需要可删）。
+而且现在是 AI 时代，改代码的成本变得很低——往后看到社区里有意思的新功能，直接用 AI 合进本仓库即可，不必再等上游。
 
-> 发版与安装：本仓库以整仓统一 tag（`plugins-YYYY.MM.N`，首个 `plugins-2026.08.1`）对外分发，安装引用固定于 tag、永不漂移；见 [plugins/README.md](plugins/README.md) 的「GitHub 安装」章节。
+## 功能一览
 
-## 为什么这样做
+五个插件，覆盖统一移动端与 Web 体验、手机远程控制、增强侧边栏、用量统计与会话归档：
 
-旧方案把插件装成 npm 范围依赖（`^1.9.0`）和 `github:` 浮动引用，**每次更新都会拉到
-新版本，随时可能 break**。本地化之后：
+### dsh-ui-tweaks · 统一移动端与 Web 体验
 
-- 版本**永不自动漂移**——源码冻结在上表 commit，修复全部本地完成
-- 改代码 → `pnpm build` → 重启 dsh 即生效（profile 以 symlink 指向本仓库）
-- 用不上的功能直接**裁剪掉了**（全家桶 19 子包 → 1 个）
+- **一套界面通用**：手机与电脑共用同一套 Web 界面，体验统一
+- **窄屏抽屉**：小屏自动把侧边栏收纳为抽屉式
+- **折叠已完成回合**：长对话更清爽，只保留最后一条回复
 
-## 快速开始
+### dsh-remote-web-ui · 手机远程控制
 
-或者当成发布源直接安装（新机器 / 分享给他人，需 pnpm ≥9.5）：
+来源：[zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)
 
-```json
-"dependencies": {
-  "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
-  "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
-  "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
-  "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
-  "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
-}
-```
+- **扫码配对**：二维码入口 + 一次性配对令牌，安全便捷
+- **自动隧道**：内置 cloudflared 隧道，随时随地访问
+- **会话可控**：实时设备状态，可随时撤销
 
-（详情与 `allowBuilds` 配置见 [plugins/README.md](plugins/README.md)。）
+### dsh-better-sidebar · 增强侧边栏
 
-```sh
-# 构建某个插件（改完源码后同样操作）
-cd plugins/dsh-remote-web-ui && pnpm build   # 或 dsh-better-sidebar
-# 提交改动（Conventional Commits，无 emoji）
-cd ~/dsh-work && git add plugins/<目录> && git commit -m "fix(scope): what"
-# 重启 dsh 使改动生效（web profile）
-#   终端里 Ctrl+C 停掉当前 `dsh web`，重新运行 `dsh web`
-```
+来源：[omdsh-dev/DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar)
 
-详细的维护流程（改代码 / 验证 / 回滚 / 更新上游 / 恢复已删组件）见
-**[plugins/README.md](plugins/README.md)**。
+- **VSCode 风格**：资源管理器、编辑器、终端、git、浏览器
+- **按会话隔离**：每个对话独立，互不干扰
+- **可扩展**：开放 API，其他插件也能挂载标签页
 
-## 接线方式（已配置，一般不用动）
+### dsh-usage-stats · 用量统计
 
-web profile 的 `~/.dsh/profiles/web/package.json` 通过 `link:` 依赖指向本仓库（相对路径，
-解析自 profile 目录，要求 `~/dsh-work` 与 `~/.dsh` 同在 `$HOME` 下）：
+来源：[Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats)
 
-```json
-"dependencies": {
-  "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
-  "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
-  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats",
-  "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager"
-}
-```
+- **用量热力图**：token 消耗一目了然
+- **余额与配额**：供应商余额、订阅配额集中展示
 
-依赖模型：pnpm 对 `link:` 采用"插件目录自管依赖"，每个插件目录自带完整 node_modules
-（含原生二进制），profile 只挂载目录本身。
+### dsh-archive-manager · 会话归档管理
 
-## 仓库规则
+来源：[z953218350/dsh-archive-manager](https://github.com/z953218350/dsh-archive-manager)
 
-给 AI agent 的完整工作守则见 **[AGENTS.md](AGENTS.md)**。核心几条：
+- 在设置页**预览、恢复、删除**已归档会话
 
-- **冻结策略**：不 `fetch/push` 上游，不跟随上游更新
-- **构建产物**：`lib/`、`node_modules/` 一律不入库（.gitignore 已覆盖）
-- **提交**：Conventional Commits，无 emoji，在仓库根提交
-- **生效**：改动需重启 dsh 服务，**禁止自行 kill/重启正在运行的 dsh**，在交付报告中标注"需用户重启后生效"
+## 演示
+
+桌面端——统一 Web 界面与增强侧边栏，一套改代码、写 README 的日常用法：
+
+![桌面端演示](assets/images/demo1.png)
+
+移动端——手机远程控制，随时随地继续对话：
+
+![移动端演示](assets/images/demo2.png)
+
+## 快速安装
+
+前提：**pnpm ≥ 9.5**（npm 不支持 git 子目录依赖）。
+
+1. 把插件加到 `~/.dsh/profiles/web/package.json`：
+
+   ```json
+   "dependencies": {
+     "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
+     "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
+     "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
+     "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
+     "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+   }
+   ```
+
+2. 在 `~/.dsh/profiles/web/pnpm-workspace.yaml` 放行两个原生二进制（一次性配置）：
+
+   ```yaml
+   allowBuilds:
+     cloudflared: true
+     node-pty: true
+   ```
+
+3. 安装并重启 dsh：
+
+   ```sh
+   cd ~/.dsh/profiles/web && pnpm install
+   ```
 
 ## License
 
-仓库及插件源码参见 `LICENSE` 与各目录内 LICENSE（MIT/Apache-2.0，以各插件上游为准）。
+源仓库代码遵循各自源仓库的协议（MIT / Apache-2.0），本仓库的新增与改动遵循本仓库的 [MIT License](LICENSE)；各插件目录内保留对应协议文件。
