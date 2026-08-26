@@ -69,6 +69,7 @@ plugins/
 | `dsh-better-sidebar` | `cd plugins/dsh-better-sidebar && pnpm build` | `node -e "require('./lib/index.js')"` |
 | `dsh-usage-stats` | 无需构建 | lib/ 已入库 |
 | `dsh-archive-manager` | 无需构建 | lib/ 已入库 |
+| `dsh-ui-tweaks` | `cd plugins/dsh-ui-tweaks && pnpm build` | `node -e "require('./lib/index.js')"` |
 
 完整验证（声称完成前必须）：
 

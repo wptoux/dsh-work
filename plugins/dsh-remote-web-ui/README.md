@@ -145,11 +145,12 @@ Restart the profile (`dsh web`), then open the phone icon in the sidebar
 foot. The plugin's `cordis.patch.yml` inserts the single plugin row that
 mounts both halves.
 
-> `github:<org>/<repo>` installs work for a standalone repo whose package
-> sits at the root (the `prepare` script builds `lib/` during install;
-> pnpm ≥10 blocks that until you copy the printed key into the profile's
-> `pnpm-workspace.yaml` `allowBuilds` and re-run). Monorepo subpackages
-> use the `link:` form above.
+> Install this package through the GitHub subdirectory channel
+> (`github:wptoux/dsh-work#<tag>&path:plugins/dsh-remote-web-ui`,
+> pnpm ≥9.5) or wire it locally with `link:`. The package ships its
+> committed `lib/` (no `prepare` build), so git installs build nothing;
+> only the native binaries' scripts need an `allowBuilds` entry (canonical
+> install block: `plugins/README.md`「GitHub 安装」).
 
 ## Use
 
@@ -327,8 +328,8 @@ pnpm --filter dsh-remote-web-ui run typecheck
 The peer APIs come from the official NPM SDK: every `@deepseek-ai/*` package
 used here is declared in devDependencies (rc.6), and TypeScript/Vitest resolve
 types straight from node_modules — no DSH source checkout is required. The
-consumer-side `prepare` build (`tsdown.prepare.config.ts`) transpiles without
-type checking, so git installs work without any harness checkout either.
+package ships its committed `lib/` (built from `src` at release time) and has
+no `prepare` build, so git installs work without any harness checkout either.
 
 ## Checks
 

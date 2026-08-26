@@ -47,7 +47,7 @@ dsh plugin --profile web add link:$(pwd)/packages/dsh-remote-web-ui
 
 重启 profile（`dsh web`），然后打开侧边栏底部的手机图标。插件的 `cordis.patch.yml` 插入装载两个半区的单条插件行。
 
-> `github:<org>/<repo>` 安装适用于包位于仓库根部的独立仓库（`prepare` 脚本在安装时构建 `lib/`；pnpm ≥10 会阻断它，直到你把打印的 key 复制进 profile 的 `pnpm-workspace.yaml` `allowBuilds` 并重跑）。monorepo 子包使用上面的 `link:` 形式。
+> 本包经 GitHub 子目录渠道安装：`github:wptoux/dsh-work#<tag>&path:plugins/dsh-remote-web-ui`（pnpm ≥9.5），或用本地 `link:` 接线。本包随仓提交 `lib/`、无 `prepare` 构建，git 安装不会构建任何东西；仅原生二进制的安装脚本需 `allowBuilds` 放行（规范安装块见 `plugins/README.md` 的「GitHub 安装」章节）。
 
 ## 使用
 
@@ -121,7 +121,7 @@ pnpm --filter dsh-remote-web-ui test
 pnpm --filter dsh-remote-web-ui run typecheck
 ```
 
-peer APIs 来自官方 NPM SDK：这里用到的每个 `@deepseek-ai/*` 包都声明在 devDependencies（rc.6）里，TypeScript/Vitest 直接从 node_modules 解析类型——无需 DSH 源码 checkout。消费者侧 `prepare` 构建（`tsdown.prepare.config.ts`）不做类型检查转译，因此 git 安装也无需任何 harness checkout。
+peer APIs 来自官方 NPM SDK：这里用到的每个 `@deepseek-ai/*` 包都声明在 devDependencies（rc.6）里，TypeScript/Vitest 直接从 node_modules 解析类型——无需 DSH 源码 checkout。本包随仓提交 `lib/`（发版时由 `src` 构建）、无 `prepare` 构建，因此 git 安装同样无需任何 harness checkout。
 
 ## 检查
 
