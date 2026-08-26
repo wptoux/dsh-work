@@ -47,24 +47,26 @@
 /**
  * Session stats row above the composer (host slot
  * `conversation.composer.dock`, class FJxK0a_*): the host lays five
- * `a | b` segments on one nowrap line, centered, max-width 748px. On a
- * phone the container narrows to the dock width (~350px) while the
- * segments still need ~660px, so the centered line overflows both edges
- * and reads as clipped text running off the right side of the screen.
- * Below 767px switch to a centered wrapping flex so every segment stays
- * fully readable on-screen (the "|" separators become redundant between
- * spaced flex items and are hidden).
+ * `a | b` segments — turns, LLM/tool time, TTFT, token rate, token
+ * usage — on one centered nowrap line (max-width 748px). On phones the
+ * line overflows the dock width and reads as clipped text running off
+ * the screen, and it eats valuable viewport space above the input; the
+ * dock stats are redundant with the per-message hover info, so on
+ * phones we hide the whole row.
+ *
+ * Message hover info in the action rows (class p-xYUq_*): the host
+ * shows the message time (`p-xYUq_timeStart`) and the assistant-turn
+ * summary `time · Ran for … · TTFT …` (`p-xYUq_timeEnd`) on hover —
+ * an interaction phones don't have, and their wide text overflows the
+ * narrow viewport. Hidden on phones; the action buttons stay.
  */
 @media (max-width: 767px) {
   .FJxK0a_root {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    white-space: normal !important;
-    gap: 2px 8px !important;
+    display: none !important;
   }
 
-  .FJxK0a_sep {
+  .p-xYUq_timeStart,
+  .p-xYUq_timeEnd {
     display: none !important;
   }
 }
