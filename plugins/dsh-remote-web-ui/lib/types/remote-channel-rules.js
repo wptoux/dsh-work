@@ -1,0 +1,31 @@
+/**
+ * The remote-channel rewrite contract as pure data (issue #987): both the
+ * browser patch (client/remote-channel.ts) and the parse-time boot patch
+ * (remote-channel-boot.ts, inlined into index.html by the host) decide from
+ * these tables, so the two can never drift apart.
+ * @module dsh-remote-web-ui/remote-channel-rules
+ */
+/** The gated mirror prefix (must match src/remote-methods.ts). */
+export const REMOTE_PREFIX = '/remote';
+/** Connection-plugin method prefix under the gated channel. */
+export const REMOTE_API_PREFIX = `${REMOTE_PREFIX}/api`;
+/** The live rule set. */
+export const REMOTE_CHANNEL_RULES = {
+    remotePrefix: REMOTE_PREFIX,
+    apiPrefix: '/api/',
+    pairPrefix: '/api/pair/',
+    desktopLauncherPrefix: '/api/dsh-desktop-launcher',
+    settingsBridgePrefix: '/api/dsh-web-ui-settings',
+    sidebarPrefix: '/sidebar/',
+    gitPrefix: '/git/',
+    petPrefix: '/pet/',
+    wsPaths: [
+        '/api/events.mux',
+        '/api/events.host',
+        '/sidebar/ws/terminal',
+        '/sidebar/ws/agent-terminals',
+        '/api/dsh-ssh/terminal',
+    ],
+};
+/** The window global the boot patch publishes its seat under. */
+export const REMOTE_CHANNEL_BOOT_GLOBAL = '__DSH_REMOTE_CHANNEL_BOOT__';

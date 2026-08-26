@@ -1,0 +1,33 @@
+/**
+ * Remote desktop channel constants — SDK-independent so tests and the
+ * client half can pin them without importing the host SDK graph.
+ */
+/** Gated mirror of same-origin fenced paths (`/remote` + original pathname). */
+export declare const REMOTE_PREFIX = "/remote";
+/** Connection-plugin method prefix under the gated channel. */
+export declare const REMOTE_API_PREFIX = "/remote/api";
+/** WebSocket event-stream paths served by the channel (client rewrites to these). */
+export declare const REMOTE_API_PATHS: {
+    readonly mux: "/remote/api/events.mux";
+    readonly host: "/remote/api/events.host";
+};
+/**
+ * Exact upgrade paths registered on webServer (the SDK matches upgrades by
+ * exact path, not prefix). Query strings ride on the request URL.
+ */
+export declare const REMOTE_UPGRADE_PATHS: readonly ["/remote/api/events.mux", "/remote/api/events.host", "/remote/sidebar/ws/terminal", "/remote/sidebar/ws/agent-terminals", "/remote/api/dsh-ssh/terminal"];
+/** Plugin-manager HTTP prefix: install/remove stay physically local. */
+export declare const PLUGIN_MANAGER_PATH = "/api/plugin-manager";
+/** Desktop-launcher HTTP prefix: shortcut create and host shutdown stay physically local. */
+export declare const DESKTOP_LAUNCHER_PATH = "/api/dsh-desktop-launcher";
+/** Family settings-bridge HTTP prefix: describe/mutate stay physically local. */
+export declare const WEB_UI_SETTINGS_BRIDGE_PATH = "/api/dsh-web-ui-settings";
+/**
+ * Loopback-only methods of the host API surface, mirrored from
+ * client-connection's `PRIVILEGED_METHODS` (pinned by
+ * tests/remote-contract.spec.ts against the installed SDK). They stay
+ * unreachable from a paired remote desktop, matching the SDK's own stance
+ * that the configuration plane is loopback-same-origin only.
+ */
+export declare const LOOPBACK_ONLY_METHODS: Set<string>;
+//# sourceMappingURL=remote-methods.d.ts.map
