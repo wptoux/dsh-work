@@ -22,6 +22,7 @@ import { formatDuration } from './fold-dom'
 import { mountMobileSidebar, type MobileLayoutFace } from './mobile-sidebar.tsx'
 import { en, zh, type UiTweaksKey } from './locales'
 import './fold.css'
+import './composer-toolbar.css'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {

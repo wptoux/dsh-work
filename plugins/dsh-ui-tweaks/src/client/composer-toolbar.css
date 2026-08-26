@@ -1,0 +1,45 @@
+/**
+ * Narrow-screen composer toolbar: on phone viewports the input card's
+ * bottom toolbar row (attach / access picker / model picker / send) has to
+ * stay on one line. The host row is `flex-wrap: wrap` with a 12px gap:
+ * at 320px the content area (~262px) is 2px short of the two groups, so
+ * the trailing group (model + send) wraps to a second line and the card
+ * grows from 42px to 82px tall. On phones we force single-line:
+ * - tighten the row gap/padding so 320px fits in one line,
+ * - pin the leading group (attach + access) so it never shrinks,
+ * - let the trailing group shrink — its model picker already truncates
+ *   with an ellipsis and still opens the full model list on tap, and the
+ *   send button keeps its `flex-shrink: 0` so it always stays visible,
+ * - overflow-x as a last resort for sub-320px devices, scrolling the row
+ *   horizontally (scrollbar hidden).
+ *
+ * Selectors are the composer card's hashed classes (uV2eYG_*), stable in
+ * this frozen fork; the block is gated to max-width: 767px (same
+ * breakpoint as mobile-sidebar.css) so ≥768px keeps the host's native
+ * wrapping behavior untouched.
+ */
+@media (max-width: 767px) {
+  .uV2eYG_row {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    padding: 2px 6px 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  .uV2eYG_row::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Leading group (attach + access): keep both affordances fully visible. */
+  .uV2eYG_tools {
+    flex: 0 0 auto !important;
+  }
+
+  /* Trailing group (model + send): allowed to shrink; the model picker
+     truncates instead of forcing the row to wrap. */
+  .uV2eYG_trailing {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+  }
+}
