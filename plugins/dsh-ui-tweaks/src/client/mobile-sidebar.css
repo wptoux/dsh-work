@@ -37,6 +37,16 @@
   background: var(--dsw-alias-button-floating-hover, #f0f1f3);
 }
 
+/* The better-sidebar right panel (phones collapse its two panels into
+   the one right panel) is open exactly while `body` lacks
+   data-dsh-sidebar-collapsed — that plugin mirrors its panelOpen onto
+   body. The open panel covers the whole phone viewport and the floating
+   whale trigger would hover over its top-left corner, so hide the
+   trigger in that state (it only floats above the conversation). */
+body:not([data-dsh-sidebar-collapsed]) [data-dsh-mobile-trigger] {
+  display: none;
+}
+
 [data-dsh-mobile-scrim] {
   position: fixed;
   inset: 0;
