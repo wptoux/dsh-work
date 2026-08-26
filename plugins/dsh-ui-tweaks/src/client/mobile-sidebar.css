@@ -18,7 +18,7 @@
   position: fixed;
   top: max(8px, env(safe-area-inset-top, 0px));
   left: max(8px, env(safe-area-inset-left, 0px));
-  z-index: 60;
+  z-index: 61;
   width: 42px;
   height: 42px;
   display: inline-flex;
@@ -41,6 +41,9 @@
   position: fixed;
   inset: 0;
   z-index: 59;
+  /* Below the drawer (60) and the trigger (61): the drawer stays fully
+     interactive while the scrim only dims + catches clicks on the
+     conversation outside the drawer. */
   display: none;
   padding: 0;
   border: 0;
@@ -87,13 +90,17 @@
 
   /* Expanded: the column becomes a fixed overlay drawer over the
      conversation. */
+  /* The drawer floats ABOVE the scrim (59) — the scrim would otherwise
+     swallow every click inside the drawer (it covers the whole viewport)
+     and the sidebar would feel dead; the trigger (61) stays on top so it
+     remains the close affordance over the open drawer. */
   [data-dsh-mobile-frame]:not([data-sidebar-collapsed]) [data-dsh-mobile-sidebar-col] {
     position: fixed;
     top: 0;
     bottom: 0;
     left: 0;
     width: 280px;
-    z-index: 58;
+    z-index: 60;
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.28);
     transform: translateX(-100%);
     animation: dsh-mobile-drawer-in 220ms var(--ds-ease-in-out, ease) forwards;
