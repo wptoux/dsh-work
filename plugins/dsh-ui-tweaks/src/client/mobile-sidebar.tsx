@@ -143,6 +143,7 @@ function MobileSidebarShell({ open, label, onToggle }: {
         tabIndex={-1}
         onClick={onToggle}
       />
+      <div data-dsh-mobile-top-fade="" aria-hidden="true" />
     </>
   )
 }
