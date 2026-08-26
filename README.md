@@ -22,6 +22,8 @@ dsh 插件源码本地化，锁死版本，自己修、自己裁、自己优化�
 > `plugins/README.md`。迁移前的完整上游历史备份在 `./.git-backup/*.bundle`（本地保险，
 > 不入库；`dsh-web-ui.bundle` 约 430MB，不需要可删）。
 
+> 发版与安装：本仓库以整仓统一 tag（`plugins-YYYY.MM.N`，首个 `plugins-2026.08.1`）对外分发，安装引用固定于 tag、永不漂移；见 [plugins/README.md](plugins/README.md) 的「GitHub 安装」章节。
+
 ## 为什么这样做
 
 旧方案把插件装成 npm 范围依赖（`^1.9.0`）和 `github:` 浮动引用，**每次更新都会拉到
