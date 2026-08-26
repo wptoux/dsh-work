@@ -32,8 +32,10 @@ plugins/
 
 ## 硬性规则
 
-1. **不动构建产物**：`lib/`、`node_modules/`、`client/client.js*` 等生成物禁止修改和
-   入库（gitignore 已覆盖）。改代码只改 `src/` 与包配置文件。
+1. **构建产物**：`node_modules/`、`*.tsbuildinfo` 等禁止入库（gitignore 已覆盖）。
+   `lib/` 是发布产物，**允许入库，但仅限发版时由 src 现构建（`pnpm build`）后提交**，
+   禁止手改 `lib/` 内容、禁止不构建直接提交；日常改代码只改 `src/` 与包配置文件。
+   （发布形态见下文「发布与安装」。）
 2. **不自行重启 dsh**：改动需要重启 `dsh web` 才生效时，**禁止**
    `kill`/`pkill`/`SIGTERM` 运行中的 dsh 服务，禁止抢占其端口另起实例；在交付报告中
    明确标注"需用户重启 DSH 服务后生效"，由用户自行重启验证。只读探测（`--dump-config`、
@@ -46,6 +48,18 @@ plugins/
    emoji、不夹带构建产物；提交前 `git status` 干净（仅预期文件）。
 5. **上上游同步禁令**：不在任何插件子目录执行 `git fetch/push`（它们已无 .git，不应
    重新初始化）。
+
+## 发布与安装（对外分发）
+
+本仓库同时是对外分发的安装源（`github.com/wptoux/dsh-work`，公开）。消费者经 pnpm
+子目录 git 依赖安装，版本由**整仓统一 tag** 固定（`plugins-YYYY.MM.N`）——延续冻结
+哲学，引用永不漂移。
+
+- 安装语法：`github:wptoux/dsh-work#<tag>&path:plugins/<目录>`（pnpm ≥9.5）。
+- 发版三步：① 改 `src/` 并 `pnpm build`；② 提交源码 + `lib/`（lib/ 必须与 src 同步）；
+  ③ 打整仓 tag：`git tag plugins-YYYY.MM.N` 并 `git push origin main --tags`。
+- 禁止 `fetch/push` 上游插件仓库；push 仅限自有 origin。
+- 完整安装文档见 `plugins/README.md` 的「GitHub 安装」章节。
 
 ## 构建与验证
 
