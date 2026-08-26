@@ -106,12 +106,23 @@
     animation: dsh-mobile-drawer-in 220ms var(--ds-ease-in-out, ease) forwards;
   }
 
-  /* The session header yields its left edge to the floating trigger. The
-     slot wrapper (not a hashed child class) is the stable seam; if the
-     shell renders it as display:contents the rule degrades to a no-op. */
+  /* The whole session header — title crumb, mode, the "Session log"
+     utility and the Chat/Trajectory tabs (host wSkVaW_header, reached
+     through its display:contents slot wrapper; the slot is the stable
+     seam) — is hidden on phones: it is pure chrome, the tabs have no
+     touch context, and it frees ~76px at the top for the message flow.
+     The floating whale trigger takes over the corner. The slot carries
+     an inline `display: contents` from the host, so the override needs
+     !important. */
   [data-slot='conversation.session.header'] {
-    padding-left: 58px;
-    transition: padding-left var(--ds-transition-duration-slow, 0.2s) var(--ds-ease-in-out, ease);
+    display: none !important;
+  }
+
+  /* Top clearance for the trigger at the very top of the flow: padding on
+     the scroll CONTENT (not the scroller) so it scrolls away — full
+     clearance only while scrollTop is 0, a normal gap otherwise. */
+  [data-dsh-mobile-frame] [data-chat-flow] {
+    padding-top: 56px;
   }
 }
 
