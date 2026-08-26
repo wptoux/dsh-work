@@ -1,0 +1,1 @@
+{"version":3,"file":"fold-chrome.d.ts","sourceRoot":"","sources":["../../../src/client/fold-chrome.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAMH,MAAM,WAAW,UAAU;IACzB,4CAA4C;IAC5C,UAAU,IAAI,SAAS,WAAW,EAAE,CAAA;IACpC,sDAAsD;IACtD,KAAK,IAAI,MAAM,IAAI,CAAA;CACpB;AAOD,wBAAgB,gBAAgB,CAC9B,QAAQ,EAAE,MAAM,IAAI,EACpB,aAAa,EAAE,CAAC,IAAI,EAAE,MAAM,KAAK,IAAI,GACpC,UAAU,CA8DZ"}
