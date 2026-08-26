@@ -10,8 +10,9 @@
  * - let the trailing group shrink — its model picker already truncates
  *   with an ellipsis and still opens the full model list on tap, and the
  *   send button keeps its `flex-shrink: 0` so it always stays visible,
- * - overflow-x as a last resort for sub-320px devices, scrolling the row
- *   horizontally (scrollbar hidden).
+ * - overflow-x: clip as a last resort for sub-320px devices, trimming
+ *   over-wide content (see the rule body for why it must be `clip` and
+ *   never `auto`).
  *
  * Selectors are the composer card's hashed classes (uV2eYG_*), stable in
  * this frozen fork; the block is gated to max-width: 767px (same
@@ -23,12 +24,14 @@
     flex-wrap: nowrap !important;
     gap: 8px !important;
     padding: 2px 6px 6px !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-  }
-
-  .uV2eYG_row::-webkit-scrollbar {
-    display: none;
+    /* `clip` (NOT auto/scroll): an auto/scroll X axis forces the Y axis
+       to `auto` as well (CSS overflow pairing), and the model / access /
+       context popups are absolutely positioned INSIDE this row and open
+       UP past its top edge — with overflow-y: auto they get clipped away
+       and the menus never appear on phones. `clip` scopes the clipping
+       to the horizontal axis only and keeps overflow-y: visible, so the
+       popups stay reachable while over-wide content is still trimmed. */
+    overflow-x: clip !important;
   }
 
   /* Leading group (attach + access): keep both affordances fully visible. */
