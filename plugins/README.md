@@ -51,6 +51,43 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
 `dsh-remote-web-ui/`、`dsh-better-sidebar/` 各自 `pnpm install` 过，cloudflared /
 node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得在对应目录重装。
 
+## GitHub 安装（对外分发）
+
+除本地 `link:` 外，本仓库支持直接以 GitHub 子目录依赖安装（pnpm ≥9.5），版本固定，
+适合换机器 / 分享给他人：
+
+```json
+// ~/.dsh/profiles/web/package.json
+"dependencies": {
+  "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
+  "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
+  "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
+  "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
+  "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+}
+```
+
+首次安装还需在 profile 目录放行两个原生二进制的构建脚本（一次性配置，与发版无关）：
+
+```yaml
+// ~/.dsh/profiles/web/pnpm-workspace.yaml
+allowBuilds:
+  cloudflared: true
+  node-pty: true
+```
+
+然后 `cd ~/.dsh/profiles/web && pnpm install`，重启 dsh。
+
+**升级**：把依赖里的 tag（`plugins-2026.08.1`）换成新 tag，重新 `pnpm install`。
+**回滚**：换回旧 tag 重装即可。
+
+> 说明与约束：
+> - 本仓库是**个人冻结 fork**（裁剪/定制版），与 npm registry 上同名包/上游仓库无关；
+>   版本号沿用上游但内容以本仓库为准。
+> - 使用 pnpm 安装（npm 不支持 git 子目录依赖）；npm 用户可整仓 clone 后改用
+>   `file:` 依赖（等价于本机 `link:` 模式）。
+> - 发版 = 构建 lib/ 并提交 + 打整仓 tag（`plugins-YYYY.MM.N`），见 AGENTS.md。
+
 ## 日常维护流程
 
 ### 改代码（最常见）

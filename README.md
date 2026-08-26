@@ -33,6 +33,20 @@ dsh 插件源码本地化，锁死版本，自己修、自己裁、自己优化�
 
 ## 快速开始
 
+或者当成发布源直接安装（新机器 / 分享给他人，需 pnpm ≥9.5）：
+
+```json
+"dependencies": {
+  "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
+  "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
+  "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
+  "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
+  "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+}
+```
+
+（详情与 `allowBuilds` 配置见 [plugins/README.md](plugins/README.md)。）
+
 ```sh
 # 构建某个插件（改完源码后同样操作）
 cd plugins/dsh-remote-web-ui && pnpm build   # 或 dsh-better-sidebar
