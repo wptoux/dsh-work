@@ -2,7 +2,6 @@
   "name": "dsh-usage-stats",
   "description": "Token usage heatmap, provider balances, and subscription quotas for the dsh web GUI",
   "version": "0.2.5",
-  "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ychris12138/dsh-usage-stats.git"

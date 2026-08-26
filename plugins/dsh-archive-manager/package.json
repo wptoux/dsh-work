@@ -51,11 +51,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/z953218350/dsh-archive-manager.git"
+    "url": "git+https://github.com/wptoux/dsh-work.git"
   },
-  "homepage": "https://github.com/z953218350/dsh-archive-manager",
+  "homepage": "https://github.com/wptoux/dsh-work",
   "bugs": {
-    "url": "https://github.com/z953218350/dsh-archive-manager/issues"
+    "url": "https://github.com/wptoux/dsh-work/issues"
   },
   "publishConfig": {
     "access": "public",
