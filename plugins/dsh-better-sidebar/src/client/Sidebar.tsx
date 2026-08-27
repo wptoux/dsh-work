@@ -210,6 +210,14 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
   // keep living in the right tree.
   const narrow = useNarrowViewport()
 
+  // Live mirror of the viewport flag for timer callbacks. The effects below
+  // reach `narrow` through the closure of the render that ran them, which is
+  // stale by the time a debounce fires — the DEBOUNCED subagent auto-open
+  // must re-check the viewport at fire time: a window shrunk to mobile while
+  // a pop was pending must never pop the full-screen drawer afterwards.
+  const narrowRef = useRef(narrow)
+  useEffect(() => { narrowRef.current = narrow }, [narrow])
+
   // On-screen keyboard / visual-viewport inset (mobile, split-screen, …):
   // when the visual viewport shrinks below the layout viewport, bottom-
   // anchored panels would hide under the keyboard. Track the inset and
@@ -421,6 +429,12 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
    * baseline starts at the current count — so a deliberate layout is never
    * fought.
    *
+   * On NARROW (mobile) viewports the panel is a full-screen drawer, so the
+   * auto-activation is suppressed entirely: a new subagent never pops the
+   * drawer (the baseline still advances, so later widening never replays
+   * the pop). The same viewport check runs again inside the debounce so a
+   * window narrowed while a pop was pending cancels it at fire time.
+   *
    * The decision is DEBOUNCED (AUTO_OPEN_DEBOUNCE_MS): a Side Chat thread
    * is also a subagent-origin child, and its 'Side: ' title lands one frame
    * after its origin — an immediate check would misread that first frame as
@@ -434,11 +448,16 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
     const prev = listBaselineRef.current
     listBaselineRef.current = sessionList
     if (sessionId === undefined || prev === undefined) return
+    if (narrow) return
     if (autoOpenPendingRef.current !== null) return
     if (!detectNewDirectSubagent(prev, sessionList, sessionId)) return
     const baseline = prev
     const timer = window.setTimeout(() => {
       autoOpenPendingRef.current = null
+      // Re-check the viewport at FIRE time (the closure's `narrow` is stale):
+      // a window narrowed to mobile while the pop was pending must not pop
+      // the full-screen drawer.
+      if (narrowRef.current) return
       if (!detectNewDirectSubagent(baseline, ctx.sessions.list.getSnapshot(), sessionId)) return
       if (!store.getPrefs().autoOpenSubagent) return
       if (ctx.betterSidebar?.isTabEnabled('subagent') === false) return
@@ -450,7 +469,7 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
       ctx.betterSidebar?.openTab({ type: 'subagent', title: t('subagent') })
     }, AUTO_OPEN_DEBOUNCE_MS)
     autoOpenPendingRef.current = { baseline, timer }
-  }, [sessionList, sessionId, store, ctx])
+  }, [sessionList, sessionId, store, ctx, narrow])
 
   // A session switch (or unmount) voids any armed auto-open recheck.
   useEffect(() => () => {
@@ -467,19 +486,26 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
    * (0 → N only), ANY new job id triggers: the agent may start several
    * jobs in one session, and each should surface. A fresh page load never
    * triggers — its baseline starts at the current snapshot.
+   *
+   * On NARROW (mobile) viewports the panel is a full-screen drawer, so the
+   * auto-activation is suppressed entirely: a new background job never pops
+   * the drawer (the baseline still advances, so later widening never
+   * replays the pop — jobs keep surfacing inside the drawer after a manual
+   * open).
    */
   const jobBaselineRef = useRef<SidebarSessionList | undefined>(undefined)
   useEffect(() => {
     const prev = jobBaselineRef.current
     jobBaselineRef.current = sessionList
     if (sessionId === undefined || prev === undefined) return
+    if (narrow) return
     if (!detectNewJob(prev, sessionList, sessionId)) return
     if (!store.getPrefs().autoOpenJobs) return
     if (ctx.betterSidebar?.isTabEnabled('subagent') === false) return
     store.reduce(s => s.panelOpen ? s : togglePanel(s))
     store.reduce(s => ({ ...s, activePane: firstLeaf(s.splits).id }))
     ctx.betterSidebar?.openTab({ type: 'subagent', title: t('subagent') })
-  }, [sessionList, sessionId, store, ctx])
+  }, [sessionList, sessionId, store, ctx, narrow])
 
   /**
    * Topology jump-back: clicking a subagent node on the Subagent page calls
