@@ -75,7 +75,8 @@
 **自动把声明了 `dsh.bundle` 的插件同步进 `dsh.profile.bundles`**（无需手动维护 layer
 列表），profile 不存在时自动初始化。
 
-1. 放行两个原生二进制的构建脚本（一次性配置，cloudflared 隧道 / node-pty）：
+1. 一次性配置 profile（整合包路线需要三项：放行原生二进制构建、放行 git 传递依赖、
+   子包提升到 profile 顶层供 loader 解析）：
 
    ```sh
    mkdir -p ~/.dsh/profiles/web
@@ -83,31 +84,46 @@
    allowBuilds:
      cloudflared: true
      node-pty: true
+   blockExoticSubdeps: false
+   nodeLinker: hoisted
    EOF
    ```
 
-   > 已经放行过就不用重复做。忘了这步的话 `add` 会失败并提示补上，补好后重跑同一命令即可。
+   > 已配置过就不用重复做；若 profile 已有该文件，手动合并这几组键即可。三项缺一不可
+   > （pnpm 11 实测）：① 默认拦截依赖构建脚本 → `ERR_PNPM_IGNORED_BUILDS`；
+   > ② 默认禁止 git（exotic）依赖出现在子依赖位置 → `ERR_PNPM_EXOTIC_SUBDEP`；
+   > ③ 默认 isolated 布局不把 git 子包提升到 profile 顶层 → 启动时
+   > `Cannot find package`。前两项补上后重跑同一命令即幂等；逐插件安装（见步骤 2 说明）
+   > 只需 `allowBuilds` 一项。
 
-2. 安装 5 款插件（可逐个安装、按需挑选；spec 里含 `&`，记得加引号）：
+2. 安装整合包（5 款插件一次装齐）：
 
    ```sh
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-work-all'
    ```
 
-   > 也可以一条命令全装（pnpm 一次接受多个 spec）。想自己维护 profile 的话，等价的手写
-   > 方式是编辑 `~/.dsh/profiles/web/package.json`：
+   > `dsh-work-all` 是**聚合载具包**：dependencies 拉入全部 5 款插件，`cordis.patch.yml`
+   > 汇总它们的挂载行，一条命令全部就位（可与独立安装共存，机制见
+   > `plugins/README.md` 的「聚合包」说明）。想按需挑选的话，改为逐个安装
+   > （逐插件是直接 git 依赖，profile 只需 `allowBuilds` 两项、不用后两个配置）：
+   >
+   > ```sh
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks'
+   > ```
+   >
+   > 想自己维护 profile 的话，等价的手写方式是编辑 `~/.dsh/profiles/web/package.json`：
    >
    > ```json
    > "dependencies": {
-   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
-   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
-   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
-   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui",
+   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats",
+   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager",
+   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks"
    > }
    > ```
    >
@@ -116,8 +132,10 @@
 
 3. 重启 dsh 生效：`Ctrl+C` 退出后重新 `dsh web`。
 
-**升级**：把命令里的 tag（`plugins-2026.08.1`）换成新 tag 重跑 `dsh plugin ... add`。
-**回滚**：`dsh plugin --profile web remove dsh-ui-tweaks`（移出依赖并自动从 bundles 移除），或换回旧 tag 重装。
+**升级**：把命令里的 tag（`plugins-2026.08.2`）换成新 tag 重跑 `dsh plugin ... add`
+（装的是整合包就重跑整合包命令，装的是单独插件就逐个重跑）。
+**回滚**：`dsh plugin --profile web remove dsh-work-all`（一次移出全部 5 款，并自动从
+bundles 移除），或按插件名逐个 `remove`；也可换回旧 tag 重装。
 
 ## License
 

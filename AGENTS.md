@@ -24,6 +24,7 @@ plugins/
 ├── dsh-better-sidebar/   # 增强侧边栏
 ├── dsh-usage-stats/      # 用量统计（lib/ 入库，无需构建）
 ├── dsh-archive-manager/  # 会话归档管理（lib/ 入库，无需构建）
+├── dsh-work-all/         # 全家桶聚合载具包（无 src/lib/构建，手写维护）
 └── README.md             # 维护手册：流程/回滚/更新上游/恢复已删组件
 ```
 
@@ -58,6 +59,8 @@ plugins/
 - 安装语法：`github:wptoux/dsh-work#<tag>&path:plugins/<目录>`（pnpm ≥9.5）。
 - 发版三步：① 改 `src/` 并 `pnpm build`；② 提交源码 + `lib/`（lib/ 必须与 src 同步）；
   ③ 打整仓 tag：`git tag plugins-YYYY.MM.N` 并 `git push origin main --tags`。
+- **聚合包联动**：发版打新 tag 时，把 `plugins/dsh-work-all/package.json` 里 5 条依赖的
+  tag 一并升到新 tag 并提交（与整仓 tag 同源，见 `plugins/README.md`「聚合包」）。
 - 禁止 `fetch/push` 上游插件仓库；push 仅限自有 origin。
 - 完整安装文档见 `plugins/README.md` 的「GitHub 安装」章节。
 
@@ -70,6 +73,7 @@ plugins/
 | `dsh-usage-stats` | 无需构建 | lib/ 已入库 |
 | `dsh-archive-manager` | 无需构建 | lib/ 已入库 |
 | `dsh-ui-tweaks` | `cd plugins/dsh-ui-tweaks && pnpm build` | `node -e "require('./lib/index.js')"` |
+| `dsh-work-all` | 无需构建（纯载具，无 lib） | —（`cordis.patch.yml` + `package.json` 手写维护） |
 
 完整验证（声称完成前必须）：
 

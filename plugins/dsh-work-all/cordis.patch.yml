@@ -1,0 +1,40 @@
+# dsh-work-all bundle patch
+#
+# Aggregate carrier for the dsh-work plugin family: install this one package
+# and all five plugins mount at once (package.json dependencies pull in the
+# sibling packages; this patch inserts their rows under a dsh-work-* namespace
+# so the aggregate can coexist with standalone installs of the same plugins).
+#
+# better-sidebar note: this row intentionally carries NO double-mount guard.
+# The standalone package's own row ships a guard (id != 'better-sidebar') that
+# backs IT off when an aggregate row already mounted the package — so when the
+# aggregate precedes the standalone in dsh.profile.bundles (the standard
+# install order, standalone appended last), the aggregate owns the sidebar and
+# the standalone disables itself. Adding a guard HERE would make the two
+# disabled expressions evaluate each other recursively and blow the loader
+# stack (verified). Reverse order (standalone first) is an upstream known
+# limitation: both mount and boot fails on the duplicate /sidebar/api route —
+# keep only one source.
+#
+# Hand-maintained (no generator): when the family gains or drops a plugin,
+# update this patch AND package.json dependencies together.
+
+- insert:
+    - id: dsh-work-remote-web-ui
+      name: 'dsh-remote-web-ui'
+
+- insert:
+    - id: dsh-work-better-sidebar
+      name: 'dsh-better-sidebar'
+
+- insert:
+    - id: dsh-work-usage-stats
+      name: 'dsh-usage-stats'
+
+- insert:
+    - id: dsh-work-archive-manager
+      name: 'dsh-archive-manager'
+
+- insert:
+    - id: dsh-work-ui-tweaks
+      name: 'dsh-ui-tweaks'

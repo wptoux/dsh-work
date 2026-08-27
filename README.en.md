@@ -77,7 +77,9 @@ git-subdirectory dependencies; npm does not support them).
 declares `dsh.bundle` into `dsh.profile.bundles`** (no manual layer-list
 maintenance) and initializes the profile on first use.
 
-1. Allow the two native binaries' build scripts (one-time: cloudflared tunnel / node-pty):
+1. One-time profile config (the aggregate route needs three things: allow the
+   native binaries' build scripts, allow git transitive dependencies, and hoist
+   the child packages to the profile top level so the loader can resolve them):
 
    ```sh
    mkdir -p ~/.dsh/profiles/web
@@ -85,34 +87,51 @@ maintenance) and initializes the profile on first use.
    allowBuilds:
      cloudflared: true
      node-pty: true
+   blockExoticSubdeps: false
+   nodeLinker: hoisted
    EOF
    ```
 
-   > Skip if you already allowed them. If you forget, `add` fails with a hint;
-   > add the keys and re-run the same command.
+   > Skip if already configured; if the file exists, merge these keys into it.
+   > All three are required (verified on pnpm 11): ① build scripts of
+   > dependencies are blocked by default → `ERR_PNPM_IGNORED_BUILDS`;
+   > ② git (exotic) dependencies are banned in the subdependency position by
+   > default → `ERR_PNPM_EXOTIC_SUBDEP`; ③ the default isolated layout does not
+   > hoist git child packages to the profile top level → `Cannot find package`
+   > at boot. The first two are idempotent — fix and re-run the same command.
+   > Per-plugin installs (see step 2 note) only need `allowBuilds`.
 
-2. Install the 5 plugins (individually, or pick only what you need; quote the
-   spec — it contains `&`):
+2. Install the aggregate package (all 5 plugins at once):
 
    ```sh
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-work-all'
    ```
 
-   > You can also add them all in one command (pnpm accepts multiple specs).
+   > `dsh-work-all` is an **aggregate carrier package**: its dependencies pull in
+   > all 5 plugins and its `cordis.patch.yml` collects their mount rows, so one
+   > command installs everything (it can coexist with standalone installs; the
+   > mechanics are documented in `plugins/README.md` under "聚合包"). To pick
+   > only some plugins, install them individually instead (per-plugin installs
+   > are direct git dependencies, so the profile only needs `allowBuilds`):
+   >
+   > ```sh
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks'
+   > ```
+   >
    > The equivalent manual way, if you prefer to maintain the profile yourself,
    > is editing `~/.dsh/profiles/web/package.json`:
    >
    > ```json
    > "dependencies": {
-   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
-   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
-   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
-   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui",
+   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats",
+   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager",
+   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks"
    > }
    > ```
    >
@@ -122,8 +141,8 @@ maintenance) and initializes the profile on first use.
 
 3. Restart dsh to apply: `Ctrl+C`, then `dsh web` again.
 
-**Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.08.1`) replaced by the new one.
-**Rollback**: `dsh plugin --profile web remove dsh-ui-tweaks` (removes the dependency and its bundles entry), or re-add with the old tag.
+**Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.08.2`) replaced by the new one (the aggregate command if you installed the aggregate, or per-plugin commands).
+**Rollback**: `dsh plugin --profile web remove dsh-work-all` (removes all 5 plugins and the bundles entry at once), or remove plugins one by one; alternatively re-add with the old tag.
 
 ## License
 

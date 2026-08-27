@@ -1,0 +1,24 @@
+{
+  "name": "dsh-work-all",
+  "description": "dsh-work 全家桶聚合包：一条命令装齐全部 5 款插件（remote-web-ui / better-sidebar / usage-stats / archive-manager / ui-tweaks）。纯载具包（无自有插件逻辑），dependencies 拉入子包，cordis.patch.yml 汇总各子包的挂载行。",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.1-rc.1"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager",
+    "dsh-better-sidebar": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
+    "dsh-remote-web-ui": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui",
+    "dsh-ui-tweaks": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks",
+    "dsh-usage-stats": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats"
+  }
+}
