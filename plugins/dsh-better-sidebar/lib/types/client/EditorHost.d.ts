@@ -9,4 +9,8 @@ export declare function EditorHost(props: {
     expanded: string[];
     onToggleDir: (path: string) => void;
     onReferenceFile: (path: string) => void;
+    /** Whether the tab is actually visible (panel open + active): the
+     *  staleness poll pauses on hidden tabs. Absent (older host renders)
+     *  counts as visible. */
+    visible?: boolean;
 }): import("react").JSX.Element;

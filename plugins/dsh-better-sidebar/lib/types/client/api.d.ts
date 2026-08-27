@@ -41,11 +41,14 @@ export interface GitLogEntry {
     /** Ref decorations (--decorate=short), e.g. `HEAD -> main, origin/main`; '' when none. */
     refs: string;
 }
-/** Text read result. */
+/** Text read result. `size`/`mtimeMs` are the file identity the refresh
+ *  staleness check compares (the version ON DISK vs the version shown). */
 export interface FsTextResult {
     kind: 'text';
     content: string;
     truncated: boolean;
+    size: number;
+    mtimeMs: number;
 }
 /** Binary read result (no content; images load through the media route).
  *  `head` carries the first bytes (base64) for viewer detect sniffing. */
@@ -54,7 +57,17 @@ export interface FsBinaryResult {
     size: number;
     truncated: boolean;
     head: string;
+    mtimeMs: number;
 }
+/** Staleness meta result (metaOnly: true): the identity only, no content —
+ *  image/PDF and binary-download surfaces stat instead of re-reading bytes. */
+export interface FsMetaResult {
+    kind: 'meta';
+    size: number;
+    mtimeMs: number;
+}
+/** One fs.read response. */
+export type FsReadResult = FsTextResult | FsBinaryResult | FsMetaResult;
 /**
  * One jobs.output response: the output the MODEL has read so far for the
  * job (replayed from the owner session's event log — the model's
@@ -112,7 +125,9 @@ export declare const api: {
         matches: string[];
         truncated: boolean;
     }>;
-    fsRead: (scope: SessionScope, path: string, signal?: AbortSignal) => Promise<FsTextResult | FsBinaryResult>;
+    fsRead: (scope: SessionScope, path: string, signal?: AbortSignal, opts?: {
+        metaOnly?: boolean;
+    }) => Promise<FsReadResult>;
     fsWrite: (scope: SessionScope, path: string, content: string) => Promise<{
         ok: true;
     }>;

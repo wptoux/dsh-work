@@ -3263,13 +3263,17 @@ async function resolveGitPath(cwd, raw) {
 const READ_HEAD_LIMIT = 4096;
 /** Text read of a file with the size cap; binary detection via NUL probe.
 *  Binary reads also return the first {@link READ_HEAD_LIMIT} bytes (base64)
-*  so the client can re-match viewers by content (`detect`). */
+*  so the client can re-match viewers by content (`detect`). The stat
+*  identity (size + mtimeMs) rides along so the client can tell "the version
+*  on disk no longer matches the version shown" (the file-refresh staleness
+*  check) without a second round trip. */
 async function readText(path, readLimit) {
 	const info = await stat(path).catch((error) => {
 		throw new SidebarError("fs-error", `cannot read "${path}": ${error instanceof Error ? error.message : String(error)}`, 400);
 	});
 	if (info.isDirectory()) throw new SidebarError("fs-error", `"${path}" is a directory`, 400);
 	const size = info.size;
+	const mtimeMs = info.mtimeMs;
 	const truncated = size > readLimit;
 	const handle = await open(path, "r").catch((error) => {
 		throw new SidebarError("fs-error", `cannot read "${path}": ${error instanceof Error ? error.message : String(error)}`, 400);
@@ -3285,7 +3289,8 @@ async function readText(path, readLimit) {
 			truncated,
 			binary,
 			size,
-			head
+			head,
+			mtimeMs
 		};
 	} finally {
 		await handle.close();
@@ -3341,17 +3346,32 @@ function buildApi(ctx, ptyManager, agentPtyRegistry, resolved, terminalShell, ge
 		},
 		"fs.read": async (payload) => {
 			const { cwd } = cwdOf(payload);
-			const { content, truncated, binary, size, head } = await readText(await resolveGitPath(cwd, requireString(payload, "path")), resolved.readLimit);
+			const path = await resolveGitPath(cwd, requireString(payload, "path"));
+			if (payload.metaOnly === true) {
+				const info = await stat(path).catch((error) => {
+					throw new SidebarError("fs-error", `cannot stat "${path}": ${error instanceof Error ? error.message : String(error)}`, 400);
+				});
+				if (info.isDirectory()) throw new SidebarError("fs-error", `"${path}" is a directory`, 400);
+				return {
+					kind: "meta",
+					size: info.size,
+					mtimeMs: info.mtimeMs
+				};
+			}
+			const { content, truncated, binary, size, head, mtimeMs } = await readText(path, resolved.readLimit);
 			if (binary) return {
 				kind: "binary",
 				size,
 				truncated,
-				head
+				head,
+				mtimeMs
 			};
 			return {
 				kind: "text",
 				content,
-				truncated
+				truncated,
+				size,
+				mtimeMs
 			};
 		},
 		"fs.write": async (payload) => {

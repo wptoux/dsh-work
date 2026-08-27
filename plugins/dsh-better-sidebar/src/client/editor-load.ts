@@ -14,13 +14,18 @@
  */
 import type { FileViewerDescriptor } from './service.ts'
 
-/** One host fs.read result (mirror of the wire; `head` present when binary). */
+/** One host fs.read result (mirror of the wire; `head` present when binary).
+ *  `size`/`mtimeMs` carry the file identity (staleness). */
 export interface FsReadOutcome {
   binary: boolean
   content: string
   truncated: boolean
   /** base64 of the first bytes (present on binary reads; sniffing material). */
   head?: string
+  /** File size in bytes (host reads always send it). */
+  size?: number
+  /** Last-modified epoch ms (host reads always send it). */
+  mtimeMs?: number
 }
 
 /** What the editor host should do next. */

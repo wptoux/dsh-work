@@ -137,13 +137,17 @@ const READ_HEAD_LIMIT = 4096
 
 /** Text read of a file with the size cap; binary detection via NUL probe.
  *  Binary reads also return the first {@link READ_HEAD_LIMIT} bytes (base64)
- *  so the client can re-match viewers by content (`detect`). */
+ *  so the client can re-match viewers by content (`detect`). The stat
+ *  identity (size + mtimeMs) rides along so the client can tell "the version
+ *  on disk no longer matches the version shown" (the file-refresh staleness
+ *  check) without a second round trip. */
 async function readText(path: string, readLimit: number): Promise<{
   content: string
   truncated: boolean
   binary: boolean
   size: number
   head?: string
+  mtimeMs: number
 }> {
   const info = await stat(path).catch((error: unknown) => {
     throw new SidebarError('fs-error', `cannot read "${path}": ${error instanceof Error ? error.message : String(error)}`, 400)
@@ -152,6 +156,7 @@ async function readText(path: string, readLimit: number): Promise<{
     throw new SidebarError('fs-error', `"${path}" is a directory`, 400)
   }
   const size = info.size
+  const mtimeMs = info.mtimeMs
   const truncated = size > readLimit
   const handle = await open(path, 'r').catch((error: unknown) => {
     throw new SidebarError('fs-error', `cannot read "${path}": ${error instanceof Error ? error.message : String(error)}`, 400)
@@ -164,7 +169,7 @@ async function readText(path: string, readLimit: number): Promise<{
     const head = binary
       ? slice.subarray(0, Math.min(slice.length, READ_HEAD_LIMIT)).toString('base64')
       : undefined
-    return { content: binary ? '' : slice.toString('utf8'), truncated, binary, size, head }
+    return { content: binary ? '' : slice.toString('utf8'), truncated, binary, size, head, mtimeMs }
   } finally {
     await handle.close()
   }
@@ -264,9 +269,21 @@ function buildApi(
       // Relative paths are git-derived (status/diff report repo-root-relative
       // names; the untracked diff view reads the file through this route).
       const path = await resolveGitPath(cwd, requireString(payload, 'path'))
-      const { content, truncated, binary, size, head } = await readText(path, resolved.readLimit)
-      if (binary) return { kind: 'binary', size, truncated, head }
-      return { kind: 'text', content, truncated }
+      // Staleness meta-read: the file identity only (size + mtime) without
+      // reading content — image/PDF and binary-download surfaces stat the
+      // file for the refresh check instead of re-reading their bytes.
+      if ((payload as { metaOnly?: unknown }).metaOnly === true) {
+        const info = await stat(path).catch((error: unknown) => {
+          throw new SidebarError('fs-error', `cannot stat "${path}": ${error instanceof Error ? error.message : String(error)}`, 400)
+        })
+        if (info.isDirectory()) {
+          throw new SidebarError('fs-error', `"${path}" is a directory`, 400)
+        }
+        return { kind: 'meta', size: info.size, mtimeMs: info.mtimeMs }
+      }
+      const { content, truncated, binary, size, head, mtimeMs } = await readText(path, resolved.readLimit)
+      if (binary) return { kind: 'binary', size, truncated, head, mtimeMs }
+      return { kind: 'text', content, truncated, size, mtimeMs }
     },
     'fs.write': async (payload) => {
       const { cwd } = cwdOf(payload)

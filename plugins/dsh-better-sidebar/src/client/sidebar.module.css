@@ -1293,6 +1293,31 @@ body[data-dsh-sidebar-dragging] .bottomPanel {
   background: var(--dsw-alias-state-warn-tertiary);
 }
 
+/* The file-refresh banner (EditorHost): warn-tinted while the on-disk
+   version no longer matches the version shown (clicking refreshes); the
+   transient "refreshed" notice reuses the strip with a neutral tint. */
+.editorStaleBanner {
+  flex: none;
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  font: var(--dsw-font-xxxs-11);
+  text-align: left;
+  color: var(--dsw-alias-state-warn-label);
+  background: var(--dsw-alias-state-warn-tertiary);
+  cursor: pointer;
+}
+
+.editorStaleBanner:hover {
+  opacity: 0.85;
+}
+
+.editorRefreshedBanner {
+  color: var(--dsw-alias-text-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
 /* Live sandbox status row (HTML preview / browser tab): GREEN while the
    sandbox is on (with the one-tap temporary unlock), RED while it is off
    (global setting or temporary unlock) — the red state is the persistent

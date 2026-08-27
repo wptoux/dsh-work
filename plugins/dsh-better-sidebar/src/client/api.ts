@@ -60,11 +60,17 @@ export interface GitLogEntry {
   refs: string
 }
 
-/** Text read result. */
-export interface FsTextResult { kind: 'text'; content: string; truncated: boolean }
+/** Text read result. `size`/`mtimeMs` are the file identity the refresh
+ *  staleness check compares (the version ON DISK vs the version shown). */
+export interface FsTextResult { kind: 'text'; content: string; truncated: boolean; size: number; mtimeMs: number }
 /** Binary read result (no content; images load through the media route).
  *  `head` carries the first bytes (base64) for viewer detect sniffing. */
-export interface FsBinaryResult { kind: 'binary'; size: number; truncated: boolean; head: string }
+export interface FsBinaryResult { kind: 'binary'; size: number; truncated: boolean; head: string; mtimeMs: number }
+/** Staleness meta result (metaOnly: true): the identity only, no content —
+ *  image/PDF and binary-download surfaces stat instead of re-reading bytes. */
+export interface FsMetaResult { kind: 'meta'; size: number; mtimeMs: number }
+/** One fs.read response. */
+export type FsReadResult = FsTextResult | FsBinaryResult | FsMetaResult
 
 /**
  * One jobs.output response: the output the MODEL has read so far for the
@@ -183,8 +189,8 @@ export const api = {
    *  side panel's search box); matches are cwd-relative '/'-separated paths. */
   fsSearch: (scope: SessionScope, query: string, signal?: AbortSignal) =>
     call<{ matches: string[]; truncated: boolean }>('fs.search', scopePayload(scope, { query }), signal),
-  fsRead: (scope: SessionScope, path: string, signal?: AbortSignal) =>
-    call<FsTextResult | FsBinaryResult>('fs.read', scopePayload(scope, { path }), signal),
+  fsRead: (scope: SessionScope, path: string, signal?: AbortSignal, opts?: { metaOnly?: boolean }) =>
+    call<FsReadResult>('fs.read', scopePayload(scope, { path, ...(opts?.metaOnly === true ? { metaOnly: true } : {}) }), signal),
   fsWrite: (scope: SessionScope, path: string, content: string) =>
     call<{ ok: true }>('fs.write', scopePayload(scope, { path, content })),
   /** Upload one file's raw bytes into `dir` (keeps the folder tree via

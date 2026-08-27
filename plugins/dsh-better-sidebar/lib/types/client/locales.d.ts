@@ -27,6 +27,10 @@ export declare const zh: {
     editorSearchNoResults: string;
     editorSearchTruncated: string;
     editorEmptyHint: string;
+    refreshFile: string;
+    refreshDisabledUnsaved: string;
+    fileUpdatedBanner: string;
+    fileRefreshedNotice: string;
     openFileNewTab: string;
     openFileSide: string;
     openWithMenu: string;
