@@ -54,32 +54,55 @@ node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得
 ## GitHub 安装（对外分发）
 
 除本地 `link:` 外，本仓库支持直接以 GitHub 子目录依赖安装（pnpm ≥9.5），版本固定，
-适合换机器 / 分享给他人：
+适合换机器 / 分享给他人。推荐走官方 CLI：`dsh plugin` 把参数转发给 profile 目录里的
+pnpm 执行，装完后**自动把声明了 `dsh.bundle` 的依赖同步进 `dsh.profile.bundles`**
+（免手动维护 layer 列表），profile 不存在时自动初始化（内核 `apps/cli/src/plugin.ts`：
+`pnpm <args>` in profile dir + reconcile 安装态）。
 
-```json
-// ~/.dsh/profiles/web/package.json
-"dependencies": {
-  "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
-  "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
-  "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
-  "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
-  "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
-}
-```
+1. （一次性，与发版无关）在 profile 目录放行两个原生二进制的构建脚本：
 
-首次安装还需在 profile 目录放行两个原生二进制的构建脚本（一次性配置，与发版无关）：
+   ```sh
+   mkdir -p ~/.dsh/profiles/web
+   cat > ~/.dsh/profiles/web/pnpm-workspace.yaml <<'EOF'
+   allowBuilds:
+     cloudflared: true
+     node-pty: true
+   EOF
+   ```
 
-```yaml
-// ~/.dsh/profiles/web/pnpm-workspace.yaml
-allowBuilds:
-  cloudflared: true
-  node-pty: true
-```
+   > 忘了这步时 pnpm（≥10）会以 `ERR_PNPM_IGNORED_BUILDS` 失败并提示补上，补好后重跑
+   > 同一命令即可（依赖已写入 package.json，重跑幂等）。
 
-然后 `cd ~/.dsh/profiles/web && pnpm install`，重启 dsh。
+2. 安装（逐个，或一条命令全装；spec 里含 `&`，记得加引号）：
 
-**升级**：把依赖里的 tag（`plugins-2026.08.1`）换成新 tag，重新 `pnpm install`。
-**回滚**：换回旧 tag 重装即可。
+   ```sh
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks'
+   ```
+
+3. 重启 dsh。
+
+**升级**：把命令里的 tag 换成新 tag 重跑 `dsh plugin ... add`。
+**回滚**：`dsh plugin --profile web remove <包名>`（移出依赖并自动从 `bundles` 移除）；或换回旧 tag 重装。
+
+> 手写 package.json 的等价方式（profile 已存在时）：
+>
+> ```json
+> // ~/.dsh/profiles/web/package.json
+> "dependencies": {
+>   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
+>   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
+>   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
+>   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
+>   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+> }
+> ```
+>
+> 然后 `cd ~/.dsh/profiles/web && pnpm install`。注意手写方式**不会**自动更新
+> `dsh.profile.bundles`，需自行保证列表里有对应包名——这是推荐 `dsh plugin` 的原因。
 
 > 说明与约束：
 > - 本仓库是**个人冻结 fork**（裁剪/定制版），与 npm registry 上同名包/上游仓库无关；

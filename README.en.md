@@ -69,33 +69,61 @@ Mobile — remote control, keep the conversation going from anywhere:
 
 ## Quick start
 
-Requirements: **pnpm ≥ 9.5** (npm does not support git-subdirectory dependencies).
+Requirements: dsh installed, with **pnpm ≥ 9.5** on your PATH (needed for
+git-subdirectory dependencies; npm does not support them).
 
-1. Add the plugins to `~/.dsh/profiles/web/package.json`:
+`dsh plugin` forwards its arguments to pnpm inside the profile directory
+(equivalent to `pnpm add …`), then **automatically syncs any dependency that
+declares `dsh.bundle` into `dsh.profile.bundles`** (no manual layer-list
+maintenance) and initializes the profile on first use.
 
-   ```json
-   "dependencies": {
-     "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
-     "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
-     "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
-     "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
-     "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
-   }
-   ```
+1. Allow the two native binaries' build scripts (one-time: cloudflared tunnel / node-pty):
 
-2. Allow the two native binaries (one-time) in `~/.dsh/profiles/web/pnpm-workspace.yaml`:
-
-   ```yaml
+   ```sh
+   mkdir -p ~/.dsh/profiles/web
+   cat > ~/.dsh/profiles/web/pnpm-workspace.yaml <<'EOF'
    allowBuilds:
      cloudflared: true
      node-pty: true
+   EOF
    ```
 
-3. Install and restart dsh:
+   > Skip if you already allowed them. If you forget, `add` fails with a hint;
+   > add the keys and re-run the same command.
+
+2. Install the 5 plugins (individually, or pick only what you need; quote the
+   spec — it contains `&`):
 
    ```sh
-   cd ~/.dsh/profiles/web && pnpm install
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks'
    ```
+
+   > You can also add them all in one command (pnpm accepts multiple specs).
+   > The equivalent manual way, if you prefer to maintain the profile yourself,
+   > is editing `~/.dsh/profiles/web/package.json`:
+   >
+   > ```json
+   > "dependencies": {
+   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-remote-web-ui",
+   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-better-sidebar",
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-usage-stats",
+   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-archive-manager",
+   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.1&path:plugins/dsh-ui-tweaks"
+   > }
+   > ```
+   >
+   > then run `cd ~/.dsh/profiles/web && pnpm install`. Note the manual way does
+   > **not** update `dsh.profile.bundles` automatically — you must keep the
+   > package names in that list yourself. That is why `dsh plugin` is recommended.
+
+3. Restart dsh to apply: `Ctrl+C`, then `dsh web` again.
+
+**Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.08.1`) replaced by the new one.
+**Rollback**: `dsh plugin --profile web remove dsh-ui-tweaks` (removes the dependency and its bundles entry), or re-add with the old tag.
 
 ## License
 
