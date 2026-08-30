@@ -1,7 +1,7 @@
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import z from "schemastery";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import * as tar from "tar";
 import { Service } from "@deepseek-ai/cordis";
 //#region src/config.ts
@@ -562,11 +562,13 @@ function apply(ctx, config) {
 			sctx.logger.error("[model-sync] settings service is absent; mirror sync disabled");
 			return;
 		}
+		const llm = sctx.llm;
+		const dataRoot = sctx.baseDir ?? sctx.baseUrl ?? join(homedir(), ".dsh");
 		const deps = {
 			settings,
-			llm: sctx.llm,
+			llm,
 			catalog: new NpmRegistryClient({
-				cacheDir: join(sctx.baseDir, "storages", "dsh-model-sync"),
+				cacheDir: join(dataRoot, "storages", "dsh-model-sync"),
 				timeoutMs: resolved.timeoutMs
 			}),
 			log: (message) => sctx.logger.info(`[model-sync] ${message}`),

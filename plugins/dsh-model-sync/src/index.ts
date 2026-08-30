@@ -6,6 +6,7 @@
  * reactive section re-materializes the route so the GUI model picker updates
  * without a restart. Failures are logged and never touch live routes.
  */
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-llm'
@@ -38,8 +39,9 @@ export function apply(ctx: Context, config?: ModelSyncConfig): void {
       return
     }
     const llm = sctx.llm
+    const dataRoot = sctx.baseDir ?? sctx.baseUrl ?? join(homedir(), '.dsh')
     const catalog = new NpmRegistryClient({
-      cacheDir: join(sctx.baseDir, 'storages', 'dsh-model-sync'),
+      cacheDir: join(dataRoot, 'storages', 'dsh-model-sync'),
       timeoutMs: resolved.timeoutMs,
     })
     const deps: SyncDeps = {
