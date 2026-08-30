@@ -1,0 +1,13 @@
+# dsh-model-sync bundle patch
+#
+# Mounts the host half of the plugin into the dsh web profile. The plugin is
+# host-only: no client bundle, no dsh.client field.
+- insert:
+    - id: model-sync
+      name: 'dsh-model-sync'
+      config:
+        mirrors:
+          - source: opencode-go
+            id: opencode-go-live
+            api: openai-completions
+            baseURL: https://opencode.ai/zen/go/v1
