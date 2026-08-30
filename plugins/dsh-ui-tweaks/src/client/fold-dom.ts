@@ -124,7 +124,9 @@ function setDurationBadge(button: HTMLElement, durationMs: number | undefined, c
 
 /**
  * Apply one fold plan to a flow container. Pure DOM — no event wiring (the
- * driver owns the delegated click), no session reads.
+ * driver owns the delegated click), no session reads. Returns whether the
+ * apply changed any layout-affecting state (rows hidden/shown or headers
+ * added/removed) so callers can decide when viewport anchoring is needed.
  * @param container - the `[data-chat-flow]` column element.
  * @param plan - the current fold plan for the session.
  * @param expanded - turns currently expanded (user state, kept by the driver).
@@ -135,9 +137,14 @@ export function applyFoldPlan(
   plan: FoldPlan,
   expanded: ReadonlySet<number>,
   copy: FoldCopy,
-): void {
+): { changed: boolean } {
   const rows = directRows(container)
   const foldedTurns = new Set(plan.folds.map(f => f.turn))
+  // Layout-affecting state BEFORE the apply: rows currently hidden inside a
+  // fold (expanded rows stay rendered) plus the header count (a header's
+  // insertion/removal shifts the block by its own height).
+  const beforeHidden = hiddenRowKeys(rows)
+  const beforeHeaderCount = directHeaders(container).length
 
   // 1. Drop headers whose fold is no longer planned.
   for (const header of directHeaders(container)) {
@@ -190,6 +197,27 @@ export function applyFoldPlan(
     setCountBadge(header, fold.hiddenCount, copy)
     setDurationBadge(header, fold.durationMs, copy)
   }
+
+  // Layout-affecting state AFTER the apply.
+  const afterHidden = hiddenRowKeys(rows)
+  const hiddenChanged = beforeHidden.size !== afterHidden.size || !everyKeyIn(beforeHidden, afterHidden)
+  const changed = beforeHeaderCount !== directHeaders(container).length || hiddenChanged
+  return { changed }
+}
+
+/** Keys of rows currently hidden inside a collapsed fold (layout-removed). */
+function hiddenRowKeys(rows: Map<string, HTMLElement>): Set<string> {
+  const hidden = new Set<string>()
+  for (const [key, row] of rows) {
+    if (row.hasAttribute(FOLD_ROW_ATTR) && row.getAttribute(FOLD_EXPANDED_ATTR) !== 'true') hidden.add(key)
+  }
+  return hidden
+}
+
+/** Every key of `sub` is present in `sup` (both sets are small; no iteration order dependence). */
+function everyKeyIn(sub: Set<string>, sup: Set<string>): boolean {
+  for (const key of sub) if (!sup.has(key)) return false
+  return true
 }
 
 /** First row in flow order whose key is a member of the fold's hidden set. */

@@ -8,6 +8,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFoldDriver,
+  pinnedAtBottom,
+  restoreElementPosition,
   restoreHeaderPosition,
   windowFromSnapshot,
   type DriverNode,
@@ -102,6 +104,65 @@ function fakeHandle(sessionId: string, snapshot: () => DriverSnapshot | null, on
     }),
   }
 }
+
+/** Stub getBoundingClientRect with a live getter so tests can move an element between reads. */
+function stubRect(el: HTMLElement, get: () => { top: number; bottom: number; height: number }): void {
+  Object.defineProperty(el, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => {
+      const { top, bottom, height } = get()
+      return {
+        top, bottom, height,
+        left: 0, right: 100, width: 100, x: 0, y: top, toJSON: () => ({}),
+      } as DOMRect
+    },
+  })
+}
+
+/** A scrollport + flow with stubbed geometry: client 500, content 1200, viewport 0..500. */
+function stubbedScroller(rows: Array<[key: string, kind: string]>): { scroller: HTMLElement; flow: HTMLElement } {
+  const scroller = document.createElement('div')
+  scroller.dataset.conversationScroll = ''
+  Object.defineProperty(scroller, 'scrollHeight', { configurable: true, value: 1200 })
+  Object.defineProperty(scroller, 'clientHeight', { configurable: true, value: 500 })
+  scroller.scrollTop = 400 // mid-view: 1200-400-500 = 300 > 24 → not pinned
+  const flow = document.createElement('div')
+  flow.dataset.chatFlow = ''
+  for (const [key, kind] of rows) {
+    const el = document.createElement('div')
+    el.dataset.chatFlowKey = key
+    el.dataset.chatFlowKind = kind
+    el.dataset.chatAnchorKey = key
+    flow.appendChild(el)
+  }
+  scroller.appendChild(flow)
+  document.body.replaceChildren(scroller)
+  stubRect(scroller, () => ({ top: 0, bottom: 500, height: 500 }))
+  return { scroller, flow }
+}
+
+/** Resolve after the driver's double-rAF restore window has run. */
+function settleFrames(): Promise<void> {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 20)
+      })
+    })
+  })
+}
+
+const CLOSED_SNAP = (): DriverSnapshot => snap({
+  openState: 'open',
+  turns: [[1, true, true]],
+  nodes: [
+    ['u1', 'user', 10, 1],
+    ['a1', 'assistant-step', 20, 1],
+    ['t1', 'tool-result', 30, 1],
+    ['a2', 'assistant-step', 40, 1],
+    ['tail', 'turn-tail', 50, 1],
+  ],
+})
 
 describe('windowFromSnapshot', () => {
   it('projects the snapshot into the fold window (turn coordinates mapped, floating nodes ignored)', () => {
@@ -323,5 +384,170 @@ describe('createFoldDriver', () => {
     Object.defineProperty(header, 'getBoundingClientRect', { configurable: true, value: () => rect(500) })
     expect(restoreHeaderPosition(header, 500)).toBe(false)
     expect(scroller.scrollTop).toBe(200)
+  })
+
+  it('restoreElementPosition works on any element (header alias shares the math)', () => {
+    const scroller = document.createElement('div')
+    scroller.dataset.conversationScroll = ''
+    const flow = flowContainer([['u1', 'user']])
+    scroller.appendChild(flow)
+    document.body.replaceChildren(scroller)
+    const row = flow.firstElementChild as HTMLElement
+    stubRect(row, () => ({ top: 600, bottom: 700, height: 100 }))
+    scroller.scrollTop = 400
+    expect(restoreElementPosition(row, 500)).toBe(true) // 600-500 → +100
+    expect(scroller.scrollTop).toBe(500)
+  })
+
+  it('pinnedAtBottom mirrors the host follow threshold', () => {
+    const scroller = document.createElement('div')
+    Object.defineProperty(scroller, 'scrollHeight', { configurable: true, value: 1000 })
+    Object.defineProperty(scroller, 'clientHeight', { configurable: true, value: 400 })
+    scroller.scrollTop = 600 // 1000-600-400 = 0
+    expect(pinnedAtBottom(scroller)).toBe(true)
+    scroller.scrollTop = 580 // 20px off the floor → still within the 24px threshold
+    expect(pinnedAtBottom(scroller)).toBe(true)
+    scroller.scrollTop = 500 // 100px off the floor
+    expect(pinnedAtBottom(scroller)).toBe(false)
+  })
+
+  it('auto re-apply folds a completed turn above the reader and restores the visible anchor row', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    let closed = false
+    const snapshot = () => (closed ? CLOSED_SNAP() : snap({
+      openState: 'open',
+      turns: [[1, true, false]], // streaming — never folded
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 1],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 1],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    }))
+    source.set(fakeHandle('s1', snapshot))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY })
+    driver.start()
+    // Reader mid-view on the last reply ('a2'): give it the only in-viewport rect.
+    let a2Top = 300
+    stubRect(flow.querySelector('[data-chat-flow-key="a2"]') as HTMLElement, () => ({
+      top: a2Top, bottom: a2Top + 100, height: 100,
+    }))
+    // 'tail' below the viewport, hidden rows (a1/t1) far above.
+    stubRect(flow.querySelector('[data-chat-flow-key="tail"]') as HTMLElement, () => ({
+      top: 900, bottom: 1000, height: 100,
+    }))
+    stubRect(flow.querySelector('[data-chat-flow-key="a1"]') as HTMLElement, () => ({
+      top: 50, bottom: 150, height: 100,
+    }))
+    expect(scroller.scrollTop).toBe(400)
+    // turn/end arrives late (weak network): the auto re-apply folds a1/t1,
+    // which slides 'a2' up 100px — the driver must compensate.
+    closed = true
+    source.notify()
+    a2Top = 200 // the fold's height change lands (simulated)
+    await settleFrames()
+    expect(scroller.scrollTop).toBe(300) // scrolled back so 'a2' sits at its captured top
+    expect(flow.querySelectorAll('[data-dsh-fold-row]').length).toBe(2)
+  })
+
+  it('does not compensate auto re-applies while the reader is pinned at the bottom', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    scroller.scrollTop = 700 // 1200-700-500 = 0 → pinned
+    let closed = false
+    const snapshot = () => (closed ? CLOSED_SNAP() : snap({
+      openState: 'open',
+      turns: [[1, true, false]],
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 1],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 1],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    }))
+    source.set(fakeHandle('s1', snapshot))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY })
+    driver.start()
+    stubRect(flow.querySelector('[data-chat-flow-key="a2"]') as HTMLElement, () => ({
+      top: 300, bottom: 400, height: 100,
+    }))
+    closed = true
+    source.notify()
+    await settleFrames()
+    // Pinned readers stay pinned (the host follow owns the view); no scroll.
+    expect(scroller.scrollTop).toBe(700)
+  })
+
+  it('manual toggle restores the clicked header after an at-bottom follow shift', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail', ],
+    ])
+    source.set(fakeHandle('s1', CLOSED_SNAP))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY })
+    driver.start()
+    const header = flow.querySelector<HTMLElement>('[data-dsh-fold-turn="1"]')
+    expect(header).not.toBeNull()
+    let headerTop = 472
+    stubRect(header as HTMLElement, () => ({ top: headerTop, bottom: headerTop + 28, height: 28 }))
+    expect(scroller.scrollTop).toBe(400)
+    // Expanding the fold regrows the column; the at-bottom follow shifts the
+    // header 100px up (simulated AFTER the apply, before the restore window).
+    driver.toggle(1)
+    headerTop = 372
+    await settleFrames()
+    expect(scroller.scrollTop).toBe(300) // scrolled back up so the header returns to 472
+  })
+
+  it('never anchors a row the plan is about to hide (falls back to no compensation)', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    source.set(fakeHandle('s1', CLOSED_SNAP))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY })
+    driver.start()
+    // Only 'a1' — a row the incoming fold hides — is in the viewport.
+    stubRect(flow.querySelector('[data-chat-flow-key="a1"]') as HTMLElement, () => ({
+      top: 100, bottom: 200, height: 100,
+    }))
+    expect(scroller.scrollTop).toBe(400)
+    // Fold 'a1' under the reader's current spot (a second fold on turn 2
+    // whose hidden set covers the in-viewport row).
+    const snap2 = () => snap({
+      openState: 'open',
+      turns: [[1, true, true], [2, true, true]],
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 2],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 2],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    })
+    source.set(fakeHandle('s2', snap2))
+    driver.run()
+    await settleFrames()
+    // No in-viewport anchor survived the plan → nothing to restore, no scroll.
+    expect(scroller.scrollTop).toBe(400)
   })
 })

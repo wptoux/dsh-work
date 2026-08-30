@@ -64,26 +64,28 @@
 
 /*
  * Expand/collapse animation (progressive enhancement): rows fade and slide
- * down into place below the「已处理」header when the fold opens, and fold back
- * up on close. Browsers without `transition-behavior: allow-discrete` fall
- * back to the instant toggle above.
+ * into place below the「已处理」header when the fold opens. `display` is NOT
+ * transitioned: the fold's height change must land synchronously with the
+ * toggle so the driver's viewport anchoring (fold-driver) can measure and
+ * restore the reader's position before the next frame — a delayed
+ * `display` flip (allow-discrete) pulls the layout change to 0.22s later,
+ * after the restore window, and the view slides. Expanding keeps the
+ * fade/slide-in via @starting-style; browsers without it fall back to the
+ * instant toggle above.
  */
-@supports (transition-behavior: allow-discrete) {
-  [data-dsh-fold-row] {
-    transition:
-      opacity 0.22s ease,
-      translate 0.22s ease,
-      display 0.22s allow-discrete;
-  }
-  [data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {
+[data-dsh-fold-row] {
+  transition:
+    opacity 0.22s ease,
+    translate 0.22s ease;
+}
+[data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {
+  opacity: 0;
+  translate: 0 -6px;
+}
+@starting-style {
+  [data-dsh-fold-row][data-dsh-fold-expanded='true'] {
     opacity: 0;
     translate: 0 -6px;
-  }
-  @starting-style {
-    [data-dsh-fold-row][data-dsh-fold-expanded='true'] {
-      opacity: 0;
-      translate: 0 -6px;
-    }
   }
 }
 

@@ -204,6 +204,38 @@ describe('applyFoldPlan', () => {
     }, new Set(), COPY)
     expect(container.querySelector('[data-dsh-fold-turn="1"] .dsh-fold-duration')?.textContent).toBe('2m01s')
   })
+
+  it('reports changed=true only when the apply actually alters layout-affecting state', () => {
+    const plan = { folds: [FOLD_1], completionRequest: null }
+    // First apply creates the fold: rows hide + header appears.
+    expect(applyFoldPlan(container, plan, new Set(), COPY).changed).toBe(true)
+    // Idempotent re-apply: same collapsed set, same header count → no change.
+    expect(applyFoldPlan(container, plan, new Set(), COPY).changed).toBe(false)
+    // Expanding restores the hidden rows → layout change.
+    expect(applyFoldPlan(container, plan, new Set([1]), COPY).changed).toBe(true)
+    // Stable while expanded.
+    expect(applyFoldPlan(container, plan, new Set([1]), COPY).changed).toBe(false)
+    // Collapsing again → change.
+    expect(applyFoldPlan(container, plan, new Set(), COPY).changed).toBe(true)
+    // Removing the fold restores the rows and drops the header → change.
+    expect(applyFoldPlan(container, { folds: [], completionRequest: null }, new Set(), COPY).changed).toBe(true)
+    // Still empty → no change.
+    expect(applyFoldPlan(container, { folds: [], completionRequest: null }, new Set(), COPY).changed).toBe(false)
+  })
+
+  it('reports changed=true when the hidden set changes between folds but not on copy-only churn', () => {
+    applyFoldPlan(container, { folds: [FOLD_1], completionRequest: null }, new Set(), COPY)
+    // A duration-only change (same rows hidden) does not change layout.
+    expect(applyFoldPlan(container, {
+      folds: [{ ...FOLD_1, durationMs: 196_000 }],
+      completionRequest: null,
+    }, new Set(), COPY).changed).toBe(false)
+    // A different hidden set (t1 joins the fold) is a layout change.
+    expect(applyFoldPlan(container, {
+      folds: [{ turn: 1, hiddenKeys: ['a1', 't1', 'tail'], lastAssistantKey: 'a2', hiddenCount: 3 }],
+      completionRequest: null,
+    }, new Set(), COPY).changed).toBe(true)
+  })
 })
 
 describe('formatDuration', () => {
