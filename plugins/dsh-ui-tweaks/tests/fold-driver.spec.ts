@@ -550,4 +550,119 @@ describe('createFoldDriver', () => {
     // No in-viewport anchor survived the plan → nothing to restore, no scroll.
     expect(scroller.scrollTop).toBe(400)
   })
+
+  it('fold-driven loadOlder arms a prepend anchor and restores the reader when the page lands', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    // Closed but page-split turn: the head is outside the window, so the
+    // driver pulls older history on its own (the host anchors ONLY button
+    // clicks, so this is the un-stabilized path we must cover).
+    const snapshot = () => snap({
+      openState: 'open',
+      turns: [[1, false, true]],
+      hasMore: true,
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 1],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 1],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    })
+    source.set(fakeHandle('s1', snapshot))
+    // Stub the reader's row BEFORE starting so the arming pass sees it.
+    let a2Top = 300
+    stubRect(flow.querySelector('[data-chat-flow-key="a2"]') as HTMLElement, () => ({
+      top: a2Top, bottom: a2Top + 100, height: 100,
+    }))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY, maxAutoPages: 1 })
+    driver.start()
+    expect(scroller.scrollTop).toBe(400)
+    // The fetched page lands in the DOM (React prepends it above u1) and the
+    // reader's row slides 50px down with it.
+    const u0 = document.createElement('div')
+    u0.dataset.chatFlowKey = 'u0'
+    flow.insertBefore(u0, flow.firstElementChild)
+    a2Top = 350
+    driver.run() // the container MutationObserver-driven pass
+    await settleFrames()
+    expect(scroller.scrollTop).toBe(450) // prepend shift cancelled, view stable
+  })
+
+  it('drops the prepend anchor when the reader scrolls while the page is loading', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    const snapshot = () => snap({
+      openState: 'open',
+      turns: [[1, false, true]],
+      hasMore: true,
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 1],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 1],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    })
+    source.set(fakeHandle('s1', snapshot))
+    stubRect(flow.querySelector('[data-chat-flow-key="a2"]') as HTMLElement, () => ({
+      top: 300, bottom: 400, height: 100,
+    }))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY, maxAutoPages: 1 })
+    driver.start()
+    // Reader scrolls mid-flight → the pending anchor is discarded.
+    scroller.dispatchEvent(new Event('scroll'))
+    const u0 = document.createElement('div')
+    u0.dataset.chatFlowKey = 'u0'
+    flow.insertBefore(u0, flow.firstElementChild)
+    driver.run()
+    await settleFrames()
+    expect(scroller.scrollTop).toBe(400) // no anchoring; the reader owns the view
+  })
+
+  it('does not arm a prepend anchor while the reader is pinned at the bottom', async () => {
+    const { scroller, flow } = stubbedScroller([
+      ['u1', 'user'],
+      ['a1', 'assistant-step'],
+      ['t1', 'tool-result'],
+      ['a2', 'assistant-step'],
+      ['tail', 'turn-tail'],
+    ])
+    scroller.scrollTop = 700 // 1200-700-500 = 0 → pinned
+    const snapshot = () => snap({
+      openState: 'open',
+      turns: [[1, false, true]],
+      hasMore: true,
+      nodes: [
+        ['u1', 'user', 10, 1],
+        ['a1', 'assistant-step', 20, 1],
+        ['t1', 'tool-result', 30, 1],
+        ['a2', 'assistant-step', 40, 1],
+        ['tail', 'turn-tail', 50, 1],
+      ],
+    })
+    source.set(fakeHandle('s1', snapshot))
+    stubRect(flow.querySelector('[data-chat-flow-key="a2"]') as HTMLElement, () => ({
+      top: 300, bottom: 400, height: 100,
+    }))
+    const driver = createFoldDriver(source.source, { containers: () => [flow], copy: COPY, maxAutoPages: 1 })
+    driver.start()
+    const u0 = document.createElement('div')
+    u0.dataset.chatFlowKey = 'u0'
+    flow.insertBefore(u0, flow.firstElementChild)
+    driver.run()
+    await settleFrames()
+    // Pinned readers keep the follow-owned view; no scroll to compensate.
+    expect(scroller.scrollTop).toBe(700)
+  })
 })

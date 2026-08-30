@@ -30,7 +30,9 @@
 桌面会话窗口是**连续的一段**：`turn/start` 与 `turn/end` 都在窗口内才算"整回合"。
 窗口被切在回合中间（只加载了后半截）的旧回合**绝不误折叠**——保持原样展开；插件会
 自动调用 `loadOlder()` 补拉更早历史（同一残缺回合最多连拉 5 页），补全后自动折叠。
-上拉加载更早历史同样按此逻辑。
+上拉加载更早历史同样按此逻辑。补拉页面逐页到达、以及补全回合自动折叠时，视口都保持
+锚定（阅读位置不随内容上下滑动；贴底时由内核底部跟随接管，阅读中滚动则放权给读者），
+弱网下逐页加载也不会抖屏。
 
 ### 实现
 
@@ -46,7 +48,7 @@
 
 ```bash
 pnpm install          # 首次
-pnpm test             # vitest（34 个用例：fold-plan / fold-dom / fold-chrome / fold-driver）
+pnpm test             # vitest（66 个用例：fold-plan / fold-dom / fold-chrome / fold-driver）
 pnpm typecheck
 pnpm build            # lib/index.js（host 半，空挂载）+ lib/client.js（浏览器半）
 ```
