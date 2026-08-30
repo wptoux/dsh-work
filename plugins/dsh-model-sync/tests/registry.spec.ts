@@ -100,14 +100,33 @@ describe('NpmRegistryClient', () => {
       await rm(cacheDir, { recursive: true, force: true })
     }
   })
+
+  it('does not poison the cache when the extracted catalog fails to parse', async () => {
+    const cacheDir = await mkdtemp(join(tmpdir(), 'dsh-model-sync-cache-'))
+    try {
+      const bytes = await makeTgz('[]') // valid JSON whose root is an array → parse TypeError
+      const results = new Map<string, unknown>([
+        [metaUrl, { version: '9.9.9', dist: { tarball: tgzUrl } }],
+        [String(tgzUrl), bytes],
+      ])
+      const client = new NpmRegistryClient({ cacheDir, pkg, registry, fetchImpl: fakeFetch(results) })
+      await expect(client.fetchCatalog('opencode-go')).resolves.toBeUndefined()
+      // A bad bundle must never land in the cache: it would shadow the good
+      // one until maxAge expires.
+      await expect(readFile(join(cacheDir, 'opencode-go.json'), 'utf8')).rejects.toThrow()
+      await expect(readFile(join(cacheDir, 'opencode-go.meta.json'), 'utf8')).rejects.toThrow()
+    } finally {
+      await rm(cacheDir, { recursive: true, force: true })
+    }
+  })
 })
 
-async function makeTgz(): Promise<Uint8Array> {
+async function makeTgz(raw: string = JSON.stringify(sampleCatalog)): Promise<Uint8Array> {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-model-sync-tgz-'))
   try {
     const entry = 'package/dist/providers/data/opencode-go.json'
     await mkdir(join(dir, 'package/dist/providers/data'), { recursive: true })
-    await writeFile(join(dir, entry), JSON.stringify(sampleCatalog))
+    await writeFile(join(dir, entry), raw)
     await tar.c({ gzip: true, file: join(dir, 'pkg.tgz'), cwd: dir }, [entry])
     return new Uint8Array(await readFile(join(dir, 'pkg.tgz')))
   } finally {

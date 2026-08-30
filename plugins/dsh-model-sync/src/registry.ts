@@ -103,8 +103,16 @@ export class NpmRegistryClient {
     }
     const raw = await extractTarballEntry(tarball, `${TARBALL_ENTRY_PREFIX}${route}.json`)
     if (raw === undefined) return undefined
+    // Parse BEFORE caching: a bundle that fails to parse must never land in
+    // the cache (it would shadow a good cached version until maxAge).
+    let models: Map<string, PiAiModelJson>
+    try {
+      models = parsePiAiCatalog(JSON.parse(raw) as unknown)
+    } catch {
+      return undefined
+    }
     await this.writeCache(route, latest.version, raw)
-    return { version: latest.version, route, models: parsePiAiCatalog(JSON.parse(raw) as unknown) }
+    return { version: latest.version, route, models }
   }
 
   private async readMeta(path: string): Promise<{ version: string; cachedAt: number } | undefined> {

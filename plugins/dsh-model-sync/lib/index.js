@@ -152,11 +152,17 @@ var NpmRegistryClient = class {
 		}
 		const raw = await extractTarballEntry(tarball, `${TARBALL_ENTRY_PREFIX}${route}.json`);
 		if (raw === void 0) return void 0;
+		let models;
+		try {
+			models = parsePiAiCatalog(JSON.parse(raw));
+		} catch {
+			return;
+		}
 		await this.writeCache(route, latest.version, raw);
 		return {
 			version: latest.version,
 			route,
-			models: parsePiAiCatalog(JSON.parse(raw))
+			models
 		};
 	}
 	async readMeta(path) {
@@ -438,13 +444,25 @@ function currentRevision(settings) {
 	for (const entry of settings.describe()) if (entry.ns === SETTINGS_NS) return entry.revision;
 	return 0;
 }
+/**
+* Match a settings-conflict error no matter which copy of dsh-settings threw
+* it. The built artifact inlines its own copy of the library (tsdown pulls in
+* the devDependency), so at runtime the host throws ITS SettingsConflictError
+* instance and `instanceof` here is false. Both copies set the same stable
+* machine code, which is what the host class carries too.
+*/
+function isSettingsConflict(error) {
+	if (error instanceof SettingsConflictError) return true;
+	if (typeof error === "object" && error !== null) return error.code === "SETTINGS_CONFLICT";
+	return false;
+}
 /** Write ops with one conflict retry. */
 async function writeOps(settings, ops) {
 	for (let attempt = 0; attempt < 2; attempt += 1) try {
 		await settings.mutate(SETTINGS_NS, ops, currentRevision(settings));
 		return true;
 	} catch (error) {
-		if (error instanceof SettingsConflictError) continue;
+		if (isSettingsConflict(error)) continue;
 		throw error;
 	}
 	return false;
@@ -487,7 +505,7 @@ async function syncMirror(deps, spec, opts) {
 			return;
 		}
 		const ops = [];
-		if (spec.api !== void 0) ops.push({
+		if (mirror?.api === void 0 && spec.api !== void 0) ops.push({
 			op: "set",
 			path: [
 				"providers",
@@ -496,7 +514,7 @@ async function syncMirror(deps, spec, opts) {
 			],
 			value: spec.api
 		});
-		if (spec.baseURL !== void 0) ops.push({
+		if (mirror?.baseURL === void 0 && spec.baseURL !== void 0) ops.push({
 			op: "set",
 			path: [
 				"providers",

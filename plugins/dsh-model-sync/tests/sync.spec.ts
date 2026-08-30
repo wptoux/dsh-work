@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { SettingsConflictError, syncMirror, SETTINGS_NS, type CatalogLike, type LlmLike, type SettingsLike } from '../src/sync.ts'
 
+/**
+ * A stand-in for the host runtime's own SettingsConflictError: same stable
+ * machine code, different class identity. The built artifact inlines its own
+ * copy of dsh-settings (tsdown pulls in the devDependency), so the host's
+ * instance never passes `instanceof SettingsConflictError` — the retry must
+ * also match on the code the class sets.
+ */
+class ForeignConflict extends Error {
+  code = 'SETTINGS_CONFLICT'
+}
+
 const spec = { source: 'opencode-go', id: 'opencode-go-live', api: 'openai-completions', baseURL: 'https://opencode.ai/zen/go/v1' }
 const tarballModels = new Map<string, { id: string; api?: string; baseUrl?: string; input?: string[]; contextWindow?: number; maxTokens?: number }>([
   ['alpha-1', { id: 'alpha-1', api: 'openai-completions', baseUrl: spec.baseURL!, input: ['text'], contextWindow: 1000, maxTokens: 100 }],
@@ -14,6 +25,7 @@ function makeDeps(overrides: Partial<{
   previous: unknown[]
   catalog: unknown
   conflictCount?: number
+  foreignConflictCount?: number
   mutateError?: Error
 }> = {}) {
   const state = {
@@ -26,12 +38,17 @@ function makeDeps(overrides: Partial<{
     mutateCalls: 0,
   }
   let conflictsLeft = overrides.conflictCount ?? 0
+  let foreignConflictsLeft = overrides.foreignConflictCount ?? 0
   const settings: SettingsLike = {
     get: () => state.section,
     describe: () => [{ ns: SETTINGS_NS, revision: state.revision }],
     mutate: async (_ns, ops, expectedRevision) => {
       state.mutateCalls += 1
       if (overrides.mutateError !== undefined) throw overrides.mutateError
+      if (foreignConflictsLeft > 0) {
+        foreignConflictsLeft -= 1
+        throw new ForeignConflict()
+      }
       if (conflictsLeft > 0) {
         conflictsLeft -= 1
         throw new SettingsConflictError(SETTINGS_NS, expectedRevision ?? 0, state.revision)
@@ -110,6 +127,11 @@ describe('syncMirror', () => {
     await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, spec, { fetchLive: false })
     const modelsOp = state.ops.find(o => o.path.join('.').endsWith('models') && o.op === 'set')
     expect((modelsOp!.value as { id: string }[]).map(m => m.id)).toEqual(['alpha-1', 'beta-1'])
+    // The mirror profile is already bootstrapped: an endpoint override set by
+    // the user must not be silently reverted on every write, so api/baseURL
+    // are only set once.
+    expect(state.ops.map(o => o.path.join('.'))).not.toContain('providers.opencode-go-live.api')
+    expect(state.ops.map(o => o.path.join('.'))).not.toContain('providers.opencode-go-live.baseURL')
   })
 
   it('retries once after a conflict and writes', async () => {
@@ -118,6 +140,15 @@ describe('syncMirror', () => {
     expect(state.mutateCalls).toBe(2)
     expect(state.ops.some(o => o.op === 'set' && o.path.join('.').endsWith('models'))).toBe(true)
     expect(logs.join('\n')).not.toContain('conflicted twice')
+  })
+
+  it('retries once on a foreign-class conflict (bundle-boundary code match) and writes', async () => {
+    const { state, settings, llm, catalog, logs } = makeDeps({ foreignConflictCount: 1 })
+    await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, spec, { fetchLive: false })
+    expect(state.mutateCalls).toBe(2)
+    expect(state.ops.some(o => o.op === 'set' && o.path.join('.').endsWith('models'))).toBe(true)
+    expect(logs.join('\n')).not.toContain('conflicted twice')
+    expect(logs.join('\n')).not.toContain('sync failed')
   })
 
   it('gives up after two conflicts and keeps last-good', async () => {

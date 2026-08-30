@@ -61,6 +61,21 @@ function currentRevision(settings: SettingsLike): number {
   return 0
 }
 
+/**
+ * Match a settings-conflict error no matter which copy of dsh-settings threw
+ * it. The built artifact inlines its own copy of the library (tsdown pulls in
+ * the devDependency), so at runtime the host throws ITS SettingsConflictError
+ * instance and `instanceof` here is false. Both copies set the same stable
+ * machine code, which is what the host class carries too.
+ */
+function isSettingsConflict(error: unknown): boolean {
+  if (error instanceof SettingsConflictError) return true
+  if (typeof error === 'object' && error !== null) {
+    return (error as { code?: unknown }).code === 'SETTINGS_CONFLICT'
+  }
+  return false
+}
+
 /** Write ops with one conflict retry. */
 async function writeOps(settings: SettingsLike, ops: Op[]): Promise<boolean> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -68,7 +83,7 @@ async function writeOps(settings: SettingsLike, ops: Op[]): Promise<boolean> {
       await settings.mutate(SETTINGS_NS, ops, currentRevision(settings))
       return true
     } catch (error) {
-      if (error instanceof SettingsConflictError) continue
+      if (isSettingsConflict(error)) continue
       throw error
     }
   }
@@ -112,8 +127,11 @@ export async function syncMirror(deps: SyncDeps, spec: MirrorSpec, opts: { fetch
       return
     }
     const ops: Op[] = []
-    if (spec.api !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'api'], value: spec.api })
-    if (spec.baseURL !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'baseURL'], value: spec.baseURL })
+    // Set API facts only once, like apiKeyEnv: an endpoint override the user
+    // edits on the live mirror must not be reverted on the next sync. Both
+    // are still pushed on bootstrap because the mirror profile is missing.
+    if (mirror?.api === undefined && spec.api !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'api'], value: spec.api })
+    if (mirror?.baseURL === undefined && spec.baseURL !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'baseURL'], value: spec.baseURL })
     if (mirror?.apiKeyEnv === undefined && source.apiKeyEnv !== undefined) {
       ops.push({ op: 'set', path: ['providers', spec.id, 'apiKeyEnv'], value: source.apiKeyEnv })
     }
