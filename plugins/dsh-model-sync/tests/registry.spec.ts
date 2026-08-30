@@ -12,7 +12,7 @@ const sampleCatalog = {
 }
 
 function fakeFetch(results: Map<string, unknown>): typeof fetch {
-  return (async (input: RequestInfo | URL) => {
+  return (async (input: Parameters<typeof fetch>[0] | URL) => {
     const url = String(input)
     const body = results.get(url)
     if (body === undefined) throw new Error(`unexpected fetch: ${url}`)
