@@ -78,52 +78,56 @@ async function writeOps(settings: SettingsLike, ops: Op[]): Promise<boolean> {
 /** Sync one mirror route (see module doc). */
 export async function syncMirror(deps: SyncDeps, spec: MirrorSpec, opts: { fetchLive: boolean }): Promise<void> {
   const log = deps.log
-  const section = deps.settings.get(SETTINGS_NS) as { providers?: Record<string, MirrorProfile> } | undefined
-  const source = section?.providers?.[spec.source]
-  if (source === undefined) {
-    log(`source route "${spec.source}" is not configured in llm-pi-ai; skipping`)
-    return
-  }
-  const serving = new Set(deps.llm.listProviders().map(provider => provider.id))
-  if (!serving.has(spec.source)) {
-    log(`source route "${spec.source}" is not serving; skipping`)
-    return
-  }
-  let served: string[] = []
   try {
-    served = (await deps.llm.listModels(spec.id)).map(model => model.id)
-  } catch {
-    served = []
-  }
-  const latest = await deps.catalog.fetchCatalog(spec.source)
-  if (latest === undefined) {
-    log(`catalog fetch for "${spec.source}" failed; keeping last-good state`)
-    return
-  }
-  const mirror = section?.providers?.[spec.id]
-  const previous: readonly ModelEntry[] = mirror?.models ?? []
-  const result = buildMirrorModels({ previous, latest: latest.models, served })
+    const section = deps.settings.get(SETTINGS_NS) as { providers?: Record<string, MirrorProfile> } | undefined
+    const source = section?.providers?.[spec.source]
+    if (source === undefined) {
+      log(`source route "${spec.source}" is not configured in llm-pi-ai; skipping`)
+      return
+    }
+    const serving = new Set(deps.llm.listProviders().map(provider => provider.id))
+    if (!serving.has(spec.source)) {
+      log(`source route "${spec.source}" is not serving; skipping`)
+      return
+    }
+    let served: string[] = []
+    try {
+      served = (await deps.llm.listModels(spec.id)).map(model => model.id)
+    } catch {
+      served = []
+    }
+    const latest = await deps.catalog.fetchCatalog(spec.source)
+    if (latest === undefined) {
+      log(`catalog fetch for "${spec.source}" failed; keeping last-good state`)
+      return
+    }
+    const mirror = section?.providers?.[spec.id]
+    const previous: readonly ModelEntry[] = mirror?.models ?? []
+    const result = buildMirrorModels({ previous, latest: latest.models, served })
 
-  const needsBootstrap = mirror === undefined || mirror.api === undefined || mirror.baseURL === undefined
-  if (!result.changed && !needsBootstrap) {
-    log(`mirror "${spec.id}" is current (${served.length} models, ${latest.version})`)
+    const needsBootstrap = mirror === undefined || mirror.api === undefined || mirror.baseURL === undefined
+    if (!result.changed && !needsBootstrap) {
+      log(`mirror "${spec.id}" is current (${served.length} models, ${latest.version})`)
+      await maybeProbe(deps, spec, source, opts)
+      return
+    }
+    const ops: Op[] = []
+    if (spec.api !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'api'], value: spec.api })
+    if (spec.baseURL !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'baseURL'], value: spec.baseURL })
+    if (mirror?.apiKeyEnv === undefined && source.apiKeyEnv !== undefined) {
+      ops.push({ op: 'set', path: ['providers', spec.id, 'apiKeyEnv'], value: source.apiKeyEnv })
+    }
+    ops.push({ op: 'set', path: ['providers', spec.id, 'models'], value: result.models })
+    const written = await writeOps(deps.settings, ops)
+    if (!written) {
+      log(`settings write for "${spec.id}" conflicted twice; keeping last-good state`)
+      return
+    }
+    log(`mirror "${spec.id}" updated: ${result.added.length > 0 ? `+${result.added.join(', ')}` : 'no new models'} (catalog ${latest.version})`)
     await maybeProbe(deps, spec, source, opts)
-    return
+  } catch (error) {
+    log(`sync failed: ${error instanceof Error ? error.message : String(error)}`)
   }
-  const ops: Op[] = []
-  if (spec.api !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'api'], value: spec.api })
-  if (spec.baseURL !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'baseURL'], value: spec.baseURL })
-  if (mirror?.apiKeyEnv === undefined && source.apiKeyEnv !== undefined) {
-    ops.push({ op: 'set', path: ['providers', spec.id, 'apiKeyEnv'], value: source.apiKeyEnv })
-  }
-  ops.push({ op: 'set', path: ['providers', spec.id, 'models'], value: result.models })
-  const written = await writeOps(deps.settings, ops)
-  if (!written) {
-    log(`settings write for "${spec.id}" conflicted twice; keeping last-good state`)
-    return
-  }
-  log(`mirror "${spec.id}" updated: ${result.added.length > 0 ? `+${result.added.join(', ')}` : 'no new models'} (catalog ${latest.version})`)
-  await maybeProbe(deps, spec, source, opts)
 }
 
 async function maybeProbe(

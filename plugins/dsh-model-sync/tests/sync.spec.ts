@@ -13,6 +13,8 @@ function makeDeps(overrides: Partial<{
   served: string[]
   previous: unknown[]
   catalog: unknown
+  conflictCount?: number
+  mutateError?: Error
 }> = {}) {
   const state = {
     section: overrides.section ?? { providers: { [spec.source]: { apiKeyEnv: 'OPENCODE_GO_API_KEY' } } },
@@ -21,11 +23,19 @@ function makeDeps(overrides: Partial<{
     previous: overrides.previous ?? [],
     ops: [] as { op: string; path: string[]; value?: unknown }[],
     revision: 1,
+    mutateCalls: 0,
   }
+  let conflictsLeft = overrides.conflictCount ?? 0
   const settings: SettingsLike = {
     get: () => state.section,
     describe: () => [{ ns: SETTINGS_NS, revision: state.revision }],
     mutate: async (_ns, ops, expectedRevision) => {
+      state.mutateCalls += 1
+      if (overrides.mutateError !== undefined) throw overrides.mutateError
+      if (conflictsLeft > 0) {
+        conflictsLeft -= 1
+        throw new SettingsConflictError(SETTINGS_NS, expectedRevision ?? 0, state.revision)
+      }
       if (expectedRevision !== undefined && expectedRevision !== state.revision) {
         throw new SettingsConflictError(SETTINGS_NS, expectedRevision, state.revision)
       }
@@ -100,5 +110,28 @@ describe('syncMirror', () => {
     await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, spec, { fetchLive: false })
     const modelsOp = state.ops.find(o => o.path.join('.').endsWith('models') && o.op === 'set')
     expect((modelsOp!.value as { id: string }[]).map(m => m.id)).toEqual(['alpha-1', 'beta-1'])
+  })
+
+  it('retries once after a conflict and writes', async () => {
+    const { state, settings, llm, catalog, logs } = makeDeps({ conflictCount: 1 })
+    await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, spec, { fetchLive: false })
+    expect(state.mutateCalls).toBe(2)
+    expect(state.ops.some(o => o.op === 'set' && o.path.join('.').endsWith('models'))).toBe(true)
+    expect(logs.join('\n')).not.toContain('conflicted twice')
+  })
+
+  it('gives up after two conflicts and keeps last-good', async () => {
+    const { state, settings, llm, catalog, logs } = makeDeps({ conflictCount: 2 })
+    await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, spec, { fetchLive: false })
+    expect(logs.join('\n')).toContain('conflicted twice')
+    expect(state.ops).toHaveLength(0)
+  })
+
+  it('logs sync failed and does not throw on a non-conflict write error', async () => {
+    const { state, settings, llm, catalog, logs } = makeDeps({ mutateError: new Error('disk full') })
+    await expect(syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, spec, { fetchLive: false })).resolves.toBeUndefined()
+    expect(logs.join('\n')).toContain('sync failed')
+    expect(logs.join('\n')).toContain('disk full')
+    expect(state.ops).toHaveLength(0)
   })
 })
