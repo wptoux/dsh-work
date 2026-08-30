@@ -39,7 +39,7 @@ const DEFAULT_MIRROR = {
 } satisfies MirrorSpec
 
 /** Loader-validated configuration schema (defaults filled by the loader). */
-export const Config = z.object({
+export const Config: z<ModelSyncConfig> = z.object({
   mirrors: z.array(z.object({
     source: z.string(),
     id: z.string(),
