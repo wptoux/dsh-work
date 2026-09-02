@@ -14,9 +14,10 @@ import { Service } from "@deepseek-ai/cordis";
 */
 const DEFAULT_MIRROR = {
 	source: "opencode-go",
-	id: "opencode-go-live",
+	id: "opencode-go",
 	api: "openai-completions",
-	baseURL: "https://opencode.ai/zen/go/v1"
+	baseURL: "https://opencode.ai/zen/go/v1",
+	apiKeyEnv: "OPENCODE_GO_API_KEY"
 };
 /** Loader-validated configuration schema (defaults filled by the loader). */
 const Config = z.object({
@@ -24,7 +25,8 @@ const Config = z.object({
 		source: z.string(),
 		id: z.string(),
 		api: z.string(),
-		baseURL: z.string()
+		baseURL: z.string(),
+		apiKeyEnv: z.string()
 	})).default([DEFAULT_MIRROR]),
 	intervalMs: z.number().min(6e4).default(36e5),
 	fetchLive: z.boolean().default(true),
@@ -474,13 +476,16 @@ async function syncMirror(deps, spec, opts) {
 	try {
 		const section = deps.settings.get(SETTINGS_NS);
 		const source = section?.providers?.[spec.source];
-		if (source === void 0) {
+		const selfMirror = spec.source === spec.id;
+		if (!selfMirror && source === void 0) {
 			log(`source route "${spec.source}" is not configured in llm-pi-ai; skipping`);
 			return;
 		}
-		if (!new Set(deps.llm.listProviders().map((provider) => provider.id)).has(spec.source)) {
-			log(`source route "${spec.source}" is not serving; skipping`);
-			return;
+		if (!selfMirror) {
+			if (!new Set(deps.llm.listProviders().map((provider) => provider.id)).has(spec.source)) {
+				log(`source route "${spec.source}" is not serving; skipping`);
+				return;
+			}
 		}
 		let served = [];
 		try {
@@ -494,6 +499,10 @@ async function syncMirror(deps, spec, opts) {
 			return;
 		}
 		const mirror = section?.providers?.[spec.id];
+		if (mirror === void 0 && spec.api === void 0 && spec.baseURL === void 0 && spec.apiKeyEnv === void 0) {
+			log(`mirror "${spec.id}" cannot be bootstrapped: no api/baseURL/apiKeyEnv in config; skipping`);
+			return;
+		}
 		const result = buildMirrorModels({
 			previous: mirror?.models ?? [],
 			latest: latest.models,
@@ -505,6 +514,7 @@ async function syncMirror(deps, spec, opts) {
 			await maybeProbe(deps, spec, source, opts);
 			return;
 		}
+		const mirrorKey = mirror?.apiKeyEnv ?? (selfMirror ? spec.apiKeyEnv : source?.apiKeyEnv);
 		const ops = [];
 		if (mirror?.api === void 0 && spec.api !== void 0) ops.push({
 			op: "set",
@@ -524,14 +534,14 @@ async function syncMirror(deps, spec, opts) {
 			],
 			value: spec.baseURL
 		});
-		if (mirror?.apiKeyEnv === void 0 && source.apiKeyEnv !== void 0) ops.push({
+		if (mirror?.apiKeyEnv === void 0 && mirrorKey !== void 0) ops.push({
 			op: "set",
 			path: [
 				"providers",
 				spec.id,
 				"apiKeyEnv"
 			],
-			value: source.apiKeyEnv
+			value: mirrorKey
 		});
 		ops.push({
 			op: "set",
@@ -552,10 +562,11 @@ async function syncMirror(deps, spec, opts) {
 		log(`sync failed: ${error instanceof Error ? error.message : String(error)}`);
 	}
 }
-async function maybeProbe(deps, spec, _source, opts) {
+async function maybeProbe(deps, spec, source, opts) {
 	if (!opts.fetchLive || deps.probe === void 0) return;
 	if (spec.baseURL === void 0) return;
-	const result = await deps.probe(spec, _source.apiKeyEnv);
+	const probeKey = spec.source === spec.id ? spec.apiKeyEnv : source?.apiKeyEnv;
+	const result = await deps.probe(spec, probeKey);
 	if (result !== void 0 && result !== null && typeof result === "object" && "ok" in result) {
 		const probe = result;
 		deps.log(probe.ok ? `live /models probe: ${probe.ids?.length ?? 0} models advertised` : `live /models probe failed: ${probe.reason ?? "unknown"}`);

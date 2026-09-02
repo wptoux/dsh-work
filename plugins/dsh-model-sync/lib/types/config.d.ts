@@ -15,6 +15,12 @@ export interface MirrorSpec {
     api?: string;
     /** Endpoint for the mirror route; falls back to the source route's baseURL. */
     baseURL?: string;
+    /**
+     * Credential reference (`apiKeyEnv`) for the mirror route. When `source === id`
+     * (the mirror replaces the route it feeds from), this is the only credential
+     * the mirror can use — there is no separate source profile to copy from.
+     */
+    apiKeyEnv?: string;
 }
 /** Plugin configuration. */
 export interface ModelSyncConfig {

@@ -2,10 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { resolveModelSyncConfig } from '../src/config.ts'
 
 describe('resolveModelSyncConfig', () => {
-  it('defaults to the opencode-go mirror and hourly interval', () => {
+  it('defaults to the self-replacing opencode-go mirror and hourly interval', () => {
     const c = resolveModelSyncConfig()
     expect(c.mirrors).toEqual([
-      { source: 'opencode-go', id: 'opencode-go-live', api: 'openai-completions', baseURL: 'https://opencode.ai/zen/go/v1' },
+      {
+        source: 'opencode-go',
+        id: 'opencode-go',
+        api: 'openai-completions',
+        baseURL: 'https://opencode.ai/zen/go/v1',
+        apiKeyEnv: 'OPENCODE_GO_API_KEY',
+      },
     ])
     expect(c.intervalMs).toBe(3_600_000)
     expect(c.fetchLive).toBe(true)

@@ -96,14 +96,22 @@ export async function syncMirror(deps: SyncDeps, spec: MirrorSpec, opts: { fetch
   try {
     const section = deps.settings.get(SETTINGS_NS) as { providers?: Record<string, MirrorProfile> } | undefined
     const source = section?.providers?.[spec.source]
-    if (source === undefined) {
+    // A self-mirror (`source === id`) replaces the route it feeds from: there
+    // is no separate source profile, and the route may not exist yet on first
+    // boot — the sync bootstraps it. The source-existence and serving gates
+    // only apply to the legacy dual-route mode, where the mirror feeds off a
+    // distinct configured route.
+    const selfMirror = spec.source === spec.id
+    if (!selfMirror && source === undefined) {
       log(`source route "${spec.source}" is not configured in llm-pi-ai; skipping`)
       return
     }
-    const serving = new Set(deps.llm.listProviders().map(provider => provider.id))
-    if (!serving.has(spec.source)) {
-      log(`source route "${spec.source}" is not serving; skipping`)
-      return
+    if (!selfMirror) {
+      const serving = new Set(deps.llm.listProviders().map(provider => provider.id))
+      if (!serving.has(spec.source)) {
+        log(`source route "${spec.source}" is not serving; skipping`)
+        return
+      }
     }
     let served: string[] = []
     try {
@@ -117,6 +125,10 @@ export async function syncMirror(deps: SyncDeps, spec: MirrorSpec, opts: { fetch
       return
     }
     const mirror = section?.providers?.[spec.id]
+    if (mirror === undefined && spec.api === undefined && spec.baseURL === undefined && spec.apiKeyEnv === undefined) {
+      log(`mirror "${spec.id}" cannot be bootstrapped: no api/baseURL/apiKeyEnv in config; skipping`)
+      return
+    }
     const previous: readonly ModelEntry[] = mirror?.models ?? []
     const result = buildMirrorModels({ previous, latest: latest.models, served })
 
@@ -126,14 +138,17 @@ export async function syncMirror(deps: SyncDeps, spec: MirrorSpec, opts: { fetch
       await maybeProbe(deps, spec, source, opts)
       return
     }
+    // Credential for the mirror: its own stored ref first; a self-mirror falls
+    // back to its config ref; a dual-route mirror copies the source's.
+    const mirrorKey = mirror?.apiKeyEnv ?? (selfMirror ? spec.apiKeyEnv : source?.apiKeyEnv)
     const ops: Op[] = []
     // Set API facts only once, like apiKeyEnv: an endpoint override the user
     // edits on the live mirror must not be reverted on the next sync. Both
     // are still pushed on bootstrap because the mirror profile is missing.
     if (mirror?.api === undefined && spec.api !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'api'], value: spec.api })
     if (mirror?.baseURL === undefined && spec.baseURL !== undefined) ops.push({ op: 'set', path: ['providers', spec.id, 'baseURL'], value: spec.baseURL })
-    if (mirror?.apiKeyEnv === undefined && source.apiKeyEnv !== undefined) {
-      ops.push({ op: 'set', path: ['providers', spec.id, 'apiKeyEnv'], value: source.apiKeyEnv })
+    if (mirror?.apiKeyEnv === undefined && mirrorKey !== undefined) {
+      ops.push({ op: 'set', path: ['providers', spec.id, 'apiKeyEnv'], value: mirrorKey })
     }
     ops.push({ op: 'set', path: ['providers', spec.id, 'models'], value: result.models })
     const written = await writeOps(deps.settings, ops)
@@ -151,12 +166,15 @@ export async function syncMirror(deps: SyncDeps, spec: MirrorSpec, opts: { fetch
 async function maybeProbe(
   deps: SyncDeps,
   spec: MirrorSpec,
-  _source: MirrorProfile,
+  source: MirrorProfile | undefined,
   opts: { fetchLive: boolean },
 ): Promise<void> {
   if (!opts.fetchLive || deps.probe === undefined) return
   if (spec.baseURL === undefined) return
-  const result = await deps.probe(spec, _source.apiKeyEnv)
+  // Credential for the probe mirrors the write path: a self-mirror falls back
+  // to its config ref, a dual-route mirror to the source's.
+  const probeKey = spec.source === spec.id ? spec.apiKeyEnv : source?.apiKeyEnv
+  const result = await deps.probe(spec, probeKey)
   if (result !== undefined && result !== null && typeof result === 'object' && 'ok' in result) {
     const probe = result as { ok: boolean; ids?: string[]; reason?: string }
     deps.log(probe.ok

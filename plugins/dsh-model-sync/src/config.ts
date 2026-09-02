@@ -17,6 +17,12 @@ export interface MirrorSpec {
   api?: string
   /** Endpoint for the mirror route; falls back to the source route's baseURL. */
   baseURL?: string
+  /**
+   * Credential reference (`apiKeyEnv`) for the mirror route. When `source === id`
+   * (the mirror replaces the route it feeds from), this is the only credential
+   * the mirror can use — there is no separate source profile to copy from.
+   */
+  apiKeyEnv?: string
 }
 
 /** Plugin configuration. */
@@ -33,9 +39,10 @@ export interface ModelSyncConfig {
 
 const DEFAULT_MIRROR = {
   source: 'opencode-go',
-  id: 'opencode-go-live',
+  id: 'opencode-go',
   api: 'openai-completions',
   baseURL: 'https://opencode.ai/zen/go/v1',
+  apiKeyEnv: 'OPENCODE_GO_API_KEY',
 } satisfies MirrorSpec
 
 /** Loader-validated configuration schema (defaults filled by the loader). */
@@ -45,6 +52,7 @@ export const Config: z<ModelSyncConfig> = z.object({
     id: z.string(),
     api: z.string(),
     baseURL: z.string(),
+    apiKeyEnv: z.string(),
   })).default([DEFAULT_MIRROR]),
   intervalMs: z.number().min(60_000).default(3_600_000),
   fetchLive: z.boolean().default(true),

@@ -165,4 +165,47 @@ describe('syncMirror', () => {
     expect(logs.join('\n')).toContain('disk full')
     expect(state.ops).toHaveLength(0)
   })
+
+  it('bootstraps a self-mirror (source === id) in place of a removed catalog route', async () => {
+    const selfSpec = { source: 'opencode-go', id: 'opencode-go', api: 'openai-completions', baseURL: 'https://opencode.ai/zen/go/v1', apiKeyEnv: 'OPENCODE_GO_API_KEY' }
+    // The original catalog entry was deleted: no provider section, no serving route.
+    const { state, settings, llm, catalog, logs } = makeDeps({ section: { providers: {} }, providers: [] })
+    await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, selfSpec, { fetchLive: false })
+    const setOps = state.ops.filter(o => o.op === 'set')
+    expect(setOps.map(o => o.path.join('.'))).toEqual([
+      'providers.opencode-go.api',
+      'providers.opencode-go.baseURL',
+      'providers.opencode-go.apiKeyEnv',
+      'providers.opencode-go.models',
+    ])
+    const keyOp = setOps[2]
+    expect(keyOp!.value).toBe('OPENCODE_GO_API_KEY')
+    expect((setOps[3]!.value as { id: string }[]).map(m => m.id)).toEqual(['alpha-1', 'beta-1'])
+  })
+
+  it('upgrades a leftover catalog entry into the self-mirror in place', async () => {
+    const selfSpec = { source: 'opencode-go', id: 'opencode-go', api: 'openai-completions', baseURL: 'https://opencode.ai/zen/go/v1', apiKeyEnv: 'OPENCODE_GO_API_KEY' }
+    // The old catalog entry survives with only a credential reference.
+    const { state, settings, llm, catalog, logs } = makeDeps({
+      section: { providers: { 'opencode-go': { apiKeyEnv: 'OPENCODE_GO_API_KEY' } } },
+      providers: [],
+    })
+    await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, selfSpec, { fetchLive: false })
+    const setOps = state.ops.filter(o => o.op === 'set')
+    expect(setOps.map(o => o.path.join('.'))).toEqual([
+      'providers.opencode-go.api',
+      'providers.opencode-go.baseURL',
+      'providers.opencode-go.models',
+    ])
+    // apiKeyEnv is already stored — never rewritten.
+    expect(setOps.map(o => o.path.join('.'))).not.toContain('providers.opencode-go.apiKeyEnv')
+  })
+
+  it('skips a self-mirror that carries no bootstrap facts in config', async () => {
+    const bareSpec = { source: 'opencode-go', id: 'opencode-go' }
+    const { state, settings, llm, catalog, logs } = makeDeps({ section: { providers: {} }, providers: [] })
+    await syncMirror({ settings, llm, catalog, log: m => logs.push(m) }, bareSpec, { fetchLive: false })
+    expect(state.ops).toHaveLength(0)
+    expect(logs.join('\n')).toContain('cannot be bootstrapped')
+  })
 })
