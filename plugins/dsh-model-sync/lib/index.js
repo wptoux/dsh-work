@@ -1,7 +1,7 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import z from "schemastery";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import * as tar from "tar";
 import { Service } from "@deepseek-ai/cordis";
 //#region src/config.ts
@@ -563,15 +563,37 @@ async function maybeProbe(deps, spec, _source, opts) {
 //#endregion
 //#region src/index.ts
 /**
-* dsh-model-sync host half. On startup and then every `intervalMs`, each
-* configured mirror is synced: the latest pi-ai catalog for the source route
-* is fetched (disk-cached by version), new models are appended to the mirror
-* route's `models:` list in the `llm-pi-ai:` settings section, and llm-pi-ai's
-* reactive section re-materializes the route so the GUI model picker updates
-* without a restart. Failures are logged and never touch live routes.
+* dsh-model-sync host half. On startup — and again at short bounded retries,
+* then every `intervalMs` — each configured mirror is synced: the latest pi-ai
+* catalog for the source route is fetched (disk-cached by version), new models
+* are appended to the mirror route's `models:` list in the `llm-pi-ai:`
+* settings section, and llm-pi-ai's reactive section re-materializes the route
+* so the GUI model picker updates without a restart. Failures are logged and
+* never touch live routes.
+*
+* The scheduler deliberately does NOT rely on the host's `ctx.setInterval`:
+* that member is a mixin of the `timer` service and is only present on
+* contexts that resolved it, which is not guaranteed for profile plugins at
+* apply time. A plain `setTimeout` chain with a dispose guard is robust
+* everywhere. Early bounded retries cover boot-order races: `ctx.inject`
+* resolves the `settings`/`llm` services the moment they exist, which can
+* precede the `llm-pi-ai` plugin's own apply — at that point its settings
+* section and routes are not registered yet and a first sync would skip.
+*
+* Every log line the sync emits is also appended to a ring buffer written to
+* `<cacheDir>/status.json`, so the plugin's behavior is observable without the
+* host console.
 */
 /** Stable cordis plugin name. */
 const name = "model-sync";
+/** Early bounded retries that cover llm-pi-ai not being applied yet. */
+const EARLY_RETRY_DELAYS_MS = [
+	3e3,
+	15e3,
+	6e4
+];
+/** Ring-buffer size of the status.json log. */
+const STATUS_LINES_LIMIT = 100;
 function apply(ctx, config) {
 	const resolved = resolveModelSyncConfig(config);
 	ctx.inject(["settings", "llm"], (sctx) => {
@@ -582,14 +604,53 @@ function apply(ctx, config) {
 		}
 		const llm = sctx.llm;
 		const dataRoot = sctx.baseDir ?? sctx.baseUrl ?? join(homedir(), ".dsh");
+		const cacheDir = join(dataRoot, "storages", "dsh-model-sync");
+		const statusPath = join(cacheDir, "status.json");
+		const statusLines = [];
+		let disposed = false;
+		const timerIds = /* @__PURE__ */ new Set();
+		const statusWriteQueued = { current: Promise.resolve() };
+		/**
+		* Append one line to the status ring buffer and persist it. Best-effort:
+		* a failing status file never breaks the sync itself. Writes are queued so
+		* bursts of log lines cannot interleave mid-file.
+		*/
+		const record = (line) => {
+			const stamp = (/* @__PURE__ */ new Date()).toISOString();
+			statusLines.push(`[${stamp}] ${line}`);
+			if (statusLines.length > STATUS_LINES_LIMIT) statusLines.splice(0, statusLines.length - STATUS_LINES_LIMIT);
+			const body = `${statusLines.join("\n")}\n`;
+			statusWriteQueued.current = statusWriteQueued.current.catch(() => void 0).then(async () => {
+				await mkdir(cacheDir, { recursive: true });
+				await writeFile(statusPath, body, "utf8");
+			}).catch(() => void 0);
+		};
+		const sctxDispose = () => {
+			disposed = true;
+			for (const timerId of timerIds) clearTimeout(timerId);
+		};
+		sctx.on("dispose", sctxDispose);
+		/** Run one bound timer; no-ops after dispose. */
+		const later = (callback, delayMs) => {
+			if (disposed) return;
+			const timerId = setTimeout(() => {
+				timerIds.delete(timerId);
+				if (disposed) return;
+				callback();
+			}, delayMs);
+			timerIds.add(timerId);
+		};
 		const deps = {
 			settings,
 			llm,
 			catalog: new NpmRegistryClient({
-				cacheDir: join(dataRoot, "storages", "dsh-model-sync"),
+				cacheDir,
 				timeoutMs: resolved.timeoutMs
 			}),
-			log: (message) => sctx.logger.info(`[model-sync] ${message}`),
+			log: (message) => {
+				record(message);
+				sctx.logger.info(`[model-sync] ${message}`);
+			},
 			probe: resolved.fetchLive ? async (spec, apiKeyEnv) => {
 				if (spec.baseURL === void 0) return void 0;
 				return probeLiveModels({
@@ -601,12 +662,20 @@ function apply(ctx, config) {
 		};
 		const run = () => {
 			for (const spec of resolved.mirrors) {
-				sctx.logger.info(`[model-sync] syncing mirror "${spec.id}" from "${spec.source}"`);
+				record(`syncing mirror "${spec.id}" from "${spec.source}"`);
 				syncMirror(deps, spec, { fetchLive: resolved.fetchLive });
 			}
 		};
+		const scheduleLoop = () => {
+			later(() => {
+				run();
+				scheduleLoop();
+			}, resolved.intervalMs);
+		};
+		record(`plugin started; mirrors: ${resolved.mirrors.map((m) => `${m.id} <- ${m.source}`).join(", ")}`);
 		run();
-		sctx.setInterval(run, resolved.intervalMs);
+		for (const delayMs of EARLY_RETRY_DELAYS_MS) later(run, delayMs);
+		scheduleLoop();
 	});
 }
 //#endregion

@@ -3,7 +3,6 @@ import { Config, resolveModelSyncConfig, type MirrorSpec, type ModelSyncConfig }
 declare module '@deepseek-ai/cordis' {
     interface Context {
         baseDir: string;
-        setInterval(callback: () => void, delay: number): () => void;
     }
 }
 /** Stable cordis plugin name. */
