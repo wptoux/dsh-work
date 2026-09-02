@@ -1,7 +1,7 @@
 # dsh-work-all bundle patch
 #
 # Aggregate carrier for the dsh-work plugin family: install this one package
-# and all five plugins mount at once (package.json dependencies pull in the
+# and all six plugins mount at once (package.json dependencies pull in the
 # sibling packages; this patch inserts their rows under a dsh-work-* namespace
 # so the aggregate can coexist with standalone installs of the same plugins).
 #
@@ -38,3 +38,7 @@
 - insert:
     - id: dsh-work-ui-tweaks
       name: 'dsh-ui-tweaks'
+
+- insert:
+    - id: dsh-work-model-sync
+      name: 'dsh-model-sync'

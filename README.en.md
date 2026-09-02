@@ -6,7 +6,7 @@
 
 A set of DeepSeek Harness (dsh) web plugins forked from the community — picked and trimmed for real-world use, with fine-tuning so they fit your daily workflow.
 
-**pnpm ≥ 9.5** · **5 plugins** · **MIT / Apache-2.0**
+**pnpm ≥ 9.5** · **6 plugins** · **MIT / Apache-2.0**
 
 ---
 
@@ -20,13 +20,19 @@ And in the AI era, changing code is cheap — when something interesting shows u
 
 ## Features
 
-Five plugins covering a unified mobile & web experience, mobile remote control, sidebar, usage stats, and archive management:
+Six plugins covering a unified mobile & web experience, mobile remote control, sidebar, usage stats, archive management, and live model-list sync:
 
 ### dsh-ui-tweaks · Unified mobile & web experience
 
 - **One UI everywhere**: phones and desktop share the same web experience
 - **Narrow-screen drawer**: sidebar collapses into a drawer on small screens
 - **Fold completed turns**: keep long chats clean, showing only the last reply
+
+### dsh-model-sync · Live model list sync
+
+- **Auto-follows new models**: takes over a pi-ai static catalog route in place; a timer syncs the route's model list to the latest catalog version, so new models appear in the picker automatically
+- **Same-name takeover**: the route keeps its name — default model and existing sessions keep working
+- **Observable**: every sync result is written to `~/.dsh/storages/dsh-model-sync/status.json`
 
 ### dsh-remote-web-ui · Mobile remote control
 
@@ -101,14 +107,14 @@ maintenance) and initializes the profile on first use.
    > at boot. The first two are idempotent — fix and re-run the same command.
    > Per-plugin installs (see step 2 note) only need `allowBuilds`.
 
-2. Install the aggregate package (all 5 plugins at once):
+2. Install the aggregate package (all 6 plugins at once):
 
    ```sh
    dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-work-all'
    ```
 
    > `dsh-work-all` is an **aggregate carrier package**: its dependencies pull in
-   > all 5 plugins and its `cordis.patch.yml` collects their mount rows, so one
+   > all 6 plugins and its `cordis.patch.yml` collects their mount rows, so one
    > command installs everything (it can coexist with standalone installs; the
    > mechanics are documented in `plugins/README.md` under "聚合包"). To pick
    > only some plugins, install them individually instead (per-plugin installs
@@ -120,6 +126,7 @@ maintenance) and initializes the profile on first use.
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats'
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager'
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync'
    > ```
    >
    > The equivalent manual way, if you prefer to maintain the profile yourself,
@@ -131,7 +138,8 @@ maintenance) and initializes the profile on first use.
    >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
    >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats",
    >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks"
+   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks",
+   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync"
    > }
    > ```
    >
@@ -142,7 +150,7 @@ maintenance) and initializes the profile on first use.
 3. Restart dsh to apply: `Ctrl+C`, then `dsh web` again.
 
 **Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.08.2`) replaced by the new one (the aggregate command if you installed the aggregate, or per-plugin commands).
-**Rollback**: `dsh plugin --profile web remove dsh-work-all` (removes all 5 plugins and the bundles entry at once), or remove plugins one by one; alternatively re-add with the old tag.
+**Rollback**: `dsh plugin --profile web remove dsh-work-all` (removes all 6 plugins and the bundles entry at once), or remove plugins one by one; alternatively re-add with the old tag.
 
 ## License
 

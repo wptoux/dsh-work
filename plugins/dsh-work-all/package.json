@@ -1,6 +1,6 @@
 {
   "name": "dsh-work-all",
-  "description": "dsh-work 全家桶聚合包：一条命令装齐全部 5 款插件（remote-web-ui / better-sidebar / usage-stats / archive-manager / ui-tweaks）。纯载具包（无自有插件逻辑），dependencies 拉入子包，cordis.patch.yml 汇总各子包的挂载行。",
+  "description": "dsh-work 全家桶聚合包：一条命令装齐全部 6 款插件（remote-web-ui / better-sidebar / usage-stats / archive-manager / ui-tweaks / model-sync）。纯载具包（无自有插件逻辑），dependencies 拉入子包，cordis.patch.yml 汇总各子包的挂载行。",
   "version": "0.1.0",
   "license": "MIT",
   "files": [
@@ -19,6 +19,7 @@
     "dsh-better-sidebar": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
     "dsh-remote-web-ui": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui",
     "dsh-ui-tweaks": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks",
-    "dsh-usage-stats": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats"
+    "dsh-usage-stats": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats",
+  "dsh-model-sync": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync"
   }
 }
