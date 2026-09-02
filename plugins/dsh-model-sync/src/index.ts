@@ -25,12 +25,8 @@
  * `<root>/storages/dsh-model-sync/status.json` (`<root>` follows the
  * `dsh-usage-stats` convention: `DSH_HOME ?? ~/.dsh`), so the plugin's
  * behavior is observable without the host console.
- *
- * Diagnostics: a `boot-probe.log` next to `status.json` records module
- * import / apply / inject-satisfied entry points (synchronous file writes),
- * so a silent failure is attributable to the exact stage.
- */
-import { appendFileSync, mkdirSync } from 'node:fs'
+ * */
+import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
@@ -52,21 +48,6 @@ export { Config, resolveModelSyncConfig, type ModelSyncConfig, type MirrorSpec }
 function dataRoot(): string {
   return process.env.DSH_HOME ?? join(homedir(), '.dsh')
 }
-
-const PROBE_PATH = join(dataRoot(), 'storages', 'dsh-model-sync', 'boot-probe.log')
-
-/** Append one line to the boot probe; best-effort, synchronous. */
-function bootProbe(stage: string): void {
-  try {
-    mkdirSync(join(dataRoot(), 'storages', 'dsh-model-sync'), { recursive: true })
-    appendFileSync(PROBE_PATH, `[${new Date().toISOString()}] ${stage}\n`, 'utf8')
-  } catch {
-    // best-effort diagnostics
-  }
-}
-
-bootProbe('module-import')
-
 /** Early bounded retries that cover llm-pi-ai not being applied yet. */
 const EARLY_RETRY_DELAYS_MS: readonly number[] = [3_000, 15_000, 60_000]
 
@@ -74,14 +55,16 @@ const EARLY_RETRY_DELAYS_MS: readonly number[] = [3_000, 15_000, 60_000]
 const STATUS_LINES_LIMIT = 100
 
 export function apply(ctx: Context, config?: ModelSyncConfig): void {
-  bootProbe('apply-called')
   const resolved = resolveModelSyncConfig(config)
   const settings = ctx.get('settings')
   if (settings === undefined) {
     ctx.logger.error('[model-sync] settings service is absent; mirror sync disabled')
     return
   }
-  bootProbe('inject-satisfied')
+  if (ctx.llm === undefined) {
+    ctx.logger.error('[model-sync] llm service is absent; mirror sync disabled')
+    return
+  }
   const llm = ctx.llm
   const cacheDir = join(dataRoot(), 'storages', 'dsh-model-sync')
   const statusPath = join(cacheDir, 'status.json')
