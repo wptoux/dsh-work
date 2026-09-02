@@ -110,7 +110,7 @@ maintenance) and initializes the profile on first use.
 2. Install the aggregate package (all 6 plugins at once):
 
    ```sh
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-work-all'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-work-all'
    ```
 
    > `dsh-work-all` is an **aggregate carrier package**: its dependencies pull in
@@ -121,12 +121,12 @@ maintenance) and initializes the profile on first use.
    > are direct git dependencies, so the profile only needs `allowBuilds`):
    >
    > ```sh
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync'
    > ```
    >
    > The equivalent manual way, if you prefer to maintain the profile yourself,
@@ -134,12 +134,12 @@ maintenance) and initializes the profile on first use.
    >
    > ```json
    > "dependencies": {
-   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui",
-   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
-   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats",
-   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks",
-   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync"
+   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui",
+   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar",
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats",
+   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager",
+   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks",
+   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync"
    > }
    > ```
    >
@@ -149,7 +149,7 @@ maintenance) and initializes the profile on first use.
 
 3. Restart dsh to apply: `Ctrl+C`, then `dsh web` again.
 
-**Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.08.2`) replaced by the new one (the aggregate command if you installed the aggregate, or per-plugin commands).
+**Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.09.1`) replaced by the new one (the aggregate command if you installed the aggregate, or per-plugin commands).
 **Rollback**: `dsh plugin --profile web remove dsh-work-all` (removes all 6 plugins and the bundles entry at once), or remove plugins one by one; alternatively re-add with the old tag.
 
 ## License

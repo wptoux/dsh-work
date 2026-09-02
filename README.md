@@ -105,7 +105,7 @@
 2. 安装整合包（6 款插件一次装齐）：
 
    ```sh
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-work-all'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-work-all'
    ```
 
    > `dsh-work-all` 是**聚合载具包**：dependencies 拉入全部 6 款插件，`cordis.patch.yml`
@@ -114,24 +114,24 @@
    > （逐插件是直接 git 依赖，profile 只需 `allowBuilds` 两项、不用后两个配置）：
    >
    > ```sh
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks'
+   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync'
    > ```
    >
    > 想自己维护 profile 的话，等价的手写方式是编辑 `~/.dsh/profiles/web/package.json`：
    >
    > ```json
    > "dependencies": {
-   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-remote-web-ui",
-   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-better-sidebar",
-   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-usage-stats",
-   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-ui-tweaks",
-   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.08.2&path:plugins/dsh-model-sync"
+   >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui",
+   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar",
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats",
+   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager",
+   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks",
+   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync"
    > }
    > ```
    >
@@ -140,7 +140,7 @@
 
 3. 重启 dsh 生效：`Ctrl+C` 退出后重新 `dsh web`。
 
-**升级**：把命令里的 tag（`plugins-2026.08.2`）换成新 tag 重跑 `dsh plugin ... add`
+**升级**：把命令里的 tag（`plugins-2026.09.1`）换成新 tag 重跑 `dsh plugin ... add`
 （装的是整合包就重跑整合包命令，装的是单独插件就逐个重跑）。
 **回滚**：`dsh plugin --profile web remove dsh-work-all`（一次移出全部 6 款，并自动从
 bundles 移除），或按插件名逐个 `remove`；也可换回旧 tag 重装。
