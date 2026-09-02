@@ -1,7 +1,8 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import z from "schemastery";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import * as tar from "tar";
 import { Service } from "@deepseek-ai/cordis";
 //#region src/config.ts
@@ -571,21 +572,46 @@ async function maybeProbe(deps, spec, _source, opts) {
 * so the GUI model picker updates without a restart. Failures are logged and
 * never touch live routes.
 *
+* Dependency declaration uses the loader-level `inject` list (the same
+* mechanism `dsh-better-sidebar` and `dsh-llm-pi-ai` use), so the loader
+* delays `apply` until the `settings` and `llm` services are resolvable, and
+* `apply` receives a context where both are guaranteed present.
+*
 * The scheduler deliberately does NOT rely on the host's `ctx.setInterval`:
 * that member is a mixin of the `timer` service and is only present on
 * contexts that resolved it, which is not guaranteed for profile plugins at
 * apply time. A plain `setTimeout` chain with a dispose guard is robust
-* everywhere. Early bounded retries cover boot-order races: `ctx.inject`
-* resolves the `settings`/`llm` services the moment they exist, which can
-* precede the `llm-pi-ai` plugin's own apply — at that point its settings
-* section and routes are not registered yet and a first sync would skip.
+* everywhere. Early bounded retries cover boot-order races: the `settings`
+* and `llm` services can be resolvable before the `llm-pi-ai` plugin's own
+* apply registers its settings section and routes, so a first sync may skip
+* "source route not configured" — the retries run again moments later.
 *
 * Every log line the sync emits is also appended to a ring buffer written to
-* `<cacheDir>/status.json`, so the plugin's behavior is observable without the
-* host console.
+* `<root>/storages/dsh-model-sync/status.json` (`<root>` follows the
+* `dsh-usage-stats` convention: `DSH_HOME ?? ~/.dsh`), so the plugin's
+* behavior is observable without the host console.
+*
+* Diagnostics: a `boot-probe.log` next to `status.json` records module
+* import / apply / inject-satisfied entry points (synchronous file writes),
+* so a silent failure is attributable to the exact stage.
 */
 /** Stable cordis plugin name. */
 const name = "model-sync";
+/** Loader-level service dependencies (see module doc). */
+const inject = ["settings", "llm"];
+/** Cache/status root, following the dsh-usage-stats convention. */
+function dataRoot() {
+	return process.env.DSH_HOME ?? join(homedir(), ".dsh");
+}
+const PROBE_PATH = join(dataRoot(), "storages", "dsh-model-sync", "boot-probe.log");
+/** Append one line to the boot probe; best-effort, synchronous. */
+function bootProbe(stage) {
+	try {
+		mkdirSync(join(dataRoot(), "storages", "dsh-model-sync"), { recursive: true });
+		appendFileSync(PROBE_PATH, `[${(/* @__PURE__ */ new Date()).toISOString()}] ${stage}\n`, "utf8");
+	} catch {}
+}
+bootProbe("module-import");
 /** Early bounded retries that cover llm-pi-ai not being applied yet. */
 const EARLY_RETRY_DELAYS_MS = [
 	3e3,
@@ -595,88 +621,88 @@ const EARLY_RETRY_DELAYS_MS = [
 /** Ring-buffer size of the status.json log. */
 const STATUS_LINES_LIMIT = 100;
 function apply(ctx, config) {
+	bootProbe("apply-called");
 	const resolved = resolveModelSyncConfig(config);
-	ctx.inject(["settings", "llm"], (sctx) => {
-		const settings = sctx.get("settings");
-		if (settings === void 0) {
-			sctx.logger.error("[model-sync] settings service is absent; mirror sync disabled");
-			return;
-		}
-		const llm = sctx.llm;
-		const dataRoot = sctx.baseDir ?? sctx.baseUrl ?? join(homedir(), ".dsh");
-		const cacheDir = join(dataRoot, "storages", "dsh-model-sync");
-		const statusPath = join(cacheDir, "status.json");
-		const statusLines = [];
-		let disposed = false;
-		const timerIds = /* @__PURE__ */ new Set();
-		const statusWriteQueued = { current: Promise.resolve() };
-		/**
-		* Append one line to the status ring buffer and persist it. Best-effort:
-		* a failing status file never breaks the sync itself. Writes are queued so
-		* bursts of log lines cannot interleave mid-file.
-		*/
-		const record = (line) => {
-			const stamp = (/* @__PURE__ */ new Date()).toISOString();
-			statusLines.push(`[${stamp}] ${line}`);
-			if (statusLines.length > STATUS_LINES_LIMIT) statusLines.splice(0, statusLines.length - STATUS_LINES_LIMIT);
-			const body = `${statusLines.join("\n")}\n`;
-			statusWriteQueued.current = statusWriteQueued.current.catch(() => void 0).then(async () => {
-				await mkdir(cacheDir, { recursive: true });
-				await writeFile(statusPath, body, "utf8");
-			}).catch(() => void 0);
-		};
-		const sctxDispose = () => {
-			disposed = true;
-			for (const timerId of timerIds) clearTimeout(timerId);
-		};
-		sctx.on("dispose", sctxDispose);
-		/** Run one bound timer; no-ops after dispose. */
-		const later = (callback, delayMs) => {
+	const settings = ctx.get("settings");
+	if (settings === void 0) {
+		ctx.logger.error("[model-sync] settings service is absent; mirror sync disabled");
+		return;
+	}
+	bootProbe("inject-satisfied");
+	const llm = ctx.llm;
+	const cacheDir = join(dataRoot(), "storages", "dsh-model-sync");
+	const statusPath = join(cacheDir, "status.json");
+	const statusLines = [];
+	let disposed = false;
+	const timerIds = /* @__PURE__ */ new Set();
+	const statusWriteQueued = { current: Promise.resolve() };
+	/**
+	* Append one line to the status ring buffer and persist it. Best-effort:
+	* a failing status file never breaks the sync itself. Writes are queued so
+	* bursts of log lines cannot interleave mid-file.
+	*/
+	const record = (line) => {
+		const stamp = (/* @__PURE__ */ new Date()).toISOString();
+		statusLines.push(`[${stamp}] ${line}`);
+		if (statusLines.length > STATUS_LINES_LIMIT) statusLines.splice(0, statusLines.length - STATUS_LINES_LIMIT);
+		const body = `${statusLines.join("\n")}\n`;
+		statusWriteQueued.current = statusWriteQueued.current.catch(() => void 0).then(async () => {
+			mkdirSync(cacheDir, { recursive: true });
+			const { writeFile } = await import("node:fs/promises");
+			await writeFile(statusPath, body, "utf8");
+		}).catch(() => void 0);
+	};
+	const sctxDispose = () => {
+		disposed = true;
+		for (const timerId of timerIds) clearTimeout(timerId);
+	};
+	ctx.on("dispose", sctxDispose);
+	/** Run one bound timer; no-ops after dispose. */
+	const later = (callback, delayMs) => {
+		if (disposed) return;
+		const timerId = setTimeout(() => {
+			timerIds.delete(timerId);
 			if (disposed) return;
-			const timerId = setTimeout(() => {
-				timerIds.delete(timerId);
-				if (disposed) return;
-				callback();
-			}, delayMs);
-			timerIds.add(timerId);
-		};
-		const deps = {
-			settings,
-			llm,
-			catalog: new NpmRegistryClient({
-				cacheDir,
+			callback();
+		}, delayMs);
+		timerIds.add(timerId);
+	};
+	const deps = {
+		settings,
+		llm,
+		catalog: new NpmRegistryClient({
+			cacheDir,
+			timeoutMs: resolved.timeoutMs
+		}),
+		log: (message) => {
+			record(message);
+			ctx.logger.info(`[model-sync] ${message}`);
+		},
+		probe: resolved.fetchLive ? async (spec, apiKeyEnv) => {
+			if (spec.baseURL === void 0) return void 0;
+			return probeLiveModels({
+				baseURL: spec.baseURL,
+				apiKey: resolveEnvKey(apiKeyEnv),
 				timeoutMs: resolved.timeoutMs
-			}),
-			log: (message) => {
-				record(message);
-				sctx.logger.info(`[model-sync] ${message}`);
-			},
-			probe: resolved.fetchLive ? async (spec, apiKeyEnv) => {
-				if (spec.baseURL === void 0) return void 0;
-				return probeLiveModels({
-					baseURL: spec.baseURL,
-					apiKey: resolveEnvKey(apiKeyEnv),
-					timeoutMs: resolved.timeoutMs
-				});
-			} : void 0
-		};
-		const run = () => {
-			for (const spec of resolved.mirrors) {
-				record(`syncing mirror "${spec.id}" from "${spec.source}"`);
-				syncMirror(deps, spec, { fetchLive: resolved.fetchLive });
-			}
-		};
-		const scheduleLoop = () => {
-			later(() => {
-				run();
-				scheduleLoop();
-			}, resolved.intervalMs);
-		};
-		record(`plugin started; mirrors: ${resolved.mirrors.map((m) => `${m.id} <- ${m.source}`).join(", ")}`);
-		run();
-		for (const delayMs of EARLY_RETRY_DELAYS_MS) later(run, delayMs);
-		scheduleLoop();
-	});
+			});
+		} : void 0
+	};
+	const run = () => {
+		for (const spec of resolved.mirrors) {
+			record(`syncing mirror "${spec.id}" from "${spec.source}"`);
+			syncMirror(deps, spec, { fetchLive: resolved.fetchLive });
+		}
+	};
+	const scheduleLoop = () => {
+		later(() => {
+			run();
+			scheduleLoop();
+		}, resolved.intervalMs);
+	};
+	record(`plugin started; mirrors: ${resolved.mirrors.map((m) => `${m.id} <- ${m.source}`).join(", ")}`);
+	run();
+	for (const delayMs of EARLY_RETRY_DELAYS_MS) later(run, delayMs);
+	scheduleLoop();
 }
 //#endregion
-export { Config, apply, name, resolveModelSyncConfig };
+export { Config, apply, inject, name, resolveModelSyncConfig };
