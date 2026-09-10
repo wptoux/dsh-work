@@ -261,15 +261,27 @@ profile dir + reconcile 安装态）。
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`
     把侧边栏展开为覆盖式抽屉（带遮罩）；≥768px 保持宿主原生行为。纯 DOM + CSS（自有
     `data-dsh-mobile-*` 标记 + 宿主 `data-sidebar-collapsed` 状态），不动内核。
+  - **DSH 0.1.5 折叠驱动移植**：数据源从旧 `session.getSnapshot().chat` 拆分为 0.1.5 的两条官方路径
+    （会话生命周期 `SessionFace = ISession & ObservableSnapshot<SessionSnapshot>` + 聊天内容
+    `ctx.uiConversation.binding(id).target('chat')`；`ChatSnapshot` 契约与 0.1.1 逐字节一致）。
+    新增 `src/client/session-source.ts` 订阅双 feed（严格超集，不漏触发）；vitest 增加 primitives
+    别名桩（0.1.5 primitives 包引用 shell 侧内部依赖，测试基建）。**激活前提：内核 ≥0.1.5-rc.1**。
 - `dsh-better-sidebar`：**整体接回官方 v0.19.0**（0.15.2 → 0.19.0，含 DSH 0.1.5-rc.1 适配：host 半边 settings 走
   `ctx.settings.register/describe/update`、客户端改用原生 `ctx.sidebarRight` / `ctx.sidebarRightTabs` 表面并退役自有右栏）。
   本地改动仅恢复 **lib/ 入库惯例**（上游 .gitignore 忽略 lib/，本仓库发版需要 lib 现构建入库，已删该行）；
   挂载行 `cordis.patch.yml` 与 0.15.2 逐字一致（`better-sidebar` 行 id + 双挂载守卫不变）。**激活前提：DSH 内核
   ≥0.1.5-rc.1**（0.1.1-rc.2 无原生右栏服务，v0.19.0 无自有面板可退化）。
-- `dsh-usage-stats`：无源码改动。
+- `dsh-usage-stats`：**本地适配 DSH 0.1.3+ 持久化 API**：`readFrom` → `open('read')`+`SessionHandle.read`（语义等价，
+  含 inclusive-seq/游标/contiguity 判定），`list()` 回退按 0.1.5 `SessionPersistenceSnapshot{header,revision}` 形状映射。
+  上游 v0.3.2 仍调 `readFrom` 且改用 `@ychris12138/` scope（与 fork 裸名冲突），故保持冻结 0.2.5 基座打补丁。
+  **激活前提：内核 ≥0.1.3+（0.1.3-alpha.2 起持久化 API 变更）**。
 - `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、
   cordis patch、预构建 lib 里的 client bundle id 一并替换）；README 安装说明为上游文档，
   本 fork 内不适用（本地 link 安装）。
+  **DSH 0.1.3+ 会话日志名适配**（本地补丁）：新增 `resolveSessionLog()` 优先最高
+  `session.vN.jsonl[.zstd]`、回退 legacy `session.jsonl[.zstd]`；预览/元数据/`hasDataFile` 全面走它。
+  上游 1.0.8-1.0.10 仅补 DSH_HOME 支持、未适配版本化文件名，故保持冻结 1.0.7 基座打补丁。
+  **激活前提：内核 ≥0.1.3+**。
 
 ## 备注
 
