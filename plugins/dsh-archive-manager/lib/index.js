@@ -239,19 +239,38 @@ export function decodeZstdLog(filePath) {
   }
 }
 
+/** Resolve the durable session log inside a session data dir: prefer the
+ *  highest versioned generation DSH writes since 0.1.3 (session.vN.jsonl
+ *  [.zstd], N>=1), then legacy v0 names (session.jsonl[.zstd]). Returns the
+ *  absolute log path, or undefined when no log exists. */
+function resolveSessionLog(dataDir) {
+  const candidates = []
+  for (const entry of readdirSync(dataDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue
+    const match = /^session\.v(\d+)\.jsonl(\.zstd)?$/.exec(entry.name)
+    if (match !== null) candidates.push({ name: entry.name, version: Number(match[1]) })
+  }
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.version - a.version)
+    return join(dataDir, candidates[0].name)
+  }
+  for (const legacy of ['session.jsonl.zstd', 'session.jsonl']) {
+    const legacyPath = join(dataDir, legacy)
+    if (existsSync(legacyPath)) return legacyPath
+  }
+  return undefined
+}
+
 /** Read full transcript text from data directory. */
 export function readTranscriptText(dataDir) {
-  const zstdPath = join(dataDir, 'session.jsonl.zstd')
-  const jsonlPath = join(dataDir, 'session.jsonl')
-
-  if (existsSync(zstdPath)) {
-    return decodeZstdLog(zstdPath)
+  const logPath = resolveSessionLog(dataDir)
+  if (logPath === undefined) return ''
+  if (logPath.endsWith('.zstd')) {
+    return decodeZstdLog(logPath)
   }
-  if (existsSync(jsonlPath)) {
-    try {
-      return readFileSync(jsonlPath, 'utf8')
-    } catch {}
-  }
+  try {
+    return readFileSync(logPath, 'utf8')
+  } catch {}
   return ''
 }
 
@@ -398,9 +417,7 @@ export function listArchives(ctx) {
 
     if (dataDir !== undefined) {
       dataSize = dirSize(dataDir)
-      const zstdPath = join(dataDir, 'session.jsonl.zstd')
-      const jsonlPath = join(dataDir, 'session.jsonl')
-      hasDataFile = existsSync(zstdPath) || existsSync(jsonlPath)
+      hasDataFile = resolveSessionLog(dataDir) !== undefined
 
       // Fallback extraction from data file
       if (hasDataFile && (!title || !createdAt || turns === 0)) {

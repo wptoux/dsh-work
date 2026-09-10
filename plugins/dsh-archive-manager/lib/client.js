@@ -614,7 +614,7 @@
         loading: '加载已归档对话中…', empty: '暂无已归档的对话。', noMatch: '未找到匹配的归档对话。',
         deleted: '已从磁盘彻底删除会话', loadFailed: '加载失败', unarchiveFailed: '恢复失败',
         deleteFailed: '删除失败', deleteWsFailed: '删除项目归档失败',
-        confirmDelete: '确认从磁盘彻底物理删除会话「{0}」？\n此操作将删除 session.jsonl.zstd 文件并清理所有记录，无法恢复！',
+        confirmDelete: '确认从磁盘彻底物理删除会话「{0}」？\n此操作将删除会话日志文件并清理所有记录，无法恢复！',
         confirmDeleteWs: '确认彻底物理删除「{0}」项目下的全部 {1} 个归档会话？\n磁盘文件将全部移除，无法恢复！',
         restoredToast: '已恢复会话「{0}」到侧边栏。', deletedWsToast: '已彻底删除「{0}」项目下的所有归档会话。'
       };
@@ -633,7 +633,7 @@
         loading: 'Loading archived chats...', empty: 'No archived conversations.', noMatch: 'No matching archived chats.',
         deleted: 'Session permanently deleted from disk', loadFailed: 'Load failed', unarchiveFailed: 'Restore failed',
         deleteFailed: 'Delete failed', deleteWsFailed: 'Failed to delete project archives',
-        confirmDelete: 'Permanently delete session \"{0}\" from disk?\nThis will remove session.jsonl.zstd and cannot be undone!',
+        confirmDelete: 'Permanently delete session \"{0}\" from disk?\nThis will remove the session log file and cannot be undone!',
         confirmDeleteWs: 'Permanently delete all {1} archived chats in \"{0}\"?\nAll disk files will be removed and cannot be undone!',
         restoredToast: 'Restored conversation \"{0}\" to sidebar.', deletedWsToast: 'Permanently deleted all archives in \"{0}\".'
       };
