@@ -276,6 +276,11 @@ profile dir + reconcile 安装态）。
   含 inclusive-seq/游标/contiguity 判定），`list()` 回退按 0.1.5 `SessionPersistenceSnapshot{header,revision}` 形状映射。
   上游 v0.3.2 仍调 `readFrom` 且改用 `@ychris12138/` scope（与 fork 裸名冲突），故保持冻结 0.2.5 基座打补丁。
   **激活前提：内核 ≥0.1.3+（0.1.3-alpha.2 起持久化 API 变更）**。
+   另：**DSH 0.1.5 活跃会话折叠适配**（本地补丁）：0.1.5 起 host `Session` 不再暴露公开 `events` 数组
+   （耐久日志私有，只经 `snapshotEvents(fromSeq, toSeqExclusive)` + `seq` 读取），live 折叠原先直读
+   `session.events.length` 在 0.1.5 下 TypeError → `/api/usage-stats/usage` HTTP 500。现改经
+   `snapshotEvents` 读取（其它形状 warn+skip，永不 500），回归测试见 `scripts/test-live-fold.mjs`
+   （`npm run test:livefold`）。**激活前提：内核 ≥0.1.5**。
 - `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、
   cordis patch、预构建 lib 里的 client bundle id 一并替换）；README 安装说明为上游文档，
   本 fork 内不适用（本地 link 安装）。

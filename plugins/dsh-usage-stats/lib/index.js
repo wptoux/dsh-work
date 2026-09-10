@@ -282,7 +282,18 @@ export async function collectUsage(ctx) {
 					state.currentModel = null;
 					state.consumed = 0;
 				}
-				const count = session.events.length;
+				// DSH 0.1.5: the host Session exposes its durable log through
+				// snapshotEvents(fromSeq, toSeqExclusive) (+ seq) instead of a
+				// public `events` array. Read through snapshotEvents when
+				// available; any other shape degrades to a warning + skip,
+				// never a 500 (#live-fold).
+				const snapshot = typeof session.snapshotEvents === "function" ? (fromSeq) => session.snapshotEvents(fromSeq) : null;
+				const events = snapshot !== null ? snapshot(0) : session.events;
+				if (!Array.isArray(events)) {
+					ctx.logger.warn(`usage-stats: live session "${session.id}" exposes no readable event log; skipped`);
+					continue;
+				}
+				const count = events.length;
 				if (count < (state.consumed ?? 0)) {
 					// The in-memory log shrank below the folded cursor — DSH
 					// restores sessions from disk as compressed summaries after
@@ -296,7 +307,7 @@ export async function collectUsage(ctx) {
 					state.consumed = 0;
 				}
 				if ((state.consumed ?? 0) < count) {
-					applyUsageDelta(state, session.events.slice(state.consumed ?? 0));
+					applyUsageDelta(state, snapshot !== null ? snapshot(state.consumed ?? 0) : events.slice(state.consumed ?? 0));
 					state.consumed = count;
 				}
 				state.kind = "live";

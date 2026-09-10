@@ -17,6 +17,18 @@ function usageEvent(seq, inputTokens) {
 	};
 }
 
+/**
+ * Faithful DSH 0.1.5 host Session: the durable log is private and read through
+ * `snapshotEvents(fromSeq, toSeqExclusive)`; there is NO public `events` array.
+ */
+function liveSession(id, events) {
+	return {
+		id,
+		get seq() { return events.length; },
+		snapshotEvents: (fromSeq = 0, toSeqExclusive = events.length) => events.slice(fromSeq, toSeqExclusive)
+	};
+}
+
 async function freshModule(label, home) {
 	process.env.DSH_HOME = home;
 	return import(new URL(`../lib/index.js?test=${label}-${Date.now()}-${Math.random()}`, import.meta.url));
@@ -155,11 +167,13 @@ async function testPersistedToLive(root) {
 	const id = "transition-session";
 	const persisted = usageEvent(100, 11);
 	let live = false;
-	const sessions = { list: () => live ? [{ id, events: [usageEvent(1, 7)] }] : [] };
+	const sessions = { list: () => live ? [liveSession(id, [usageEvent(1, 7)])] : [] };
 	const persistence = {
-		listSnapshots: async () => live ? [] : [{ header: { id }, revision: "r1" }],
-		list: async () => [],
-		readFrom: async () => ({ events: [persisted] })
+		list: async () => live ? [] : [{ header: { id }, revision: "r1" }],
+		open: async () => ({
+			read: async () => ({ eventState: "detached", events: [persisted] }),
+			close: async () => {}
+		})
 	};
 	const ctx = makeContext({ sessions, persistence });
 	assert.equal((await plugin.collectUsage(ctx)).total.tokens, 11);
@@ -173,13 +187,15 @@ async function testRevisionRewrite(root) {
 	let revision = "r1";
 	let reads = 0;
 	const persistence = {
-		listSnapshots: async () => [{ header: { id }, revision }],
-		list: async () => [],
-		readFrom: async (_id, fromSeq) => {
-			reads += 1;
-			if (revision === "r1") return { events: [usageEvent(100, 11)] };
-			return { events: fromSeq === 0 ? [usageEvent(1, 5)] : [] };
-		}
+		list: async () => [{ header: { id }, revision }],
+		open: async () => ({
+			read: async (fromSeq) => {
+				reads += 1;
+				if (revision === "r1") return { eventState: "detached", events: [usageEvent(100, 11)] };
+				return { eventState: "detached", events: fromSeq === 0 ? [usageEvent(1, 5)] : [] };
+			},
+			close: async () => {}
+		})
 	};
 	const ctx = makeContext({ sessions: { list: () => [] }, persistence });
 	assert.equal((await plugin.collectUsage(ctx)).total.tokens, 11);
@@ -193,10 +209,10 @@ async function testRevisionRewrite(root) {
 async function testLiveLogShrink(root) {
 	const plugin = await freshModule("shrink", join(root, "shrink"));
 	const id = "shrink-session";
-	const persistence = { listSnapshots: async () => [], list: async () => [] };
+	const persistence = { list: async () => [] };
 	// Pre-restart: the full live log is folded positionally.
 	let events = [usageEvent(1, 5), usageEvent(2, 7), usageEvent(3, 11)];
-	const sessions = { list: () => [{ id, events }] };
+	const sessions = { list: () => [liveSession(id, events)] };
 	const ctx = makeContext({ sessions, persistence });
 	assert.equal((await plugin.collectUsage(ctx)).total.tokens, 23);
 	// DSH restart restores the session as a SHORTER compressed summary while
@@ -223,7 +239,7 @@ async function testZeroUsageRowsFiltered(root) {
 			message: { source: { model: "modlens-opencode/deepseek-v4-flash-free" } }
 		}
 	};
-	const sessions = { list: () => [{ id: "zero-session", events: [zero, usageEvent(2, 9)] }] };
+	const sessions = { list: () => [liveSession("zero-session", [zero, usageEvent(2, 9)])] };
 	const ctx = makeContext({ sessions, persistence: { listSnapshots: async () => [], list: async () => [] } });
 	const usage = await plugin.collectUsage(ctx);
 	assert.equal(usage.total.tokens, 9);
