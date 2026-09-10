@@ -1,5 +1,5 @@
 /**
- * Minimal zh/en copy for the sidebar. The copy follows the DSH i18n system:
+ * Minimal zh/en/ja copy for the sidebar. The copy follows the DSH i18n system:
  * the client apply attaches the locale service (`ctx.locale`, provided by
  * `@deepseek-ai/dsh-client-locale`) through {@link attachLocale}, and
  * `t()`/`isZh()` resolve the active locale from it — the Host-backed
@@ -7,12 +7,51 @@
  * Without an attached service (standalone/test compositions) the browser
  * language is used, matching the previous behavior. The dictionaries are
  * also registered into the DSH locale registry under {@link LOCALE_NS}.
+ *
+ * ja (Japanese) is opt-in through `@huanlin/dsh-plugin-better-locale`: when
+ * that plugin is installed, the client apply also calls
+ * {@link attachBetterLocale} with the override store. `t()` then consults
+ * the store's active override id first; if it is `'ja'` (or any id whose
+ * dict has the requested key) the ja text wins, otherwise the existing
+ * zh/en chain runs unchanged. better-locale itself patches
+ * `LocaleRuntime.prototype.lookup` so DSH's own translate chain also
+ * returns ja where the `betterSidebar` namespace has a ja entry — that
+ * path covers external callers of `ctx.locale.bind('betterSidebar')`,
+ * while the override-aware `t()` here covers better-sidebar's own
+ * components (which bypass `ctx.locale` and call `t()` directly).
  */
 /** The zh dictionary (also registered into the DSH locale registry under {@link LOCALE_NS}). */
 export declare const zh: {
     files: string;
+    guideDescFiles: string;
+    guideDescGit: string;
+    guideDescSubagent: string;
+    guideDescSidechat: string;
+    guideDescTerminal: string;
+    guideDescBrowser: string;
+    changesSessionEmpty: string;
+    changesRead: string;
+    changesMdReading: string;
+    changesMdRaw: string;
+    changesHtmlRender: string;
+    changesHtmlRaw: string;
+    changesPdfRender: string;
+    changesPdfRaw: string;
+    changesWrite: string;
+    changesEdit: string;
+    changesRunning: string;
+    changesError: string;
+    changesRedactOn: string;
+    changesRedactOff: string;
+    changesRedactOnLabel: string;
+    changesRedactOffLabel: string;
+    changesRedactBanner: string;
+    changesFold: string;
+    changesFoldLoading: string;
+    changesFoldUnavailable: string;
+    changesContext: string;
+    changesPriorUnknown: string;
     explorer: string;
-    git: string;
     terminal: string;
     editor: string;
     editorExplorer: string;
@@ -27,10 +66,6 @@ export declare const zh: {
     editorSearchNoResults: string;
     editorSearchTruncated: string;
     editorEmptyHint: string;
-    refreshFile: string;
-    refreshDisabledUnsaved: string;
-    fileUpdatedBanner: string;
-    fileRefreshedNotice: string;
     openFileNewTab: string;
     openFileSide: string;
     openWithMenu: string;
@@ -63,8 +98,20 @@ export declare const zh: {
     closeOtherTabs: string;
     closeLeftTabs: string;
     closeRightTabs: string;
-    collapse: string;
-    expand: string;
+    floatDropHint: string;
+    dockToSidebar: string;
+    pinTerminal: string;
+    pinAgentTerminal: string;
+    pinToWorkspace: string;
+    pinToGlobal: string;
+    unpinTerminal: string;
+    pinnedTerminalTooltip: string;
+    pinnedTerminalKindUi: string;
+    pinnedTerminalKindAgent: string;
+    pinnedTerminalScopeWorkspace: string;
+    pinnedTerminalScopeGlobal: string;
+    pinnedRailLabel: string;
+    closePinnedTerminal: string;
     collapseBottomPanel: string;
     expandBottomPanel: string;
     terminalError: string;
@@ -73,7 +120,9 @@ export declare const zh: {
     terminalDepsFailed: string;
     terminalDepsHint: string;
     terminalDepsProfile: string;
+    terminalShellNotFound: string;
     preview: string;
+    toc: string;
     edit: string;
     mermaidError: string;
     mermaidZoomIn: string;
@@ -81,6 +130,7 @@ export declare const zh: {
     mermaidZoomReset: string;
     mermaidZoomHint: string;
     refresh: string;
+    refreshUnsavedConfirm: string;
     save: string;
     saved: string;
     unsaved: string;
@@ -96,6 +146,7 @@ export declare const zh: {
     splitDown: string;
     notRepo: string;
     noChanges: string;
+    statusTruncated: string;
     stage: string;
     unstage: string;
     stageAll: string;
@@ -104,9 +155,18 @@ export declare const zh: {
     commit: string;
     commitError: string;
     branch: string;
+    worktree: string;
     checkoutError: string;
     history: string;
     changes: string;
+    changesGitLens: string;
+    changesSessionLens: string;
+    changesFilterAll: string;
+    changesFilterEmpty: string;
+    changesOpenDiffTab: string;
+    changesClosePreview: string;
+    changesResizePreview: string;
+    changesLoadError: string;
     staged: string;
     unstaged: string;
     cancel: string;
@@ -139,6 +199,7 @@ export declare const zh: {
     historyLoadError: string;
     produced: string;
     producedOpen: string;
+    showInFolder: string;
     disconnected: string;
     exited: string;
     noSession: string;
@@ -154,6 +215,13 @@ export declare const zh: {
     addToConversation: string;
     copyRelative: string;
     copyAbsolute: string;
+    rename: string;
+    renameInvalid: string;
+    delete: string;
+    deleteTitle: string;
+    deleteDescFile: string;
+    deleteDescDir: string;
+    dismiss: string;
     download: string;
     uploadFiles: string;
     uploadFolder: string;
@@ -172,13 +240,8 @@ export declare const zh: {
     settingsIntro: string;
     settingsPopupDesc: string;
     settingsDone: string;
-    settingsOpenTitle: string;
-    settingsOpenDesc: string;
-    settingsWidthTitle: string;
-    settingsWidthDesc: string;
-    settingsWidthSuffix: string;
-    settingsOpenPathTitle: string;
-    settingsOpenPathDesc: string;
+    settingsOpenToolsTitle: string;
+    settingsOpenToolsDesc: string;
     settingsTitleBarTitle: string;
     settingsTitleBarDesc: string;
     settingsTitleBarStripTitle: string;
@@ -203,6 +266,10 @@ export declare const zh: {
     settingsJobsDesc: string;
     settingsToolsTitle: string;
     settingsToolsDesc: string;
+    settingsFenceTitle: string;
+    settingsFenceDesc: string;
+    fenceErrorReason: string;
+    fenceDisableAction: string;
     settingsBottomTerminalTitle: string;
     settingsBottomTerminalDesc: string;
     settingsFontFamilyTitle: string;
@@ -254,6 +321,9 @@ export declare const zh: {
     settingsBrowserHttpDesc: string;
     settingsBrowserHttpsTitle: string;
     settingsBrowserHttpsDesc: string;
+    settingsBrowserLoopbackTitle: string;
+    settingsBrowserLoopbackDesc: string;
+    settingsBrowserLoopbackPlaceholder: string;
     browserOpenExternal: string;
     browserEmbedBlocked: string;
     browserEmbedBlockedDesc: string;
@@ -297,6 +367,25 @@ export declare const zh: {
     sideChatClose: string;
     sideChatCloseTitle: string;
     sideChatError: string;
+    sideChatTurnUsage: string;
+    sideChatBlockCollapse: string;
+    sideChatBlockCollapseAria: string;
+    sideChatBlockExpand: string;
+    sideChatBlockExpandAria: string;
+    sideChatBlockSignal: string;
+    sideChatBlockExitCode: string;
+    sideChatBlockRunning: string;
+    sideChatBlockFailed: string;
+    sideChatBlockDone: string;
+    sideChatBlockNoOutput: string;
+    sideChatBlockFiles: string;
+    sideChatBlockWindow: string;
+    sideChatConnDisconnected: string;
+    sideChatConnReconnect: string;
+    sideChatConnConnecting: string;
+    sideChatConnRecovered: string;
+    sideChatConnReconnectAction: string;
+    sideChatConnRestartAction: string;
     jobs: string;
     jobsCount: string;
     jobsCountRunning: string;
@@ -330,16 +419,45 @@ export declare const zh: {
     addPluginsEmpty: string;
     openPlugin: string;
     copyInstall: string;
+    pluginMdExportDesc: string;
     pluginOfficeDesc: string;
     pluginFlowglassDesc: string;
     pluginGitForgeDesc: string;
+    pluginGithubWorkbenchDesc: string;
+    pluginSuhuangScrollDesc: string;
+    pluginBetterOverleafDesc: string;
     pluginGitRemotesDesc: string;
     pluginSentinelDesc: string;
+    pluginServerDeckDesc: string;
     pluginSidebarQaDesc: string;
+    pluginSidenoteDesc: string;
     pluginSshTunnelDesc: string;
     pluginTurnReviewDesc: string;
     pluginVideoPreviewDesc: string;
+    pluginCodeNavDesc: string;
     pluginDocsPanelDesc: string;
+    pluginEgoBrowserDesc: string;
+    pluginBilingualReaderDesc: string;
+    pluginSentinelName: string;
+    pluginEgoBrowserName: string;
+    pluginBetterOverleafName: string;
+    pluginDocsPanelName: string;
+    pluginFlowglassName: string;
+    pluginGitForgeName: string;
+    pluginGitRemotesName: string;
+    pluginGithubWorkbenchName: string;
+    pluginSidebarQaName: string;
+    pluginSidenoteName: string;
+    pluginServerDeckName: string;
+    pluginSuhuangScrollName: string;
+    pluginSshTunnelName: string;
+    pluginTurnReviewName: string;
+    pluginBilingualReaderName: string;
+    pluginOfficeName: string;
+    pluginMdExportName: string;
+    pluginCodeNavName: string;
+    pluginVideoPreviewName: string;
+    presetDshDesktopDesc: string;
 };
 /** The en dictionary (key-set-equal to zh, enforced by the type annotation). */
 export declare const en: Record<keyof typeof zh, string>;
@@ -348,6 +466,23 @@ export declare const en: Record<keyof typeof zh, string>;
  * (`'sidebar'` is taken by DSH's own ui-sidebar, hence this distinct name).
  */
 export declare const LOCALE_NS = "betterSidebar";
+/**
+ * The better-locale override store attached by the client apply
+ * (absent → no override; the zh/en chain runs). The store's `active`
+ * field holds the user's chosen override id (e.g. `'ja'`); `undefined`
+ * means "no override, use DSH native zh/en".
+ *
+ * The override only takes effect when DSH's active locale is `'en'`
+ * (it borrows DSH's English slot to render a third language). While
+ * DSH is on `'zh'` the override is inert — `getOverride` returns
+ * `undefined` and `isOverrideActive` returns `false` — so `t()` and
+ * `isZh()` fall through to the native zh/en chain unchanged.
+ */
+declare let betterLocaleStore: {
+    readonly active: string | undefined;
+    getOverride(dshActive: string, ns: string, key: string): string | undefined;
+    isOverrideActive(dshActive: string): boolean;
+} | undefined;
 /**
  * Attach (or detach, with undefined) the DSH locale service. The sidebar
  * mounts its own React root outside the slot system's locale seat, so the
@@ -360,6 +495,20 @@ export declare function attachLocale(service: {
         active: string;
     };
 } | undefined): void;
+/**
+ * Attach (or detach, with undefined) the better-locale override store.
+ * When attached with an active override, `t()` consults the store's
+ * `getOverride(active, LOCALE_NS, key)` first; if it returns a string,
+ * that text wins over the zh/en chain. Detaching (or the store's active
+ * being `undefined`) restores the zh/en chain unchanged.
+ *
+ * The Sidebar root subscribes to the store separately (see Sidebar.tsx)
+ * so an override change re-renders the whole tree — the locale service's
+ * own revision bump (which better-locale triggers via `publish(active, true)`)
+ * does NOT fire the existing `localeRevision` uSES because that snapshot
+ * reads `getSnapshot().active` (unchanged) rather than `revision`.
+ */
+export declare function attachBetterLocale(store: typeof betterLocaleStore): void;
 /** Translate a copy key in the active locale (zh → zh, else en). */
 export type CopyKey = keyof typeof zh;
 /** Translate a copy key; `{name}` placeholders interpolate from `params`. */
@@ -368,3 +517,4 @@ export declare function t(key: CopyKey, params?: Record<string, string | number>
 export declare function isZh(): boolean;
 /** Format an ISO 8601 author date relative to now (刚刚 / N 分钟前 / N 小时前 / 昨天 / date). */
 export declare function relativeTime(iso: string): string;
+export {};

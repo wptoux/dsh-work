@@ -1,11 +1,22 @@
 import type { LastActivity } from '../subagent-activity.ts';
-import type { SidechatThreadInfo } from '../sidechat-core.ts';
+import type { SidechatLiveEvent, SidechatLogEvent, SidechatThreadInfo } from '../sidechat-core.ts';
+import type { SidebarSessionEvent } from '../context-types.ts';
 import type { BrowserProbeResult } from './browser.ts';
 /** One wire failure. */
 export declare class SidebarApiError extends Error {
     readonly code: string;
     constructor(code: string, message: string);
 }
+/**
+ * Whether a wire failure is the workspace fence refusing a path outside the
+ * session workspace (the host message reads `path "..." is outside
+ * workspace`). The request-trust fence answers code `forbidden` with the
+ * bare message 'forbidden', so the message fragment — not the code alone —
+ * identifies this case.
+ */
+export declare function isOutsideWorkspaceError(error: unknown): boolean;
+/** Message-level variant for surfaces that stored the raw text (file-tree level errors). */
+export declare function isOutsideWorkspaceMessage(message: string): boolean;
 /** Explorer row (host fs-tree shape). */
 export interface FsEntry {
     name: string;
@@ -27,6 +38,18 @@ export interface GitStatusResult {
     isRepo: boolean;
     branch?: string;
     entries: GitStatusEntry[];
+    /** True when the host capped `entries` (huge untracked set); the panel
+     *  shows a truncation notice instead of freezing (#369). */
+    truncated?: boolean;
+    root?: string;
+    repositories?: string[];
+}
+/** One linked Git checkout. */
+export interface GitWorktree {
+    path: string;
+    branch: string;
+    current: boolean;
+    changes: number;
 }
 /** One git log row. */
 export interface GitLogEntry {
@@ -41,14 +64,11 @@ export interface GitLogEntry {
     /** Ref decorations (--decorate=short), e.g. `HEAD -> main, origin/main`; '' when none. */
     refs: string;
 }
-/** Text read result. `size`/`mtimeMs` are the file identity the refresh
- *  staleness check compares (the version ON DISK vs the version shown). */
+/** Text read result. */
 export interface FsTextResult {
     kind: 'text';
     content: string;
     truncated: boolean;
-    size: number;
-    mtimeMs: number;
 }
 /** Binary read result (no content; images load through the media route).
  *  `head` carries the first bytes (base64) for viewer detect sniffing. */
@@ -57,17 +77,7 @@ export interface FsBinaryResult {
     size: number;
     truncated: boolean;
     head: string;
-    mtimeMs: number;
 }
-/** Staleness meta result (metaOnly: true): the identity only, no content —
- *  image/PDF and binary-download surfaces stat instead of re-reading bytes. */
-export interface FsMetaResult {
-    kind: 'meta';
-    size: number;
-    mtimeMs: number;
-}
-/** One fs.read response. */
-export type FsReadResult = FsTextResult | FsBinaryResult | FsMetaResult;
 /**
  * One jobs.output response: the output the MODEL has read so far for the
  * job (replayed from the owner session's event log — the model's
@@ -105,7 +115,28 @@ export interface SessionScope {
     sessionId: string;
     /** The session's working directory from the client list summary (optional). */
     cwd?: string;
+    /** Selected Git repository when cwd is a workspace container. */
+    repoRoot?: string;
 }
+/** One external-open request from the file tree. */
+type OpenExternalPayload = {
+    action: 'reveal';
+    path: string;
+} | {
+    action: 'url';
+    url: string;
+};
+/** The host route's success shape. */
+type OpenExternalResult = {
+    started: boolean;
+};
+/**
+ * Dispatch an external-open request to the correct machine. SSH remote-editor
+ * URLs stay in the synchronous user-click chain and navigate the client so
+ * its registered vscode:// / cursor:// handler can launch. Everything else
+ * keeps using the DSH host route.
+ */
+declare function openExternal(payload: OpenExternalPayload): Promise<OpenExternalResult>;
 /** The sidebar API surface (session scope threaded through every call). */
 export declare const api: {
     sessionCwd: (scope: SessionScope, signal?: AbortSignal) => Promise<{
@@ -125,11 +156,20 @@ export declare const api: {
         matches: string[];
         truncated: boolean;
     }>;
-    fsRead: (scope: SessionScope, path: string, signal?: AbortSignal, opts?: {
-        metaOnly?: boolean;
-    }) => Promise<FsReadResult>;
+    fsRead: (scope: SessionScope, path: string, signal?: AbortSignal) => Promise<FsTextResult | FsBinaryResult>;
     fsWrite: (scope: SessionScope, path: string, content: string) => Promise<{
         ok: true;
+    }>;
+    /** Rename one tree row within its directory (single-segment name; the
+     *  server refuses existing destinations, the workspace root, and — while
+     *  the fence is armed — anything resolving outside the workspace). */
+    fsRename: (scope: SessionScope, path: string, name: string) => Promise<{
+        path: string;
+    }>;
+    /** Permanently delete one tree row (recursive for directories; a symlink
+     *  row unlinks the link only). The UI confirms before calling this. */
+    fsRemove: (scope: SessionScope, path: string) => Promise<{
+        path: string;
     }>;
     /** Upload one file's raw bytes into `dir` (keeps the folder tree via
      *  `relativePath`); the host streams it under the session workspace. */
@@ -137,42 +177,57 @@ export declare const api: {
         path: string;
         size: number;
     }>;
-    gitStatus: (scope: SessionScope, signal?: AbortSignal) => Promise<GitStatusResult>;
-    gitDiff: (scope: SessionScope, path: string | undefined, staged: boolean, signal?: AbortSignal) => Promise<{
+    gitWorktrees: (scope: SessionScope, signal?: AbortSignal) => Promise<GitWorktree[]>;
+    gitStatus: (scope: SessionScope, worktree?: string, signal?: AbortSignal) => Promise<GitStatusResult>;
+    gitDiff: (scope: SessionScope, path: string | undefined, staged: boolean, worktree?: string, signal?: AbortSignal) => Promise<{
         diff: string;
     }>;
-    gitStage: (scope: SessionScope, path?: string) => Promise<{
+    gitStage: (scope: SessionScope, path?: string, worktree?: string) => Promise<{
         ok: true;
     }>;
-    gitUnstage: (scope: SessionScope, path?: string) => Promise<{
+    gitUnstage: (scope: SessionScope, path?: string, worktree?: string) => Promise<{
         ok: true;
     }>;
-    gitCommit: (scope: SessionScope, message: string) => Promise<{
+    gitCommit: (scope: SessionScope, message: string, worktree?: string) => Promise<{
         ok: true;
     }>;
-    gitBranch: (scope: SessionScope, signal?: AbortSignal) => Promise<{
+    gitBranch: (scope: SessionScope, worktree?: string, signal?: AbortSignal) => Promise<{
         current: string;
         names: string[];
     }>;
-    gitCheckout: (scope: SessionScope, branch: string) => Promise<{
+    gitCheckout: (scope: SessionScope, branch: string, worktree?: string) => Promise<{
         ok: true;
     }>;
     /** Recent commit history, lazily pageable (skip/count; defaults 0/30). */
-    gitLog: (scope: SessionScope, count?: number, skip?: number, signal?: AbortSignal) => Promise<GitLogEntry[]>;
+    gitLog: (scope: SessionScope, count?: number, skip?: number, worktree?: string, signal?: AbortSignal) => Promise<GitLogEntry[]>;
     /** Full patch text of one commit (diff display for the history rows). */
-    gitCommitDiff: (scope: SessionScope, hash: string, signal?: AbortSignal) => Promise<{
+    gitCommitDiff: (scope: SessionScope, hash: string, worktree?: string, signal?: AbortSignal) => Promise<{
         diff: string;
     }>;
+    /** One file's content at a revision (`git show <rev>:<path>`); null when the
+     *  revision has no such path. The diff views' on-demand hunk-fold expansion
+     *  reads both sides' full contents through this. */
+    gitShow: (scope: SessionScope, rev: string, path: string, worktree?: string, signal?: AbortSignal) => Promise<{
+        content: string | null;
+    }>;
+    /** The session's file-tool events for the changes tab's session lens: the
+     *  `tool/call` + `tool/result` rows past `afterSeq` (0 = whole window),
+     *  capped to the recent window host-side. The client runtime exposes no
+     *  event-log face, so the lens polls this delta route. */
+    changesOps: (scope: SessionScope, afterSeq?: number, signal?: AbortSignal) => Promise<{
+        events: SidebarSessionEvent[];
+        lastSeq: number;
+    }>;
     /** Discard the worktree changes of one file (the index is untouched). */
-    gitDiscard: (scope: SessionScope, path: string) => Promise<{
+    gitDiscard: (scope: SessionScope, path: string, worktree?: string) => Promise<{
         ok: true;
     }>;
     /** Revert one commit onto the current branch. */
-    gitRevert: (scope: SessionScope, hash: string) => Promise<{
+    gitRevert: (scope: SessionScope, hash: string, worktree?: string) => Promise<{
         ok: true;
     }>;
     /** Cherry-pick one commit onto the current branch. */
-    gitCherryPick: (scope: SessionScope, hash: string) => Promise<{
+    gitCherryPick: (scope: SessionScope, hash: string, worktree?: string) => Promise<{
         ok: true;
     }>;
     /** Release a terminal's process immediately (tab closed; the WS close frame
@@ -226,6 +281,16 @@ export declare const api: {
     }>;
     /** Live state + agent identity (provider/model/preset) of a thread. */
     sidechatInfo: (childId: string) => Promise<SidechatThreadInfo>;
+    /** One transcript pull of a Side Chat thread: the thread's OWN events
+     *  (the inherited seed is cut host-side and never crosses the wire).
+     *  `afterSeq` narrows the response to the delta beyond it (poll tail).
+     *  `live` is the thread's in-flight model deltas (DSH 0.1.5 publishes them
+     *  outside the session log) — the CURRENT attempt on every pull, never a
+     *  delta, so the caller replaces its live set instead of appending. */
+    sidechatEvents: (childId: string, afterSeq?: number, signal?: AbortSignal) => Promise<{
+        events: SidechatLogEvent[];
+        live: SidechatLiveEvent[];
+    }>;
     /** The effective terminal shell and its display name (plugin-global). */
     shellGet: () => Promise<{
         shell: string;
@@ -245,19 +310,10 @@ export declare const api: {
     /** Probe a URL's response headers (the sidebar browser's embeddability
      *  check; see the host's browser.probe route). */
     browserProbe: (url: string, signal?: AbortSignal) => Promise<BrowserProbeResult>;
-    /** External open for the file tree's "open with" menu: reveal a path in
-     *  the OS file manager, or hand a custom-scheme URL (vscode://, cursor://,
-     *  zed://, custom editors) to its registered handler. The host launches
-     *  the platform opener (argv, no shell). */
-    openExternal: (payload: {
-        action: "reveal";
-        path: string;
-    } | {
-        action: "url";
-        url: string;
-    }) => Promise<{
-        started: boolean;
-    }>;
+    /** External open for the file tree's "open with" menu. Remote SSH editor
+     *  URLs are launched on the browser/client machine; reveal and local URLs
+     *  keep using the host's platform opener. */
+    openExternal: typeof openExternal;
 };
 /** Absolute URL of the media route for one path (images only). */
 export declare function mediaUrl(scope: SessionScope, path: string): string;
@@ -273,3 +329,4 @@ export declare function downloadUrl(scope: SessionScope, path: string): string;
  * client-side platform signal is needed.
  */
 export declare function htmlUrl(scope: SessionScope, path: string): string;
+export {};

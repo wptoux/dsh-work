@@ -11,7 +11,7 @@
 | 目录 | 包名 | 上游仓库 | 冻结 commit | 说明 |
 |---|---|---|---|---|
 | `dsh-remote-web-ui/` | `dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui | `a3b44d9`（tag v0.3.2） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下） |
-| `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `d9b8f15`（tag v0.15.2） | 增强侧边栏 |
+| `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `754974a`（tag v0.19.0） | 增强侧边栏。**v0.19.0 为官方 DSH 0.1.5-rc.1 适配版**（原生右栏 `dsh-client-ui-sidebar-right` 表面，own right panel 已退役），**需内核 ≥0.1.5-rc.1**，见「已知本地改动」 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
 | `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
 | `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 桌面端对话整洁：已完成回合折叠成「已处理」块，只显示最后一条回复（Codex 风格），未来桌面 UI 调整统一收纳于此 |
@@ -261,7 +261,12 @@ profile dir + reconcile 安装态）。
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`
     把侧边栏展开为覆盖式抽屉（带遮罩）；≥768px 保持宿主原生行为。纯 DOM + CSS（自有
     `data-dsh-mobile-*` 标记 + 宿主 `data-sidebar-collapsed` 状态），不动内核。
-- `dsh-better-sidebar` / `dsh-usage-stats`：无源码改动。
+- `dsh-better-sidebar`：**整体接回官方 v0.19.0**（0.15.2 → 0.19.0，含 DSH 0.1.5-rc.1 适配：host 半边 settings 走
+  `ctx.settings.register/describe/update`、客户端改用原生 `ctx.sidebarRight` / `ctx.sidebarRightTabs` 表面并退役自有右栏）。
+  本地改动仅恢复 **lib/ 入库惯例**（上游 .gitignore 忽略 lib/，本仓库发版需要 lib 现构建入库，已删该行）；
+  挂载行 `cordis.patch.yml` 与 0.15.2 逐字一致（`better-sidebar` 行 id + 双挂载守卫不变）。**激活前提：DSH 内核
+  ≥0.1.5-rc.1**（0.1.1-rc.2 无原生右栏服务，v0.19.0 无自有面板可退化）。
+- `dsh-usage-stats`：无源码改动。
 - `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、
   cordis patch、预构建 lib 里的 client bundle id 一并替换）；README 安装说明为上游文档，
   本 fork 内不适用（本地 link 安装）。

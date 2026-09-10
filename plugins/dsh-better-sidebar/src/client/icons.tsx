@@ -1,23 +1,11 @@
 /**
  * Icons the sidebar needs beyond the primitives set: a terminal glyph (the
- * icon library has none), a diff glyph, and the two panel-toggle glyphs for
- * the top-right cluster. Per-tab icons live on the tab descriptors
+ * icon library has none), a diff glyph, and the bottom-workbench toggle.
+ * Per-tab icons live on the tab descriptors
  * (`descriptor.icon`), not in a type-keyed switch — the icon mapping was
  * registry-ized with the tab types.
  */
 import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
-
-/**
- * Right-panel toggle glyph (the "侧拉" button): a frame with a filled strip
- * along its RIGHT edge, in the app's outline style (1.5px stroke,
- * currentColor).
- */
-export const IconPanelRightOutline16 = ({ size = 16, className }: IconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1.5" y="2" width="13" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-    <rect x="10.5" y="3.25" width="2.75" height="9.5" rx="1" fill="currentColor" stroke="none" />
-  </svg>
-)
 
 /**
  * Bottom-panel toggle glyph (the "底栏" button): a frame with a filled strip
@@ -67,6 +55,17 @@ export const IconUploadOutline16 = ({ size = 16, className }: IconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M8 10V2.75M4.75 5.5 8 2.25 11.25 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M2.75 10.5v2.25A1.25 1.25 0 0 0 4 14h8a1.25 1.25 0 0 0 1.25-1.25V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+)
+
+/**
+ * Pin glyph in the app's outline style (1.5px stroke, currentColor): a pushpin
+ * tilted to the lower-right. Used by the PinnedRail and the tab context menu's
+ * pin entry (v0.17.0+).
+ */
+export const IconPinOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9.5 1.5 14.5 6.5 12.5 8.5 10 6 5.5 10.5 6 12 4.5 13.5 2.5 11.5 4 10 5.5 10.5 10 6 7.5 8.5 6.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
   </svg>
 )
 

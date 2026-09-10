@@ -7,17 +7,12 @@
 
 import z from 'schemastery'
 import {
-  SIDEBAR_PREFS_DEFAULTS,
-  SIDEBAR_PREFS_NS,
   TERMINAL_FONT_SIZE_DEFAULT,
   TERMINAL_FONT_SIZE_MAX,
   TERMINAL_FONT_SIZE_MIN,
   TITLE_BAR_STRIP_DEFAULT,
   TITLE_BAR_STRIP_MAX,
   TITLE_BAR_STRIP_MIN,
-  WIDTH_PERCENT_DEFAULT,
-  WIDTH_PERCENT_MAX,
-  WIDTH_PERCENT_MIN,
   type SidebarPrefs,
 } from './prefs-shared.ts'
 
@@ -30,9 +25,6 @@ export {
   TITLE_BAR_STRIP_DEFAULT,
   TITLE_BAR_STRIP_MAX,
   TITLE_BAR_STRIP_MIN,
-  WIDTH_PERCENT_DEFAULT,
-  WIDTH_PERCENT_MAX,
-  WIDTH_PERCENT_MIN,
   type SidebarPrefs,
 } from './prefs-shared.ts'
 
@@ -117,16 +109,15 @@ export function resolveSidebarConfig(config: SidebarConfig | undefined): Resolve
 
 /** Schemastery schema for the user-facing preferences (validated by the settings service). */
 export const PrefsSchema: z<SidebarPrefs> = z.object({
-  openByDefault: z.boolean().default(false),
-  defaultWidthPercent: z.number().step(1).min(WIDTH_PERCENT_MIN).max(WIDTH_PERCENT_MAX).default(WIDTH_PERCENT_DEFAULT),
   autoOpenSubagent: z.boolean().default(true),
   autoOpenJobs: z.boolean().default(true),
   agentTerminalTools: z.boolean().default(false),
+  agentOpenTools: z.boolean().default(false),
   bottomPanelAutoTerminal: z.boolean().default(true),
   terminalFontFamily: z.string().default(''),
   terminalFontSize: z.number().step(1).min(TERMINAL_FONT_SIZE_MIN).max(TERMINAL_FONT_SIZE_MAX).default(TERMINAL_FONT_SIZE_DEFAULT),
-  interceptOpenPath: z.boolean().default(true),
   editorExplorer: z.boolean().default(false),
+  workspaceFence: z.boolean().default(true),
   terminalShell: z.string().default(''),
   terminalShellArgs: z.string().default(''),
   titleBarScheme: z.union([z.const('auto'), z.const('web'), z.const('preset'), z.const('custom')]),
@@ -140,6 +131,7 @@ export const PrefsSchema: z<SidebarPrefs> = z.object({
   browserInterceptLinks: z.boolean().default(true),
   browserInterceptHttp: z.boolean().default(true),
   browserInterceptHttps: z.boolean().default(false),
+  browserAllowedLoopback: z.string().default(''),
   // Per-feature enable switches are OPEN maps (any tab/viewer id, built-in or
   // external): an absent key means enabled, so old documents resolve to {}
   // (everything on) with no migration. Non-boolean values fail validation.
