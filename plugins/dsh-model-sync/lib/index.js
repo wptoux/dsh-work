@@ -285,23 +285,6 @@ async function probeLiveModels(opts) {
 	}
 }
 /**
-* Service Definition for the user-settings capability seam (`ctx.settings`). Providers store one raw document of
-* per-namespace sections; plugins register a namespace schema and read the
-* resolved value, which layers schema defaults, the registrant's composition
-* `base`, and the user document section, in that order.
-* @module @deepseek-ai/dsh-settings
-*/
-const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/;
-/**
-* Brand a raw string as a {@link SettingsNamespace}.
-* @param value - candidate namespace; lowercase kebab-case, as in plugin short names.
-* @returns the branded namespace.
-*/
-function settingsNamespace(value) {
-	if (!NAMESPACE_PATTERN.test(value)) throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`);
-	return value;
-}
-/**
 * A write refused because the namespace moved since the caller read it. The
 * Service Definition's serialized write queue orders writes; it cannot tell a fresh writer
 * from one holding a stale snapshot, which is what this reports.
@@ -440,11 +423,11 @@ function buildMirrorModels(args) {
 * logged and the previous state (and every live route) stays untouched.
 * @module dsh-model-sync/sync
 */
-/** The settings namespace llm-pi-ai owns. */
-const SETTINGS_NS = settingsNamespace("llm-pi-ai");
+/** The settings namespace llm-pi-ai owns (plain string: DSH 0.1.5 validates namespaces at the service). */
+const SETTINGS_NS = "llm-pi-ai";
 /** Read the current revision of the llm-pi-ai section, for conflict detection. */
 function currentRevision(settings) {
-	for (const entry of settings.describe()) if (entry.ns === SETTINGS_NS) return entry.revision;
+	for (const entry of settings.describe()) if (entry.ns === "llm-pi-ai") return entry.revision;
 	return 0;
 }
 /**
