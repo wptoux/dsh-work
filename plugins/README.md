@@ -14,7 +14,7 @@
 | `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `754974a`（tag v0.19.0） | 增强侧边栏。**v0.19.0 为官方 DSH 0.1.5-rc.1 适配版**（原生右栏 `dsh-client-ui-sidebar-right` 表面，own right panel 已退役），**需内核 ≥0.1.5-rc.1**，见「已知本地改动」 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
 | `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
-| `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 桌面端对话整洁：已完成回合折叠成「已处理」块，只显示最后一条回复（Codex 风格），未来桌面 UI 调整统一收纳于此 |
+| `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 窄屏移动端适配：手机侧栏抽屉（≤767px 悬浮鲸鱼图标展开覆盖式抽屉）+ 输入区单行。**折叠功能已移除**（DSH 0.1.5 原生「对话显示:紧凑」同效且默认开启，见「已知本地改动」） |
 | `dsh-model-sync/` | `dsh-model-sync` | 本仓库自研（无上游） | — | 模型列表**实时保鲜**：把 pi-ai 静态目录路由就地接管为自维护路由，定时同步最新模型列表（见 `dsh-model-sync/README.md`） |
 | `dsh-work-all/` | `dsh-work-all` | 本仓库自研（无上游） | — | 全家桶**聚合载具包**：汇总其余 6 款插件的挂载行，一条命令装齐全部（见「聚合包」章节） |
 
@@ -256,16 +256,17 @@ profile dir + reconcile 安装态）。
     共用），面板「手机链接 / 电脑链接」两行合并为「配对链接」一行；手机配对后运行完整
     Web GUI（非 loopback 走 `/remote` 门控通道），小屏布局由 `dsh-ui-tweaks` 适配。
 - `dsh-ui-tweaks`（本仓库自研）：
-  - 已完成回合折叠（如上 README）。
-  - **窄屏侧边栏抽屉**（本 fork 定制）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
+  - **窄屏侧边栏抽屉**（本 fork 定制，保留）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`
     把侧边栏展开为覆盖式抽屉（带遮罩）；≥768px 保持宿主原生行为。纯 DOM + CSS（自有
     `data-dsh-mobile-*` 标记 + 宿主 `data-sidebar-collapsed` 状态），不动内核。
-  - **DSH 0.1.5 折叠驱动移植**：数据源从旧 `session.getSnapshot().chat` 拆分为 0.1.5 的两条官方路径
-    （会话生命周期 `SessionFace = ISession & ObservableSnapshot<SessionSnapshot>` + 聊天内容
-    `ctx.uiConversation.binding(id).target('chat')`；`ChatSnapshot` 契约与 0.1.1 逐字节一致）。
-    新增 `src/client/session-source.ts` 订阅双 feed（严格超集，不漏触发）；vitest 增加 primitives
-    别名桩（0.1.5 primitives 包引用 shell 侧内部依赖，测试基建）。**激活前提：内核 ≥0.1.5-rc.1**。
+  - **窄屏输入区单行**（保留）：≤767px 时 composer 底部工具行强制单行（选择器为宿主
+    composer 卡 hash 类 `uV2eYG_*`，0.1.5 下验证仍匹配）。
+  - **已完成回合折叠已移除**（0.1.5 迁移）：0.1.0 的「已处理」DOM 折叠与 DSH 0.1.5 原生
+    「对话显示 › 紧凑」（`ui-chat.transcriptView`，默认 `compact`，渲染层折叠已完成回合
+    过程内容）目标行重叠、同时启用冲突；按"用原生、删折叠"决定整体删除 `fold-*` 模块
+    （含 `session-source` 与 6 个折叠测试）。该折叠若日后要加回，可从 git 历史恢复并
+    处理与原生 transcriptView 的共存。**激活前提：内核 ≥0.1.5-rc.1**。
 - `dsh-better-sidebar`：**整体接回官方 v0.19.0**（0.15.2 → 0.19.0，含 DSH 0.1.5-rc.1 适配：host 半边 settings 走
   `ctx.settings.register/describe/update`、客户端改用原生 `ctx.sidebarRight` / `ctx.sidebarRightTabs` 表面并退役自有右栏）。
   本地改动仅恢复 **lib/ 入库惯例**（上游 .gitignore 忽略 lib/，本仓库发版需要 lib 现构建入库，已删该行）；

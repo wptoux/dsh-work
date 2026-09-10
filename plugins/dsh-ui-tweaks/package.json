@@ -1,6 +1,6 @@
 {
   "name": "dsh-ui-tweaks",
-  "description": "Desktop web UI tweaks: fold completed agent turns into an expandable\u300c\u5df2\u5904\u7406\u300dblock that shows only the last reply (Codex-style), keeping the conversation clean.",
+  "description": "Desktop web UI tweaks for narrow screens: phone-viewport left-sidebar drawer and a single-line composer toolbar.",
   "version": "0.1.0",
   "type": "module",
   "packageManager": "pnpm@11.7.0",
@@ -39,10 +39,7 @@
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-slots"
       ],
       "platform": "web"
@@ -65,10 +62,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-api-session-controller": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-client-locale": "^0.1.5-rc.1",
-    "@deepseek-ai/dsh-client-ui-chat": "^0.1.5-rc.1",
-    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-primitives": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-slots": "^0.1.5-rc.1",
     "@types/node": "^22.20.0",

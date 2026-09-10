@@ -1,63 +1,37 @@
 # dsh-ui-tweaks
 
-桌面端 dsh web GUI 的 UI 整洁插件（将来其它桌面 UI 调整统一收纳于此）。当前功能：
-**已完成回合折叠**。
+桌面端 dsh web GUI 的**窄屏移动端**适配插件。当前功能：
 
-## 功能：已完成回合折叠（已处理）
+- **手机侧栏抽屉**（`mobile-sidebar.tsx`）：<768px 视口下宿主左侧栏（含 56px 图标轨）
+  收成悬浮鲸鱼图标，点击展开为覆盖式抽屉；
+- **窄屏输入区单行**（`composer-toolbar.css`）：<768px 时 composer 底部工具行
+  （附件 / 访问 / 模型 / 发送）强制单行，避免 320px 宽度下换行撑高卡片。
 
-任务处理完成（会话流里收到 `turn/end`）后，该回合（turn）的 agent 消息折叠成一个
-可点击的「已处理」块，只显示最后一条回复：
+> **0.1.0 的「已完成回合折叠（已处理）」已移除**：DSH 0.1.5 原生「对话显示 › 紧凑」
+> （默认开启）在渲染层折叠已完成回合的过程内容，与本插件 DOM 层折叠目标行重叠、
+> 同时启用会冲突。已按"用原生、删折叠"决定将 `fold-*` 模块整体删除（见 git 历史）。
 
-```
-› 已处理  2 条
-  已完成修改          ← 只有该回合的最后一条回复可见，完整 markdown 渲染
-```
+## 功能
 
-- 点击「已处理」展开全部（箭头 `›` 旋转成 `v`），再次点击收起；头部位于折叠块
-  **最顶端**（紧跟在用户提问之后），中间消息在头部**下方向下展开**、收起时向上
-  收拢，带淡入/滑入动画；头部在展开/收起过程中保持在视口内；
-- 计数显示**该回合被隐藏的总行数**（中间消息 + 工具/推理/上下文行），并显示该回合
-  **耗时**（如 `已处理 3m16s ›`，与回合尾部的 "Ran for …" 一致）；
-- 折叠态只显示最后一条回复的**正文**（其思考/Think 摘要行隐藏，展开后恢复显示）；
-- 用户自己的提问、回合中的 steering 提问、回合尾部的交付物/操作行保持可见；
-- 失败的回合同样折叠（失败提示行留在最后一条回复之后）；
-- 流式进行中不折叠、不跳动，`turn/end` 到达才折叠；
-- 旧历史中已完成的回合也折叠（点开可看全部过程）；
-- 折叠块内最后一条回复若是会话最新消息，长文本仍不截断（沿用内核行为）。
+### 手机侧栏抽屉
 
-### 半个回合（分页）的处理
+窄屏下宿主左侧栏整体隐藏，左上角出现漂浮的 DeepSeek 鲸鱼图标；点击后经布局服务的
+官方动作（`layout.toggleSidebar`）展开侧栏，CSS 将其变成覆盖在会话上的抽屉，带全屏
+遮罩。抽屉开合状态通过属性观察器镜像宿主真实状态（任何入口触发的展开都保持同步），
+≥768px 时触发按钮与遮罩隐藏，宿主原生行为不受影响。
 
-桌面会话窗口是**连续的一段**：`turn/start` 与 `turn/end` 都在窗口内才算"整回合"。
-窗口被切在回合中间（只加载了后半截）的旧回合**绝不误折叠**——保持原样展开；插件会
-自动调用 `loadOlder()` 补拉更早历史（同一残缺回合最多连拉 5 页），补全后自动折叠。
-上拉加载更早历史同样按此逻辑。补拉页面逐页到达、以及补全回合自动折叠时，视口都保持
-锚定（阅读位置不随内容上下滑动；贴底时由内核底部跟随接管，阅读中滚动则放权给读者），
-弱网下逐页加载也不会抖屏。
+### 窄屏输入区单行
 
-### 实现
-
-- 纯 DOM + 内核公开 API（**DSH 0.1.5** 的两张面：`ctx.sessions` 的会话生命周期快照
-  `binding(id).session.getSnapshot()/subscribe()` 提供 `openState`/`hasMore`/
-  `loadingOlder` 与 `loadOlder()`；会话内容走 `ctx.uiConversation.binding(binding)`
-  的 `chat` 目标 `target('chat')`，即官方 Chat 视图自己的读取路径，提供
-  `order`/`nodes`/`timeline`），**不改内核、不占 node slot、不重写消息渲染**
-  （markdown / 推理 / 工具卡片保持内核原样）。
-- 流水线：`projectSnapshot（两张 0.1.5 面 → DriverSnapshot）→ windowFromSnapshot →
-  planFolds（纯函数）→ applyFoldPlan（DOM）`，由 `fold-chrome`（MutationObserver +
-  点击委托）与 `fold-driver`（会话订阅 + 自动补全 + 展开状态）驱动；任何 DOM/快照
-  变化都幂等重算，自愈。
-- 样式消费 `--dsw-*` 令牌（缺失时有中性回退），i18n `zh`（key 源）/`en` 对照。
-
-> 0.1.5 迁移说明：旧版单个 `ConversationSnapshot`（会话生命周期 + chat 内容同在
-> `ctx.sessions` 上）被拆成上面两张面，`ChatSnapshot` 自身形状未变，因此折叠行为与
-> 折叠 DOM、i18n key、触发时机完全不变；字段对照表见
-> `src/client/session-source.ts` 的模块注释。
+宿主 composer 底部工具行在 320px 宽度下会换行（卡片 42px → 82px）；插件在
+<768px 视口强制单行：收紧间距、固定首组（附件/访问）、尾组（模型/发送）可收缩
+（模型选择器省略号截断、发送按钮 `flex-shrink: 0` 恒可见）。选择器为 composer 卡的
+hash 类（`uV2eYG_*`），在本冻结内核上稳定。
 
 ## 构建 / 测试
 
 ```bash
 pnpm install          # 首次
-pnpm test             # vitest（80 个用例：fold-plan / fold-dom / fold-chrome / fold-driver / session-source / client-entry / mobile-sidebar）
+pnpm test             # vitest（mobile-sidebar + client-entry 冒烟）
 pnpm typecheck
 pnpm build            # lib/index.js（host 半，空挂载）+ lib/client.js（浏览器半）
 ```
@@ -65,5 +39,5 @@ pnpm build            # lib/index.js（host 半，空挂载）+ lib/client.js（
 ## 生效
 
 新插件挂载需要**重启一次 `dsh web`**（profile bundles 在启动时读取）；之后改
-`src/client` 代码热加载（仅 client 半），host 半改动需重启。重启后刷新页面，已完成的
-回合即出现「已处理」折叠。
+`src/client` 代码热加载（仅 client 半），host 半改动需重启。重启后刷新页面，窄屏场景
+即出现抽屉触发按钮与单行输入区。
