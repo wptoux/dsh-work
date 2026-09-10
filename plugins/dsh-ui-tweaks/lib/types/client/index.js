@@ -1,6 +1,7 @@
 import { createFoldChrome } from './fold-chrome';
 import { createFoldDriver } from './fold-driver';
 import { formatDuration } from './fold-dom';
+import { createSessionSource } from './session-source';
 import { mountMobileSidebar } from "./mobile-sidebar.js";
 import { en, zh } from './locales';
 import './fold.css';
@@ -9,73 +10,6 @@ import './composer-toolbar.css';
 const NS = 'ui-tweaks';
 /** Services required by this plugin. */
 export const inject = ['sessions', 'locale'];
-/** Project the runtime snapshot onto the planner's minimal window shape. */
-function projectSnapshot(snapshot) {
-    const turns = new Map();
-    for (const [number, location] of snapshot.chat.timeline.turns) {
-        turns.set(number, { startTime: location.start?.time, endTime: location.end?.time });
-    }
-    return {
-        openState: snapshot.openState,
-        hasMore: snapshot.hasMore,
-        loadingOlder: snapshot.loadingOlder,
-        turns,
-        order: snapshot.chat.order,
-        nodes: {
-            get(key) {
-                const node = snapshot.chat.nodes.get(key);
-                if (node === undefined)
-                    return undefined;
-                const location = node.location;
-                const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined;
-                return { kind: node.kind, anchorSeq: node.anchorSeq, location: { kind: location.kind, turn } };
-            },
-        },
-    };
-}
-/**
- * The fold driver's session source over the client runtime: the current
- * selection's SessionFace (read + subscribe + loadOlder), re-subscribed when
- * the selection changes.
- */
-function sessionSource(ctx) {
-    const currentHandle = () => {
-        const id = ctx.sessions.list.getSnapshot().current;
-        if (id === undefined)
-            return null;
-        const session = ctx.sessions.binding(id)?.session;
-        if (session === undefined)
-            return null;
-        return {
-            sessionId: id,
-            snapshot: () => projectSnapshot(session.getSnapshot()),
-            loadOlder: () => session.loadOlder().catch(() => { }),
-        };
-    };
-    return {
-        current: currentHandle,
-        subscribe(fn) {
-            let snapshotUnsub = null;
-            const resubscribe = () => {
-                snapshotUnsub?.();
-                snapshotUnsub = null;
-                const id = ctx.sessions.list.getSnapshot().current;
-                const session = id === undefined ? undefined : ctx.sessions.binding(id)?.session;
-                if (session !== undefined)
-                    snapshotUnsub = session.subscribe(fn);
-            };
-            const offList = ctx.sessions.list.subscribe(() => {
-                resubscribe();
-                fn();
-            });
-            resubscribe();
-            return () => {
-                snapshotUnsub?.();
-                offList();
-            };
-        },
-    };
-}
 /**
  * Mount the folding. The effect owns the whole lifecycle: creating the
  * chrome (DOM observation + click delegation) and the driver (session
@@ -129,7 +63,7 @@ export function apply(ctx) {
             });
         };
         const chrome = createFoldChrome(schedule, turn => driver.toggle(turn));
-        driver = createFoldDriver(sessionSource(ctx), {
+        driver = createFoldDriver(createSessionSource(ctx), {
             containers: () => chrome.containers(),
             copy,
         });

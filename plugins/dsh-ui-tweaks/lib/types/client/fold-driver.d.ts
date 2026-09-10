@@ -8,6 +8,18 @@
  *
  * - projecting the session snapshot into the planner's window,
  * - translating plans into DOM folds (per flow container),
+ * - anchoring the reader's viewport around fold layout changes (manual
+ *   toggles pin the clicked「已处理」header; auto re-applies — completed
+ *   turns folding in late, re-applies after slow `loadOlder()` pages — pin
+ *   the nearest visible row, except while the reader is pinned to the
+ *   bottom where the host's follow already keeps the view there), so slow
+ *   arrivals (weak networks) never slide the content under the reader,
+ * - anchoring the reader across fold-driven `loadOlder()` cycles: the host
+ *   only armors its own prepend anchor when the load-older BUTTON is used,
+ *   so pages this driver pulls in land un-stabilized — the driver captures
+ *   a visible row + the column's first-row fingerprint when it starts a
+ *   load and restores the row once the prepend appears (dropping the
+ *   anchor if the reader scrolls meanwhile, delegating to their intent),
  * - auto-loading older history — once, capped — when a closed turn's head
  *   sits outside the window (page-split turns must complete before folding),
  * - the per-session expanded set (reset on session switch).
@@ -67,9 +79,17 @@ export interface FoldDriver {
 export declare function windowFromSnapshot(snapshot: DriverSnapshot): FoldWindow | null;
 /** Create a fold driver over one session source. */
 export declare function createFoldDriver(source: FoldSessionSource, options: FoldDriverOptions): FoldDriver;
+/** True when the reader is scrolled to (or within ε of) the chat bottom. */
+export declare function pinnedAtBottom(scroller: HTMLElement): boolean;
 /**
- * Scroll the scroller back so the header returns to its captured viewport top
- * (undoing any at-bottom follow shift). Returns whether it scrolled.
+ * Scroll the scroller back so `el` returns to its captured viewport top
+ * (undoing an at-bottom follow shift or the fold's own content shift).
+ * Returns whether it scrolled.
+ */
+export declare function restoreElementPosition(el: HTMLElement, capturedTop: number): boolean;
+/**
+ * Restore a toggled「已处理」header to its captured viewport top. Alias of
+ * {@link restoreElementPosition}, kept for toggle-anchor call sites and tests.
  */
 export declare function restoreHeaderPosition(header: HTMLElement, capturedTop: number): boolean;
 //# sourceMappingURL=fold-driver.d.ts.map

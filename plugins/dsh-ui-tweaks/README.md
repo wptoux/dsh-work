@@ -36,19 +36,28 @@
 
 ### 实现
 
-- 纯 DOM + 内核公开 API（`ctx.sessions` 的会话快照 `getSnapshot()/subscribe()` 与
-  `loadOlder()`），**不改内核、不占 node slot、不重写消息渲染**（markdown / 推理 /
-  工具卡片保持内核原样）。
-- 流水线：`ConversationSnapshot → windowFromSnapshot → planFolds（纯函数）→
-  applyFoldPlan（DOM）`，由 `fold-chrome`（MutationObserver + 点击委托）与
-  `fold-driver`（会话订阅 + 自动补全 + 展开状态）驱动；任何 DOM/快照变化都幂等重算，自愈。
+- 纯 DOM + 内核公开 API（**DSH 0.1.5** 的两张面：`ctx.sessions` 的会话生命周期快照
+  `binding(id).session.getSnapshot()/subscribe()` 提供 `openState`/`hasMore`/
+  `loadingOlder` 与 `loadOlder()`；会话内容走 `ctx.uiConversation.binding(binding)`
+  的 `chat` 目标 `target('chat')`，即官方 Chat 视图自己的读取路径，提供
+  `order`/`nodes`/`timeline`），**不改内核、不占 node slot、不重写消息渲染**
+  （markdown / 推理 / 工具卡片保持内核原样）。
+- 流水线：`projectSnapshot（两张 0.1.5 面 → DriverSnapshot）→ windowFromSnapshot →
+  planFolds（纯函数）→ applyFoldPlan（DOM）`，由 `fold-chrome`（MutationObserver +
+  点击委托）与 `fold-driver`（会话订阅 + 自动补全 + 展开状态）驱动；任何 DOM/快照
+  变化都幂等重算，自愈。
 - 样式消费 `--dsw-*` 令牌（缺失时有中性回退），i18n `zh`（key 源）/`en` 对照。
+
+> 0.1.5 迁移说明：旧版单个 `ConversationSnapshot`（会话生命周期 + chat 内容同在
+> `ctx.sessions` 上）被拆成上面两张面，`ChatSnapshot` 自身形状未变，因此折叠行为与
+> 折叠 DOM、i18n key、触发时机完全不变；字段对照表见
+> `src/client/session-source.ts` 的模块注释。
 
 ## 构建 / 测试
 
 ```bash
 pnpm install          # 首次
-pnpm test             # vitest（66 个用例：fold-plan / fold-dom / fold-chrome / fold-driver）
+pnpm test             # vitest（80 个用例：fold-plan / fold-dom / fold-chrome / fold-driver / session-source / client-entry / mobile-sidebar）
 pnpm typecheck
 pnpm build            # lib/index.js（host 半，空挂载）+ lib/client.js（浏览器半）
 ```
