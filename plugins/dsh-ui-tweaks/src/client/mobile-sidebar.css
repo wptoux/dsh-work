@@ -37,13 +37,14 @@
   background: var(--dsw-alias-button-floating-hover, #f0f1f3);
 }
 
-/* The better-sidebar right panel (phones collapse its two panels into
-   the one right panel) is open exactly while `body` lacks
-   data-dsh-sidebar-collapsed — that plugin mirrors its panelOpen onto
-   body. The open panel covers the whole phone viewport and the floating
-   whale trigger would hover over its top-left corner, so hide the
-   trigger in that state (it only floats above the conversation). */
-body:not([data-dsh-sidebar-collapsed]) [data-dsh-mobile-trigger] {
+/* The native right sidebar (dsh-client-ui-sidebar-right) covers the phone
+   viewport while open, and the floating whale trigger would hover over its
+   top-left corner — hide the trigger in that state so it only floats above
+   the conversation. Better-sidebar v0.19 retired its own right panel and
+   no longer stamps `body[data-dsh-sidebar-collapsed]` (that guard was dead
+   since the v0.19 upgrade and permanently hid the trigger), so the rule
+   now keys off the native panel's own open attribute. */
+body:has([data-sidebar-right-open]) [data-dsh-mobile-trigger] {
   display: none;
 }
 
