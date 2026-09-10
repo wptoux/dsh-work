@@ -7253,7 +7253,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		})()));
 	}));
 	//#endregion
-	//#region \0dsh-css:/root/dsh-work/plugins/dsh-better-sidebar/node_modules/.pnpm/@xterm+xterm@5.5.0/node_modules/@xterm/xterm/css/xterm.css.mjs
+	//#region \0dsh-css:/root/wt-dsh-work-bs019/plugins/dsh-better-sidebar/node_modules/.pnpm/@xterm+xterm@5.5.0/node_modules/@xterm/xterm/css/xterm.css.mjs
 	var import_xterm = require_xterm();
 	var import_addon_fit = require_addon_fit();
 	const css$1 = "/**\n * Copyright (c) 2014 The xterm.js authors. All rights reserved.\n * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)\n * https://github.com/chjj/term.js\n * @license MIT\n *\n * Permission is hereby granted, free of charge, to any person obtaining a copy\n * of this software and associated documentation files (the \"Software\"), to deal\n * in the Software without restriction, including without limitation the rights\n * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n * copies of the Software, and to permit persons to whom the Software is\n * furnished to do so, subject to the following conditions:\n *\n * The above copyright notice and this permission notice shall be included in\n * all copies or substantial portions of the Software.\n *\n * THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\n * THE SOFTWARE.\n *\n * Originally forked from (with the author's permission):\n *   Fabrice Bellard's javascript vt100 for jslinux:\n *   http://bellard.org/jslinux/\n *   Copyright (c) 2011 Fabrice Bellard\n *   The original design remains. The terminal itself\n *   has been extended to include xterm CSI codes, among\n *   other features.\n */\n\n/**\n *  Default styles for xterm.js\n */\n\n.xterm {\n    cursor: text;\n    position: relative;\n    user-select: none;\n    -ms-user-select: none;\n    -webkit-user-select: none;\n}\n\n.xterm.focus,\n.xterm:focus {\n    outline: none;\n}\n\n.xterm .xterm-helpers {\n    position: absolute;\n    top: 0;\n    /**\n     * The z-index of the helpers must be higher than the canvases in order for\n     * IMEs to appear on top.\n     */\n    z-index: 5;\n}\n\n.xterm .xterm-helper-textarea {\n    padding: 0;\n    border: 0;\n    margin: 0;\n    /* Move textarea out of the screen to the far left, so that the cursor is not visible */\n    position: absolute;\n    opacity: 0;\n    left: -9999em;\n    top: 0;\n    width: 0;\n    height: 0;\n    z-index: -5;\n    /** Prevent wrapping so the IME appears against the textarea at the correct position */\n    white-space: nowrap;\n    overflow: hidden;\n    resize: none;\n}\n\n.xterm .composition-view {\n    /* TODO: Composition position got messed up somewhere */\n    background: #000;\n    color: #FFF;\n    display: none;\n    position: absolute;\n    white-space: nowrap;\n    z-index: 1;\n}\n\n.xterm .composition-view.active {\n    display: block;\n}\n\n.xterm .xterm-viewport {\n    /* On OS X this is required in order for the scroll bar to appear fully opaque */\n    background-color: #000;\n    overflow-y: scroll;\n    cursor: default;\n    position: absolute;\n    right: 0;\n    left: 0;\n    top: 0;\n    bottom: 0;\n}\n\n.xterm .xterm-screen {\n    position: relative;\n}\n\n.xterm .xterm-screen canvas {\n    position: absolute;\n    left: 0;\n    top: 0;\n}\n\n.xterm .xterm-scroll-area {\n    visibility: hidden;\n}\n\n.xterm-char-measure-element {\n    display: inline-block;\n    visibility: hidden;\n    position: absolute;\n    top: 0;\n    left: -9999em;\n    line-height: normal;\n}\n\n.xterm.enable-mouse-events {\n    /* When mouse events are enabled (eg. tmux), revert to the standard pointer cursor */\n    cursor: default;\n}\n\n.xterm.xterm-cursor-pointer,\n.xterm .xterm-cursor-pointer {\n    cursor: pointer;\n}\n\n.xterm.column-select.focus {\n    /* Column selection mode */\n    cursor: crosshair;\n}\n\n.xterm .xterm-accessibility:not(.debug),\n.xterm .xterm-message {\n    position: absolute;\n    left: 0;\n    top: 0;\n    bottom: 0;\n    right: 0;\n    z-index: 10;\n    color: transparent;\n    pointer-events: none;\n}\n\n.xterm .xterm-accessibility-tree:not(.debug) *::selection {\n  color: transparent;\n}\n\n.xterm .xterm-accessibility-tree {\n  user-select: text;\n  white-space: pre;\n}\n\n.xterm .live-region {\n    position: absolute;\n    left: -9999px;\n    width: 1px;\n    height: 1px;\n    overflow: hidden;\n}\n\n.xterm-dim {\n    /* Dim should not apply to background, so the opacity of the foreground color is applied\n     * explicitly in the generated class and reset to 1 here */\n    opacity: 1 !important;\n}\n\n.xterm-underline-1 { text-decoration: underline; }\n.xterm-underline-2 { text-decoration: double underline; }\n.xterm-underline-3 { text-decoration: wavy underline; }\n.xterm-underline-4 { text-decoration: dotted underline; }\n.xterm-underline-5 { text-decoration: dashed underline; }\n\n.xterm-overline {\n    text-decoration: overline;\n}\n\n.xterm-overline.xterm-underline-1 { text-decoration: overline underline; }\n.xterm-overline.xterm-underline-2 { text-decoration: overline double underline; }\n.xterm-overline.xterm-underline-3 { text-decoration: overline wavy underline; }\n.xterm-overline.xterm-underline-4 { text-decoration: overline dotted underline; }\n.xterm-overline.xterm-underline-5 { text-decoration: overline dashed underline; }\n\n.xterm-strikethrough {\n    text-decoration: line-through;\n}\n\n.xterm-screen .xterm-decoration-container .xterm-decoration {\n	z-index: 6;\n	position: absolute;\n}\n\n.xterm-screen .xterm-decoration-container .xterm-decoration.xterm-decoration-top-layer {\n	z-index: 7;\n}\n\n.xterm-decoration-overview-ruler {\n    z-index: 8;\n    position: absolute;\n    top: 0;\n    right: 0;\n    pointer-events: none;\n}\n\n.xterm-decoration-top {\n    z-index: 2;\n    position: relative;\n}\n";
@@ -7268,7 +7268,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 	//#endregion
 	//#region src/client/locales.ts
 	/**
-	* Minimal zh/en copy for the sidebar. The copy follows the DSH i18n system:
+	* Minimal zh/en/ja copy for the sidebar. The copy follows the DSH i18n system:
 	* the client apply attaches the locale service (`ctx.locale`, provided by
 	* `@deepseek-ai/dsh-client-locale`) through {@link attachLocale}, and
 	* `t()`/`isZh()` resolve the active locale from it — the Host-backed
@@ -7276,12 +7276,51 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 	* Without an attached service (standalone/test compositions) the browser
 	* language is used, matching the previous behavior. The dictionaries are
 	* also registered into the DSH locale registry under {@link LOCALE_NS}.
+	*
+	* ja (Japanese) is opt-in through `@huanlin/dsh-plugin-better-locale`: when
+	* that plugin is installed, the client apply also calls
+	* {@link attachBetterLocale} with the override store. `t()` then consults
+	* the store's active override id first; if it is `'ja'` (or any id whose
+	* dict has the requested key) the ja text wins, otherwise the existing
+	* zh/en chain runs unchanged. better-locale itself patches
+	* `LocaleRuntime.prototype.lookup` so DSH's own translate chain also
+	* returns ja where the `betterSidebar` namespace has a ja entry — that
+	* path covers external callers of `ctx.locale.bind('betterSidebar')`,
+	* while the override-aware `t()` here covers better-sidebar's own
+	* components (which bypass `ctx.locale` and call `t()` directly).
 	*/
 	/** The zh dictionary (also registered into the DSH locale registry under {@link LOCALE_NS}). */
 	const zh = {
 		files: "文件",
+		guideDescFiles: "浏览工作区文件树，点开即预览或编辑",
+		guideDescGit: "Git 变更与本轮文件改动，双视角合一",
+		guideDescSubagent: "子代理拓扑与后台任务，实时状态",
+		guideDescSidechat: "继承当前会话上下文的独立追问线程",
+		guideDescTerminal: "真实 shell 终端（xterm + pty），断线重连",
+		guideDescBrowser: "内嵌网页浏览器，可接管聊天里的外链",
+		changesSessionEmpty: "本会话还没有文件操作",
+		changesRead: "读取",
+		changesMdReading: "阅读",
+		changesMdRaw: "原文",
+		changesHtmlRender: "渲染",
+		changesHtmlRaw: "原文",
+		changesPdfRender: "渲染",
+		changesPdfRaw: "原文",
+		changesWrite: "写入",
+		changesEdit: "编辑",
+		changesRunning: "执行中",
+		changesError: "出错",
+		changesRedactOn: "已开启脱敏：敏感内容以 [REDACTED] 显示；点击关闭（自担风险）",
+		changesRedactOff: "脱敏已关闭：将原样显示文件内容；点击开启",
+		changesRedactOnLabel: "脱敏中",
+		changesRedactOffLabel: "脱敏关",
+		changesRedactBanner: "已脱敏",
+		changesFold: "{count} 行…点击展开",
+		changesFoldLoading: "展开中…",
+		changesFoldUnavailable: "上下文未加载",
+		changesContext: "上下文",
+		changesPriorUnknown: "变更前的内容不在窗口内，显示为全新增",
 		explorer: "资源管理器",
-		git: "源代码管理",
 		terminal: "终端",
 		editor: "编辑器",
 		editorExplorer: "文件打开方式",
@@ -7296,10 +7335,6 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		editorSearchNoResults: "无匹配文件",
 		editorSearchTruncated: "结果过多，仅显示部分匹配",
 		editorEmptyHint: "从右侧文件树或上方路径输入框选择文件开始预览",
-		refreshFile: "刷新文件",
-		refreshDisabledUnsaved: "有未保存的修改，请先保存再刷新",
-		fileUpdatedBanner: "文件已在外部更新，点击刷新查看最新版本",
-		fileRefreshedNotice: "已刷新，文件已在外部更新",
 		openFileNewTab: "在新 Tab 中打开",
 		openFileSide: "在侧边打开",
 		openWithMenu: "在应用中打开",
@@ -7332,8 +7367,20 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		closeOtherTabs: "关闭其他页签",
 		closeLeftTabs: "关闭左侧页签",
 		closeRightTabs: "关闭右侧页签",
-		collapse: "折叠侧边栏",
-		expand: "展开侧边栏",
+		floatDropHint: "松开以在自由窗口中打开",
+		dockToSidebar: "回到侧边栏",
+		pinTerminal: "固定终端",
+		pinAgentTerminal: "固定 Agent 终端",
+		pinToWorkspace: "固定到工作区",
+		pinToGlobal: "固定到全局",
+		unpinTerminal: "取消固定",
+		pinnedTerminalTooltip: "{kind} · {scope} · {cwd}",
+		pinnedTerminalKindUi: "UI 终端",
+		pinnedTerminalKindAgent: "Agent 终端",
+		pinnedTerminalScopeWorkspace: "固定到工作区",
+		pinnedTerminalScopeGlobal: "固定到全局",
+		pinnedRailLabel: "固定终端",
+		closePinnedTerminal: "关闭终端",
 		collapseBottomPanel: "折叠底部面板",
 		expandBottomPanel: "展开底部面板",
 		terminalError: "终端连接失败",
@@ -7342,7 +7389,9 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		terminalDepsFailed: "终端依赖 node-pty 加载失败",
 		terminalDepsHint: "在 DSH 所在环境的终端或 cmd 中执行以下命令修复，然后点重试（node-pty 与 DSH 核心保持同一版本）：",
 		terminalDepsProfile: "（检测到 profile：{profile}）",
+		terminalShellNotFound: "未找到配置的 Shell：{name}，请到 设置 → 侧边卡片 → 终端 检查 Shell 路径",
 		preview: "预览",
+		toc: "目录",
 		edit: "编辑",
 		mermaidError: "Mermaid 渲染失败",
 		mermaidZoomIn: "放大",
@@ -7350,6 +7399,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		mermaidZoomReset: "重置",
 		mermaidZoomHint: "滚轮缩放 · 拖拽平移 · Esc 关闭",
 		refresh: "刷新",
+		refreshUnsavedConfirm: "文件已在磁盘更新，刷新将丢弃未保存编辑。继续吗？",
 		save: "保存",
 		saved: "已保存",
 		unsaved: "未保存",
@@ -7365,6 +7415,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		splitDown: "向下分栏",
 		notRepo: "当前目录不是 git 仓库",
 		noChanges: "没有变更",
+		statusTruncated: "变更过多，仅显示前 2000 条",
 		stage: "暂存",
 		unstage: "取消暂存",
 		stageAll: "全部暂存",
@@ -7373,9 +7424,18 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		commit: "提交",
 		commitError: "提交失败",
 		branch: "分支",
+		worktree: "工作树",
 		checkoutError: "切换分支失败",
 		history: "历史",
-		changes: "变更",
+		changes: "文件变动",
+		changesGitLens: "Git",
+		changesSessionLens: "本轮文件",
+		changesFilterAll: "全部",
+		changesFilterEmpty: "没有此类操作",
+		changesOpenDiffTab: "在独立页签中打开",
+		changesClosePreview: "关闭预览",
+		changesResizePreview: "调整预览高度",
+		changesLoadError: "会话文件记录暂不可用",
 		staged: "已暂存",
 		unstaged: "未暂存",
 		cancel: "取消",
@@ -7408,6 +7468,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		historyLoadError: "加载更多历史失败",
 		produced: "本次产出",
 		producedOpen: "在侧边栏中打开",
+		showInFolder: "在文件夹中显示",
 		disconnected: "终端连接断开，重连中…",
 		exited: "终端进程已退出",
 		noSession: "选择一个会话以使用侧边栏",
@@ -7423,6 +7484,13 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		addToConversation: "添加到对话",
 		copyRelative: "复制相对地址",
 		copyAbsolute: "复制绝对地址",
+		rename: "重命名",
+		renameInvalid: "名称不能为空，且不能包含路径分隔符。",
+		delete: "删除",
+		deleteTitle: "删除「{name}」？",
+		deleteDescFile: "将永久删除该文件，此操作不可撤销。",
+		deleteDescDir: "将永久删除该目录及其全部内容，此操作不可撤销。",
+		dismiss: "关闭",
 		download: "下载",
 		uploadFiles: "上传文件",
 		uploadFolder: "上传文件夹",
@@ -7441,13 +7509,8 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		settingsIntro: "管理侧边卡片的显示内容与默认行为",
 		settingsPopupDesc: "为「{feature}」配置相关选项",
 		settingsDone: "完成",
-		settingsOpenTitle: "新会话默认打开",
-		settingsOpenDesc: "新建会话时自动展开侧边卡片；已存在的会话保持各自布局",
-		settingsWidthTitle: "默认宽度占比",
-		settingsWidthDesc: "新建会话时侧边卡片占窗口宽度的百分比 (20–60)",
-		settingsWidthSuffix: "%",
-		settingsOpenPathTitle: "聊天区文件在侧边栏打开",
-		settingsOpenPathDesc: "在聊天里点击文件链接（工具行、产物列表、文件提及）时，在侧边栏编辑器中打开，不再调用系统默认应用",
+		settingsOpenToolsTitle: "为模型注入侧边栏打开工具",
+		settingsOpenToolsDesc: "开启后，模型可通过 sidebar_open 工具在侧边栏主动打开文件、文件夹和 HTTP(S) 网页（默认关闭）",
 		settingsTitleBarTitle: "位置兼容模式",
 		settingsTitleBarDesc: "选择顶栏兼容方案：自动检测（默认，保守）/ DSH官方Web / 已知桌面壳 / 自定义方案（下移距离 + 自定义 CSS）",
 		settingsTitleBarStripTitle: "下移距离",
@@ -7466,12 +7529,16 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		settingsConflict: "设置已被其他窗口修改，请重试",
 		binaryNoPreview: "此文件类型不支持预览",
 		downloadToView: "下载查看",
-		settingsSubagentTitle: "检测到子代理时自动展开任务管理页",
-		settingsSubagentDesc: "当前会话产生新的子代理时，自动展开侧边栏并打开任务管理页；关闭后需手动打开",
-		settingsJobsTitle: "有新后台任务时自动展开后台任务页",
-		settingsJobsDesc: "当前会话出现新的后台任务时，自动展开侧边栏并打开后台任务页（每个新任务都会触发）；关闭后需手动打开",
+		settingsSubagentTitle: "检测到子代理时自动激活任务管理页",
+		settingsSubagentDesc: "当前会话产生新的子代理时，自动激活任务管理页；宽屏同时展开侧边栏，窄屏不强制展开全屏抽屉；关闭后需手动打开",
+		settingsJobsTitle: "有新后台任务时自动激活任务管理页",
+		settingsJobsDesc: "当前会话出现新的后台任务时，自动激活任务管理页（每个新任务都会触发）；宽屏同时展开侧边栏，窄屏不强制展开全屏抽屉；关闭后需手动打开",
 		settingsToolsTitle: "为模型注入终端工具",
 		settingsToolsDesc: "开启后，模型可通过 terminal_create 等 8 个工具创建并操作侧边栏终端（默认关闭）",
+		settingsFenceTitle: "工作区路径检测",
+		settingsFenceDesc: "开启后，侧栏的文件功能仅能访问会话工作区内的路径（默认）；关闭后可访问主机上任意文件——关闭期间页面内脚本也将获得同等访问能力",
+		fenceErrorReason: "此路径在会话工作区之外，已被工作区检测拦截",
+		fenceDisableAction: "关闭工作区检测",
 		settingsBottomTerminalTitle: "底部面板首次展开自动开终端",
 		settingsBottomTerminalDesc: "每次会话中第一次展开底部面板时，尝试在底部面板自动打开一个新终端标签（终端数量上限仍会限制；默认开启）",
 		settingsFontFamilyTitle: "终端字体",
@@ -7523,6 +7590,9 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		settingsBrowserHttpDesc: "开启后，点击聊天或界面中的 HTTP 外链时在侧边栏打开（声明了 urlTarget 的插件页面优先）；Ctrl/Cmd 点击可临时放行",
 		settingsBrowserHttpsTitle: "侧边打开HTTPS网页",
 		settingsBrowserHttpsDesc: "开启后，点击聊天或界面中的 HTTPS 外链时在侧边栏打开。默认关闭：多数 HTTPS 站点拒绝被嵌入，走系统浏览器更顺畅",
+		settingsBrowserLoopbackTitle: "允许访问的本机地址",
+		settingsBrowserLoopbackDesc: "逗号分隔的本地回环地址白名单（如 localhost:5174 或 127.0.0.1:8080），侧边栏浏览器可访问这些本地服务；默认留空则本机地址全部拦截。沙箱隔离仍然生效，页面无法读取界面数据",
+		settingsBrowserLoopbackPlaceholder: "例如 localhost:5174, 127.0.0.1:8080",
 		browserOpenExternal: "在浏览器中打开",
 		browserEmbedBlocked: "{host} 拒绝了嵌入请求",
 		browserEmbedBlockedDesc: "该站点通过 X-Frame-Options / frame-ancestors 禁止在其它页面中显示，无法在侧边栏内加载。可在浏览器中直接打开",
@@ -7566,6 +7636,25 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		sideChatClose: "关闭线程",
 		sideChatCloseTitle: "释放线程的 agent（历史保留）",
 		sideChatError: "侧边对话出错：{message}",
+		sideChatTurnUsage: "输入 {input} tok · 输出 {output} tok",
+		sideChatBlockCollapse: "收起",
+		sideChatBlockCollapseAria: "收起",
+		sideChatBlockExpand: "展开 {hidden} 行",
+		sideChatBlockExpandAria: "展开其余 {hidden} 行",
+		sideChatBlockSignal: "信号终止：{signal}",
+		sideChatBlockExitCode: "退出码 {code}",
+		sideChatBlockRunning: "运行中",
+		sideChatBlockFailed: "失败",
+		sideChatBlockDone: "完成",
+		sideChatBlockNoOutput: "（无输出）",
+		sideChatBlockFiles: "{count} 个文件",
+		sideChatBlockWindow: "共 {total} 行 · 显示 {shown} 行",
+		sideChatConnDisconnected: "连接已断开",
+		sideChatConnReconnect: "重新连接",
+		sideChatConnConnecting: "正在重连…",
+		sideChatConnRecovered: "连接已恢复",
+		sideChatConnReconnectAction: "立即重连",
+		sideChatConnRestartAction: "重新发起连接",
 		jobs: "后台任务",
 		jobsCount: "{count} 个后台任务",
 		jobsCountRunning: "{count} 个后台任务 · {running} 运行中",
@@ -7599,22 +7688,78 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		addPluginsEmpty: "暂未收录插件，欢迎在 GitHub topic 下发布你的插件",
 		openPlugin: "跳转",
 		copyInstall: "复制安装命令",
+		pluginMdExportDesc: "在 better-sidebar 的 Markdown 工具栏上新增「导出」按钮：一键把当前 .md 渲染为独立 HTML（表格/代码块/Mermaid 图表内联，布局跟随预览主题）直接保存到同目录，或通过打印对话框导出为 PDF",
 		pluginOfficeDesc: "为 better-sidebar 编辑器提供 Office 三件套预览（.docx / .xlsx / .pptx），把重型 Office 渲染库拆出主包、按需安装",
 		pluginFlowglassDesc: "实时会话流程图：三列泳道展示用户、助手与工具调用，支持并行分组、子代理支线、逐层钻取和实时状态；安装 better-sidebar 后注册原生「流镜」Tab，未安装时保留独立抽屉",
 		pluginGitForgeDesc: "better-sidebar「Git 凭据」Tab：GitHub/Gitea 等 Forge 账号库 + 按项目授权 + push 策略硬拦；token 仅存本地 secrets，不进模型上下文；提供只读 GitForge 工具与 agent HTTPS credential helper",
+		pluginGithubWorkbenchDesc: "better-sidebar「GitHub 工作台」Tab：远端仓库目录树 + Issues / Pull requests / Actions 页签，读之外支持新建 Issue/PR、评论、编辑、关闭重开、squash·merge·rebase 合并（强确认）与重跑/取消 CI；仓库弹层自动拉取有权限列表并支持公开仓搜索；未装 better-sidebar 时自动降级为独立右侧面板",
+		pluginSuhuangScrollDesc: "把本地苏黄共阅 Runtime 接入 DSH 设置与 better-sidebar，支持模型配置、连接测试和连续阅卷控制；使用前需安装 Suhuang Scroll Runtime 与 dsh-better-sidebar",
+		pluginBetterOverleafDesc: "better-sidebar 的 Overleaf 标签页：直连 CDP 浏览器登录（支持第三方 Chromium），项目列表/切换，<workspace>/overleaf/ 本地 git 镜像，git 双向同步（API 只读兜底），文件预览走侧边栏工作台",
 		pluginGitRemotesDesc: "better-sidebar Git 远程 Tab：看分支/上游/ahead-behind，fetch（可 prune）、ff-only pull、确认后才 push。不替换内置 Git 的暂存/提交，也不提供 force-push 或模型自动推送",
 		pluginSentinelDesc: "条件驱动的 agent 唤醒系统：文件/进程/端口/HTTP/命令/webhook 传感器，条件达成自动唤醒休眠会话；注册「哨兵」Tab 展示服务器全局监控表",
+		pluginServerDeckDesc: "服务器卡片仪表盘：每台服务器一张卡片，展示在线状态、OS、运行时长、CPU/内存/磁盘用量与延迟；点卡片进入 xterm.js 交互终端，支持 ~/.ssh/config 一键导入（自动跳过 Git 托管别名）；安装 better-sidebar 后注册原生「服务器」Tab，未安装时保留独立抽屉",
 		pluginSidebarQaDesc: "基于 better-sidebar 的划选提问tab分页: 对话划选 → 右侧面板提问 → 同工作区独立追问会话（❓追问·主题）：快速无思考模型压缩主对话上下文后与引文一起注入，不打断主对话；追问可嵌套、可继续、可归档",
+		pluginSidenoteDesc: "Codex 风格侧边聊天与划选注释：从当前会话 fork 出独立侧边会话（归档隐藏、多实例并存、/side 命令、刷新/重启后恢复、模型跟随主会话）；assistant 消息划选 → 编号角标 + 注解编辑器 →「N 条注释」chip 随消息发出，也可直接进入侧边聊天提问",
 		pluginSshTunnelDesc: "better-sidebar「SSH 隧道」Tab：多机主机清单 + 按项目授权 + 密钥本地保管；模型工具 SSHManager（exec/SFTP/会话策略）；中央交互终端与双栏 SFTP",
 		pluginTurnReviewDesc: "对「刚刚这一回合」的 diff 做 Approve / Request changes 的人闸门：只审上一回合，不 fork 会话；文件按主会话/子代理/未归因分组，按文件勾选打回 + 可选评语，点文件先看回合开始快照 vs 现在的 diff。不是 /rewind",
 		pluginVideoPreviewDesc: "在 better-sidebar 编辑器内联预览视频文件（.mp4/.webm/.mov/.mkv/.avi 等），自带支持 HTTP Range（206）的 /video 宿主路由，可拖动进度条、不受 20MB mediaLimit 限制",
-		pluginDocsPanelDesc: "DSH 侧边栏里的「全局文档」：全局 Markdown 笔记，任何工作区随时可读——列表点选阅读、悬浮大纲跳转、Chrome / VS Code 外部打开、代码复制，目录可配置（默认 ~/.dsh/docs）"
+		pluginCodeNavDesc: "代码预览导航：按文件类型自动识别语言并高亮语法，符号大纲（类/方法/变量筛选 + 一键跳转），文件内查找（全部匹配高亮、上/下一处、区分大小写），接管 better-sidebar 的代码文件预览",
+		pluginDocsPanelDesc: "DSH 侧边栏里的「全局文档」：全局 Markdown 笔记，任何工作区随时可读——列表点选阅读、悬浮大纲跳转、Chrome / VS Code 外部打开、代码复制，目录可配置（默认 ~/.dsh/docs）",
+		pluginEgoBrowserDesc: "把 CitroLabs/ego-lite 接进 DeepSeek Harness 的 agent 浏览器：32 个 ego_* 工具驱动真实 Chromium，侧边栏原生「ego 浏览器」Tab 实时观察 agent 逛的每个页面，可直接点击/拖拽/输入接管；装 better-sidebar 时自动注册 Tab，没装则退回浮动浮窗",
+		pluginBilingualReaderDesc: "在 DSH 侧边栏读论文 PDF：原生 PDF 显示，选中一段文字即用大模型划词翻译，结合上下文、完全隔离主对话，只作阅读辅助",
+		pluginSentinelName: "dsh-sentinel 唤醒系统",
+		pluginEgoBrowserName: "ego-browser Agent 浏览器",
+		pluginBetterOverleafName: "dsh-better-overleaf Overleaf 标签页",
+		pluginDocsPanelName: "dsh-docs-panel 全局文档",
+		pluginFlowglassName: "dsh-flowglass 流镜",
+		pluginGitForgeName: "dsh-git-forge Git 凭据",
+		pluginGitRemotesName: "dsh-git-remotes Git 远程",
+		pluginGithubWorkbenchName: "dsh-github-workbench GitHub 工作台",
+		pluginSidebarQaName: "dsh-sidebar-qa 划选追问",
+		pluginSidenoteName: "dsh-sidenote 侧边聊天",
+		pluginServerDeckName: "dsh-server-deck 服务器甲板",
+		pluginSuhuangScrollName: "dsh-suhuang-scroll 苏黄共阅",
+		pluginSshTunnelName: "dsh-ssh-tunnel SSH 隧道",
+		pluginTurnReviewName: "dsh-turn-review 本轮审查",
+		pluginBilingualReaderName: "dsh-bilingual-reader 双语阅读",
+		pluginOfficeName: "Office 预览插件",
+		pluginMdExportName: "Markdown 导出插件",
+		pluginCodeNavName: "代码预览导航",
+		pluginVideoPreviewName: "视频预览插件",
+		presetDshDesktopDesc: "Electron 高级模式（无边框）：macOS 顶栏 20px、Windows 无 WCO 时 32px 标题栏让位"
 	};
 	/** The en dictionary (key-set-equal to zh, enforced by the type annotation). */
 	const en = {
 		files: "Files",
+		guideDescFiles: "Browse the workspace tree; click a file to preview or edit",
+		guideDescGit: "Git changes and this session's file edits, in one tab",
+		guideDescSubagent: "Subagent topology and background jobs, live",
+		guideDescSidechat: "An independent follow-up thread inheriting this session's context",
+		guideDescTerminal: "A real shell (xterm + pty) with reconnect",
+		guideDescBrowser: "An embedded browser that can take over chat links",
+		changesSessionEmpty: "No file operations in this session yet",
+		changesRead: "Read",
+		changesMdReading: "Reading",
+		changesMdRaw: "Raw",
+		changesHtmlRender: "Render",
+		changesHtmlRaw: "Raw",
+		changesPdfRender: "Render",
+		changesPdfRaw: "Raw",
+		changesWrite: "Write",
+		changesEdit: "Edit",
+		changesRunning: "running",
+		changesError: "error",
+		changesRedactOn: "Redaction on: secrets render as [REDACTED]; click to disable (at your own risk)",
+		changesRedactOff: "Redaction off: file content renders verbatim; click to enable",
+		changesRedactOnLabel: "Redacting",
+		changesRedactOffLabel: "Redaction off",
+		changesRedactBanner: "Redacted",
+		changesFold: "{count} lines…click to expand",
+		changesFoldLoading: "Expanding…",
+		changesFoldUnavailable: "Context unavailable",
+		changesContext: "context",
+		changesPriorUnknown: "Prior content is outside the loaded window; shown as all-added",
 		explorer: "Explorer",
-		git: "Source Control",
 		terminal: "Terminal",
 		editor: "Editor",
 		editorExplorer: "File open behavior",
@@ -7629,10 +7774,6 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		editorSearchNoResults: "No matching files",
 		editorSearchTruncated: "Too many results — showing a partial list",
 		editorEmptyHint: "Pick a file from the tree panel or the path input above to start previewing",
-		refreshFile: "Refresh file",
-		refreshDisabledUnsaved: "Unsaved changes — save first",
-		fileUpdatedBanner: "The file changed on disk — refresh to view the latest",
-		fileRefreshedNotice: "Refreshed — the file changed on disk",
 		openFileNewTab: "Open in New Tab",
 		openFileSide: "Open to the Side",
 		openWithMenu: "Open with",
@@ -7665,8 +7806,20 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		closeOtherTabs: "Close Other Tabs",
 		closeLeftTabs: "Close Tabs to the Left",
 		closeRightTabs: "Close Tabs to the Right",
-		collapse: "Collapse sidebar",
-		expand: "Expand sidebar",
+		floatDropHint: "Release to open in a free window",
+		dockToSidebar: "Dock Back to Sidebar",
+		pinTerminal: "Pin Terminal",
+		pinAgentTerminal: "Pin Agent Terminal",
+		pinToWorkspace: "Pin to Workspace",
+		pinToGlobal: "Pin Globally",
+		unpinTerminal: "Unpin",
+		pinnedTerminalTooltip: "{kind} · {scope} · {cwd}",
+		pinnedTerminalKindUi: "UI Terminal",
+		pinnedTerminalKindAgent: "Agent Terminal",
+		pinnedTerminalScopeWorkspace: "Pinned to workspace",
+		pinnedTerminalScopeGlobal: "Pinned globally",
+		pinnedRailLabel: "Pinned Terminals",
+		closePinnedTerminal: "Close Terminal",
 		collapseBottomPanel: "Collapse bottom panel",
 		expandBottomPanel: "Expand bottom panel",
 		terminalError: "Terminal connection failed",
@@ -7675,7 +7828,9 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		terminalDepsFailed: "Terminal dependency node-pty failed to load",
 		terminalDepsHint: "Run the command below in a terminal or cmd on the DSH machine to repair it, then retry (node-pty stays in sync with the DSH core version):",
 		terminalDepsProfile: " (detected profile: {profile})",
+		terminalShellNotFound: "Configured shell not found: {name} — check the shell path under Settings → Side card → Terminal",
 		preview: "Preview",
+		toc: "Table of contents",
 		edit: "Edit",
 		mermaidError: "Mermaid render failed",
 		mermaidZoomIn: "Zoom in",
@@ -7683,6 +7838,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		mermaidZoomReset: "Reset",
 		mermaidZoomHint: "Scroll to zoom · drag to pan · Esc to close",
 		refresh: "Refresh",
+		refreshUnsavedConfirm: "The file changed on disk. Refreshing will discard unsaved edits. Continue?",
 		save: "Save",
 		saved: "Saved",
 		unsaved: "Unsaved",
@@ -7698,6 +7854,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		splitDown: "Split down",
 		notRepo: "This directory is not a git repository",
 		noChanges: "No changes",
+		statusTruncated: "Too many changes; showing the first 2,000 entries",
 		stage: "Stage",
 		unstage: "Unstage",
 		stageAll: "Stage all",
@@ -7706,9 +7863,18 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		commit: "Commit",
 		commitError: "Commit failed",
 		branch: "Branch",
+		worktree: "Worktree",
 		checkoutError: "Branch switch failed",
 		history: "History",
 		changes: "Changes",
+		changesGitLens: "Git",
+		changesSessionLens: "Session",
+		changesFilterAll: "All",
+		changesFilterEmpty: "No operations of this kind",
+		changesOpenDiffTab: "Open in a diff tab",
+		changesClosePreview: "Close preview",
+		changesResizePreview: "Resize preview",
+		changesLoadError: "Session file records are unavailable right now",
 		staged: "Staged",
 		unstaged: "Unstaged",
 		cancel: "Cancel",
@@ -7741,6 +7907,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		historyLoadError: "Failed to load more history",
 		produced: "Produced",
 		producedOpen: "Open in sidebar",
+		showInFolder: "Show in folder",
 		disconnected: "Terminal disconnected, reconnecting…",
 		exited: "Terminal process exited",
 		noSession: "Select a conversation to use the sidebar",
@@ -7756,6 +7923,13 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		addToConversation: "Add to conversation",
 		copyRelative: "Copy relative path",
 		copyAbsolute: "Copy absolute path",
+		rename: "Rename",
+		renameInvalid: "The name cannot be empty or contain path separators.",
+		delete: "Delete",
+		deleteTitle: "Delete \"{name}\"?",
+		deleteDescFile: "This permanently deletes the file. This cannot be undone.",
+		deleteDescDir: "This permanently deletes the directory and everything inside it. This cannot be undone.",
+		dismiss: "Dismiss",
 		download: "Download",
 		uploadFiles: "Upload files",
 		uploadFolder: "Upload folder",
@@ -7774,13 +7948,8 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		settingsIntro: "Manage what the side card shows and how it behaves",
 		settingsPopupDesc: "Configure related options for {feature}",
 		settingsDone: "Done",
-		settingsOpenTitle: "Open by default for new conversations",
-		settingsOpenDesc: "Expand the side card automatically for brand-new conversations; existing conversations keep their own layouts",
-		settingsWidthTitle: "Default width share",
-		settingsWidthDesc: "The side card's default share of the window width for new conversations (20–60)",
-		settingsWidthSuffix: "%",
-		settingsOpenPathTitle: "Open chat files in the sidebar",
-		settingsOpenPathDesc: "Open file links in the chat (tool rows, produced files, mentions) in the sidebar editor instead of the system default app",
+		settingsOpenToolsTitle: "Inject the sidebar-open tool for the model",
+		settingsOpenToolsDesc: "When enabled, the model can actively open files, folders, and HTTP(S) pages in the sidebar through the sidebar_open tool (off by default)",
 		settingsTitleBarTitle: "Position compatibility mode",
 		settingsTitleBarDesc: "Pick the title-bar compatibility scheme: auto-detect (default, conservative) / DSH official web / known desktop shells / custom (shift distance + custom CSS)",
 		settingsTitleBarStripTitle: "Shift distance",
@@ -7799,12 +7968,16 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		settingsConflict: "The setting changed in another window — please retry",
 		binaryNoPreview: "This file type cannot be previewed",
 		downloadToView: "Download to view",
-		settingsSubagentTitle: "Auto-open the Tasks page when a subagent appears",
-		settingsSubagentDesc: "Expand the side card and open the Tasks page when the current conversation spawns a new subagent; turn off to open it manually",
-		settingsJobsTitle: "Auto-open the Jobs page on a new background job",
-		settingsJobsDesc: "Expand the side card and open the Jobs page whenever a new background job appears for the current conversation (every new job triggers); turn off to open it manually",
+		settingsSubagentTitle: "Auto-activate the Tasks page when a subagent appears",
+		settingsSubagentDesc: "Activate the Tasks page when the current conversation spawns a new subagent; wide viewports also expand the side card, while narrow full-screen drawers are not forced open; turn off to open it manually",
+		settingsJobsTitle: "Auto-activate the Tasks page on a new background job",
+		settingsJobsDesc: "Activate the Tasks page whenever a new background job appears for the current conversation (every new job triggers); wide viewports also expand the side card, while narrow full-screen drawers are not forced open; turn off to open it manually",
 		settingsToolsTitle: "Inject terminal tools for the model",
 		settingsToolsDesc: "When enabled, the model can create and drive sidebar terminals through the 8 terminal_* tools (off by default)",
+		settingsFenceTitle: "Workspace path fence",
+		settingsFenceDesc: "On, the sidebar's file features only reach paths inside the session workspace (default); off, any file on the host is reachable — page scripts gain the same reach while it is off",
+		fenceErrorReason: "This path is outside the session workspace and was blocked by the workspace fence",
+		fenceDisableAction: "Turn off the workspace fence",
 		settingsBottomTerminalTitle: "Auto-open a terminal on the bottom panel's first expansion",
 		settingsBottomTerminalDesc: "When the bottom panel is expanded for the first time in a session, try to open a fresh terminal tab there (the terminal quota still applies; on by default)",
 		settingsFontFamilyTitle: "Terminal font family",
@@ -7856,6 +8029,9 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		settingsBrowserHttpDesc: "When on, clicking an HTTP external link in the chat or GUI opens the sidebar (plugin pages declaring urlTarget win); Ctrl/Cmd+click always bypasses",
 		settingsBrowserHttpsTitle: "Open HTTPS pages in the sidebar",
 		settingsBrowserHttpsDesc: "When on, clicking an HTTPS external link in the chat or GUI opens the sidebar. Off by default: most HTTPS sites refuse to be embedded, so the system browser is the smoother default",
+		settingsBrowserLoopbackTitle: "Allowed local addresses",
+		settingsBrowserLoopbackDesc: "Comma-separated allowlist of loopback addresses (e.g. localhost:5174 or 127.0.0.1:8080) the sidebar browser may visit; empty blocks all local addresses by default. The sandbox still applies — pages cannot read GUI data",
+		settingsBrowserLoopbackPlaceholder: "e.g. localhost:5174, 127.0.0.1:8080",
 		browserOpenExternal: "Open in browser",
 		browserEmbedBlocked: "{host} refused to be embedded",
 		browserEmbedBlockedDesc: "The site forbids being displayed inside other pages (X-Frame-Options / frame-ancestors), so it cannot load in the sidebar. Open it directly in your browser instead.",
@@ -7899,6 +8075,25 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		sideChatClose: "Close thread",
 		sideChatCloseTitle: "Release the thread's agent (history is kept)",
 		sideChatError: "Side Chat error: {message}",
+		sideChatTurnUsage: "Input {input} tok · Output {output} tok",
+		sideChatBlockCollapse: "Collapse",
+		sideChatBlockCollapseAria: "Collapse",
+		sideChatBlockExpand: "Expand {hidden} lines",
+		sideChatBlockExpandAria: "Expand {hidden} more lines",
+		sideChatBlockSignal: "Killed by signal: {signal}",
+		sideChatBlockExitCode: "Exit code {code}",
+		sideChatBlockRunning: "Running",
+		sideChatBlockFailed: "Failed",
+		sideChatBlockDone: "Done",
+		sideChatBlockNoOutput: "(no output)",
+		sideChatBlockFiles: "{count} files",
+		sideChatBlockWindow: "{shown} of {total} lines",
+		sideChatConnDisconnected: "Connection lost",
+		sideChatConnReconnect: "Reconnect",
+		sideChatConnConnecting: "Reconnecting…",
+		sideChatConnRecovered: "Connection restored",
+		sideChatConnReconnectAction: "Reconnect now",
+		sideChatConnRestartAction: "Restart connection",
 		jobs: "Background jobs",
 		jobsCount: "{count} background jobs",
 		jobsCountRunning: "{count} background jobs · {running} running",
@@ -7932,16 +8127,45 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		addPluginsEmpty: "No plugins curated yet — publish yours under the GitHub topic",
 		openPlugin: "Open",
 		copyInstall: "Copy install command",
+		pluginMdExportDesc: "Adds an \"Export\" button to the Markdown toolbar in better-sidebar: one click renders the current .md into standalone HTML (tables / code blocks / Mermaid diagrams inlined, layout follows the preview theme) and saves it next to the .md, or exports to PDF via the print dialog",
 		pluginOfficeDesc: "Office-suite preview (.docx / .xlsx / .pptx) for the better-sidebar editor, keeping the heavy Office render libraries out of the core bundle",
 		pluginFlowglassDesc: "Live session flowgraph with three lanes for user, assistant, and tool calls, plus parallel groups, sub-agent branches, drill-down, and live status; registers a native Flowglass tab when better-sidebar is installed and keeps its standalone drawer as a fallback",
 		pluginGitForgeDesc: "Git Forge tab: GitHub/Gitea (and other forge) account library + per-project grants + hard push policy; tokens stay in local secrets (never in model context); read-only GitForge tool and agent HTTPS credential helper",
+		pluginGithubWorkbenchDesc: "GitHub Workbench tab: remote repo tree + Issues / Pull requests / Actions with full write support — create Issue/PR, comment, edit, close/reopen, squash·merge·rebase merge (strong confirm), re-run/cancel CI; the repo switcher auto-lists accessible repos and searches public ones; falls back to a standalone right-side panel without better-sidebar",
 		pluginGitRemotesDesc: "Git Remotes tab: branch/upstream/ahead-behind, fetch (optional prune), ff-only pull, and push only after an in-tab confirm. Does not replace the built-in Git stage/commit tab, and does not offer force-push or a model auto-push tool",
+		pluginServerDeckDesc: "Server card dashboard: one card per host showing online status, OS, uptime and CPU/mem/disk usage with latency; click a card to open an interactive xterm.js terminal; one-click ~/.ssh/config import (git-hosting aliases auto-skipped). Registers a native \"Servers\" tab when better-sidebar is installed and keeps its standalone drawer as a fallback",
 		pluginSentinelDesc: "Condition-driven agent wakeup: file/process/port/http/command/webhook sensors wake dormant sessions when conditions fire; registers a \"Sentinel\" tab with the server-wide watch table",
 		pluginSidebarQaDesc: "Select-and-ask: Select conversation text → ask in the right-side panel → a dedicated follow-up session (❓追问) in the same workspace; a fast no-thinking model compresses the main context and injects it with the quote, without interrupting the main conversation. Follow-ups nest, continue, and archive",
+		pluginSidenoteDesc: "Codex-style side chat + selection annotations: fork the current session into a persistent side panel (archived out of the session list, multi-instance, /side command, survives reload, model follows the main session); select assistant text → numbered badge + note editor → an \"N annotations\" chip that rides your next message, or ask straight into a side chat",
 		pluginSshTunnelDesc: "SSH Tunnel tab: multi-host inventory + per-project grants + local secrets; SSHManager tool (exec/SFTP/session strategies); center interactive terminal and dual-pane SFTP",
+		pluginSuhuangScrollDesc: "Connect the local Suhuang Scroll Runtime to DSH settings and better-sidebar for model configuration, connection tests, and continuous grading controls; requires Suhuang Scroll Runtime and dsh-better-sidebar",
 		pluginTurnReviewDesc: "A human gate on the just-finished turn: Approve / Request changes per path with an optional comment; paths grouped by main session / subagent / unattributed; inline snapshot-vs-now diff before you decide. No fork, no /rewind",
 		pluginVideoPreviewDesc: "Inline video preview (.mp4/.webm/.mov/.mkv/.avi etc.) for the better-sidebar editor, backed by a dedicated /video host route with HTTP Range (206) support — scrubbing works and files are not capped by the 20MB mediaLimit",
-		pluginDocsPanelDesc: "Global docs in the DSH sidebar: read your own Markdown notes from any workspace — a file list, an outline, open in Chrome / VS Code, and copy buttons; the docs directory is configurable (default ~/.dsh/docs)"
+		pluginCodeNavDesc: "Code preview navigator: detects the language by file type and highlights syntax, symbol outline (class / method / variable filters + one-click jump), and in-file search (highlight all matches, prev/next, match case) — takes over code file preview in the better-sidebar editor",
+		pluginDocsPanelDesc: "Global docs in the DSH sidebar: read your own Markdown notes from any workspace — a file list, an outline, open in Chrome / VS Code, and copy buttons; the docs directory is configurable (default ~/.dsh/docs)",
+		pluginEgoBrowserDesc: "The agent browser for DeepSeek Harness: 32 ego_* tools drive a real Chromium, with a native sidebar \"ego browser\" tab giving a live view of every page the agent visits — you can click, drag, and type to take over. Registers the tab automatically when better-sidebar is present, otherwise falls back to a floating bubble",
+		pluginBetterOverleafDesc: "Overleaf tab for better-sidebar: direct-CDP browser login (third-party Chromium supported), project list/switch, local git mirrors under <workspace>/overleaf/, two-way git sync with read-only API fallback, and file preview through the sidebar workbench",
+		pluginBilingualReaderDesc: "Read paper PDFs in the DSH sidebar: native PDF rendering, select text to translate it with the LLM, using context while staying fully isolated from the main conversation — a reading aid only",
+		pluginSentinelName: "dsh-sentinel Wake-up System",
+		pluginEgoBrowserName: "ego-browser Agent Browser",
+		pluginBetterOverleafName: "dsh-better-overleaf Overleaf Tab",
+		pluginDocsPanelName: "dsh-docs-panel Global Docs",
+		pluginFlowglassName: "dsh-flowglass Flowglass",
+		pluginGitForgeName: "dsh-git-forge Git Credentials",
+		pluginGitRemotesName: "dsh-git-remotes Git Remotes",
+		pluginGithubWorkbenchName: "dsh-github-workbench GitHub Workbench",
+		pluginSidebarQaName: "dsh-sidebar-qa Select & Ask",
+		pluginSidenoteName: "dsh-sidenote Side Chat",
+		pluginServerDeckName: "dsh-server-deck Server Deck",
+		pluginSuhuangScrollName: "dsh-suhuang-scroll Suhuang Scroll",
+		pluginSshTunnelName: "dsh-ssh-tunnel SSH Tunnel",
+		pluginTurnReviewName: "dsh-turn-review Turn Review",
+		pluginBilingualReaderName: "dsh-bilingual-reader Bilingual Reader",
+		pluginOfficeName: "Office Preview",
+		pluginMdExportName: "Markdown Export",
+		pluginCodeNavName: "Code Preview Navigator",
+		pluginVideoPreviewName: "Video Preview",
+		presetDshDesktopDesc: "Electron advanced (frameless) mode: macOS reserves a 20px top strip; Windows reserves a 32px title bar when WCO is unavailable"
 	};
 	/**
 	* The active locale id ('zh' | 'en'): the DSH locale service's snapshot when
@@ -7952,10 +8176,74 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 	}
 	/** Translate a copy key; `{name}` placeholders interpolate from `params`. */
 	function t(key, params) {
-		let text = (activeLocale().toLowerCase().startsWith("zh") ? zh : en)[key];
+		let text = void 0;
+		if (text === void 0) text = (activeLocale().toLowerCase().startsWith("zh") ? zh : en)[key];
+		if (text === void 0) text = key;
 		if (params !== void 0) for (const [name, value] of Object.entries(params)) text = text.replaceAll(`{${name}}`, String(value));
 		return text;
 	}
+	//#endregion
+	//#region src/client/one-dark-palette.ts
+	/**
+	* The single source for the syntax color families the app's code surfaces
+	* use: one-dark for the dark scheme, one-light for the light scheme. Two
+	* lazy-chunk consumers assemble their theme objects from these constants —
+	* the terminal's curated ANSI 16 (TerminalView.tsx) and CodeMirror's
+	* highlight rules (cm-themes.ts) — so a family color is defined exactly
+	* once and the two views can never drift apart.
+	*
+	* The palette holds only the syntax hues; surface colors (background,
+	* foreground, caret, gutter) are theme-token driven and selection tints /
+	* token-fallback colors stay with their consumers (they are not part of
+	* the designed syntax families).
+	*
+	* Chunk boundary: this module is inlined into BOTH lazy chunks that import
+	* it (terminal and editor) — the constants are plain strings, the per-chunk
+	* copy is a few hundred bytes, and no cross-chunk import is introduced. The
+	* core bundle does not (and must not) import this module.
+	*/
+	/** one-dark family (dark scheme) syntax hues. */
+	const ONE_DARK = {
+		/** Editor-background tone; ANSI black. */
+		black: "#282c34",
+		/** Default foreground gray; ANSI white. */
+		gray: "#abb2bf",
+		/** Comment gray; ANSI bright black. */
+		faintGray: "#5c6370",
+		/** Pure white; ANSI bright white and the invalid-token color. */
+		white: "#ffffff",
+		red: "#e06c75",
+		green: "#98c379",
+		yellow: "#e5c07b",
+		blue: "#61afef",
+		magenta: "#c678dd",
+		cyan: "#56b6c2",
+		/** Numbers, bools, atoms, attribute names. */
+		orange: "#d19a66"
+	};
+	/** one-light family (light scheme) syntax hues. */
+	const ONE_LIGHT = {
+		/** Foreground dark; ANSI black and the operator color. */
+		black: "#383a42",
+		/** Comment gray; ANSI white. */
+		gray: "#a0a1a7",
+		/** ANSI bright black. */
+		faintGray: "#4f525e",
+		/** Pure white; the invalid-token color (stays white in light for contrast). */
+		white: "#ffffff",
+		/** Off-white; ANSI bright white. */
+		offWhite: "#fafafa",
+		red: "#e45649",
+		green: "#50a14f",
+		yellow: "#c18401",
+		blue: "#0184bc",
+		magenta: "#a626a4",
+		cyan: "#0997b3",
+		/** Numbers and attribute names. */
+		orange: "#986801",
+		/** Markdown links — the light family's dedicated link blue (dark rides blue). */
+		link: "#4078f2"
+	};
 	//#endregion
 	//#region src/client/open-when-sized.ts
 	/**
@@ -8006,6 +8294,18 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 			this.code = code;
 		}
 	};
+	/**
+	* Parse one `/sidebar` JSON response envelope into its value. A non-ok
+	* status, an unparseable body, or any shape other than `{ok: true, value}`
+	* surfaces as {@link SidebarApiError} carrying the wire code (falling back
+	* to the HTTP status). Shared by the JSON api route and the raw upload
+	* route, whose envelopes are identical.
+	*/
+	async function readEnvelope(response) {
+		const parsed = await response.json().catch(() => null);
+		if (!response.ok || parsed === null || parsed.ok !== true || parsed.value === void 0) throw new SidebarApiError(parsed?.error?.code ?? "http", parsed?.error?.message ?? `HTTP ${response.status}`);
+		return parsed.value;
+	}
 	async function call(method, payload, signal) {
 		let response;
 		try {
@@ -8018,9 +8318,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		} catch (error) {
 			throw new SidebarApiError("network", error instanceof Error ? error.message : String(error));
 		}
-		const parsed = await response.json().catch(() => null);
-		if (!response.ok || parsed === null || parsed.ok !== true || parsed.value === void 0) throw new SidebarApiError(parsed?.error?.code ?? "http", parsed?.error?.message ?? `HTTP ${response.status}`);
-		return parsed.value;
+		return readEnvelope(response);
 	}
 	/**
 	* Upload one file to the sidebar's raw upload route: the File goes straight
@@ -8048,17 +8346,54 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 			if (error instanceof DOMException && error.name === "AbortError") throw error;
 			throw new SidebarApiError("network", error instanceof Error ? error.message : String(error));
 		}
-		const parsed = await response.json().catch(() => null);
-		if (!response.ok || parsed === null || parsed.ok !== true || parsed.value === void 0) throw new SidebarApiError(parsed?.error?.code ?? "http", parsed?.error?.message ?? `HTTP ${response.status}`);
-		return parsed.value;
+		return readEnvelope(response);
 	}
 	/** Fold a scope into a JSON payload ({cwd} only when present). */
 	function scopePayload(scope, extra) {
 		return {
 			sessionId: scope.sessionId,
 			...scope.cwd !== void 0 && scope.cwd !== "" ? { cwd: scope.cwd } : {},
+			...scope.repoRoot !== void 0 && scope.repoRoot !== "" ? { repoRoot: scope.repoRoot } : {},
 			...extra
 		};
+	}
+	/** Add a linked-worktree selection to a scoped Git request. The host validates
+	* membership before using it as a command cwd. */
+	function gitPayload(scope, worktree, extra) {
+		return scopePayload(scope, {
+			...worktree !== void 0 && worktree !== "" ? { worktree } : {},
+			...extra
+		});
+	}
+	/**
+	* Remote VSCode-family URLs must be consumed on the browser/client machine:
+	* the DSH host can be a headless remote server with no editor or DISPLAY.
+	* Local editor URLs and reveal actions still belong to the host opener.
+	*/
+	function shouldOpenExternalOnClient(payload) {
+		if (payload.action !== "url") return false;
+		let parsed;
+		try {
+			parsed = new URL(payload.url);
+		} catch {
+			return false;
+		}
+		return parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.hostname === "vscode-remote" && parsed.pathname.startsWith("/ssh-remote+");
+	}
+	/**
+	* Dispatch an external-open request to the correct machine. SSH remote-editor
+	* URLs stay in the synchronous user-click chain and navigate the client so
+	* its registered vscode:// / cursor:// handler can launch. Everything else
+	* keeps using the DSH host route.
+	*/
+	function openExternal(payload) {
+		if (!shouldOpenExternalOnClient(payload)) return call("open.external", payload);
+		try {
+			window.location.assign(payload.url);
+			return Promise.resolve({ started: true });
+		} catch (error) {
+			return Promise.reject(error);
+		}
 	}
 	/** The sidebar API surface (session scope threaded through every call). */
 	const api = {
@@ -8067,40 +8402,60 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		/** Global recursive file-name search rooted at the session cwd (the editor
 		*  side panel's search box); matches are cwd-relative '/'-separated paths. */
 		fsSearch: (scope, query, signal) => call("fs.search", scopePayload(scope, { query }), signal),
-		fsRead: (scope, path, signal, opts) => call("fs.read", scopePayload(scope, {
-			path,
-			...opts?.metaOnly === true ? { metaOnly: true } : {}
-		}), signal),
+		fsRead: (scope, path, signal) => call("fs.read", scopePayload(scope, { path }), signal),
 		fsWrite: (scope, path, content) => call("fs.write", scopePayload(scope, {
 			path,
 			content
 		})),
+		/** Rename one tree row within its directory (single-segment name; the
+		*  server refuses existing destinations, the workspace root, and — while
+		*  the fence is armed — anything resolving outside the workspace). */
+		fsRename: (scope, path, name) => call("fs.rename", scopePayload(scope, {
+			path,
+			name
+		})),
+		/** Permanently delete one tree row (recursive for directories; a symlink
+		*  row unlinks the link only). The UI confirms before calling this. */
+		fsRemove: (scope, path) => call("fs.remove", scopePayload(scope, { path })),
 		/** Upload one file's raw bytes into `dir` (keeps the folder tree via
 		*  `relativePath`); the host streams it under the session workspace. */
 		uploadFile: (scope, dir, relativePath, body, signal) => fetchUpload(scope, dir, relativePath, body, signal),
-		gitStatus: (scope, signal) => call("git.status", scopePayload(scope, {}), signal),
-		gitDiff: (scope, path, staged, signal) => call("git.diff", scopePayload(scope, {
+		gitWorktrees: (scope, signal) => call("git.worktrees", scopePayload(scope, {}), signal),
+		gitStatus: (scope, worktree, signal) => call("git.status", gitPayload(scope, worktree, {}), signal),
+		gitDiff: (scope, path, staged, worktree, signal) => call("git.diff", gitPayload(scope, worktree, {
 			...path !== void 0 ? { path } : {},
 			staged
 		}), signal),
-		gitStage: (scope, path) => call("git.stage", scopePayload(scope, { ...path !== void 0 ? { path } : {} })),
-		gitUnstage: (scope, path) => call("git.unstage", scopePayload(scope, { ...path !== void 0 ? { path } : {} })),
-		gitCommit: (scope, message) => call("git.commit", scopePayload(scope, { message })),
-		gitBranch: (scope, signal) => call("git.branch", scopePayload(scope, {}), signal),
-		gitCheckout: (scope, branch) => call("git.checkout", scopePayload(scope, { branch })),
+		gitStage: (scope, path, worktree) => call("git.stage", gitPayload(scope, worktree, { ...path !== void 0 ? { path } : {} })),
+		gitUnstage: (scope, path, worktree) => call("git.unstage", gitPayload(scope, worktree, { ...path !== void 0 ? { path } : {} })),
+		gitCommit: (scope, message, worktree) => call("git.commit", gitPayload(scope, worktree, { message })),
+		gitBranch: (scope, worktree, signal) => call("git.branch", gitPayload(scope, worktree, {}), signal),
+		gitCheckout: (scope, branch, worktree) => call("git.checkout", gitPayload(scope, worktree, { branch })),
 		/** Recent commit history, lazily pageable (skip/count; defaults 0/30). */
-		gitLog: (scope, count, skip, signal) => call("git.log", scopePayload(scope, {
+		gitLog: (scope, count, skip, worktree, signal) => call("git.log", gitPayload(scope, worktree, {
 			...count !== void 0 ? { count } : {},
 			...skip !== void 0 ? { skip } : {}
 		}), signal),
 		/** Full patch text of one commit (diff display for the history rows). */
-		gitCommitDiff: (scope, hash, signal) => call("git.commit-diff", scopePayload(scope, { hash }), signal),
+		gitCommitDiff: (scope, hash, worktree, signal) => call("git.commit-diff", gitPayload(scope, worktree, { hash }), signal),
+		/** One file's content at a revision (`git show <rev>:<path>`); null when the
+		*  revision has no such path. The diff views' on-demand hunk-fold expansion
+		*  reads both sides' full contents through this. */
+		gitShow: (scope, rev, path, worktree, signal) => call("git.show", gitPayload(scope, worktree, {
+			rev,
+			path
+		}), signal),
+		/** The session's file-tool events for the changes tab's session lens: the
+		*  `tool/call` + `tool/result` rows past `afterSeq` (0 = whole window),
+		*  capped to the recent window host-side. The client runtime exposes no
+		*  event-log face, so the lens polls this delta route. */
+		changesOps: (scope, afterSeq, signal) => call("changes.ops", scopePayload(scope, { ...afterSeq !== void 0 && afterSeq > 0 ? { afterSeq } : {} }), signal),
 		/** Discard the worktree changes of one file (the index is untouched). */
-		gitDiscard: (scope, path) => call("git.discard", scopePayload(scope, { path })),
+		gitDiscard: (scope, path, worktree) => call("git.discard", gitPayload(scope, worktree, { path })),
 		/** Revert one commit onto the current branch. */
-		gitRevert: (scope, hash) => call("git.revert", scopePayload(scope, { hash })),
+		gitRevert: (scope, hash, worktree) => call("git.revert", gitPayload(scope, worktree, { hash })),
 		/** Cherry-pick one commit onto the current branch. */
-		gitCherryPick: (scope, hash) => call("git.cherry-pick", scopePayload(scope, { hash })),
+		gitCherryPick: (scope, hash, worktree) => call("git.cherry-pick", gitPayload(scope, worktree, { hash })),
 		/** Release a terminal's process immediately (tab closed; the WS close frame
 		*  may be unreachable while the socket is down, so the host also accepts
 		*  this explicit route). */
@@ -8146,6 +8501,16 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		sidechatDispose: (childId) => call("sidechat.dispose", { childId }),
 		/** Live state + agent identity (provider/model/preset) of a thread. */
 		sidechatInfo: (childId) => call("sidechat.info", { childId }),
+		/** One transcript pull of a Side Chat thread: the thread's OWN events
+		*  (the inherited seed is cut host-side and never crosses the wire).
+		*  `afterSeq` narrows the response to the delta beyond it (poll tail).
+		*  `live` is the thread's in-flight model deltas (DSH 0.1.5 publishes them
+		*  outside the session log) — the CURRENT attempt on every pull, never a
+		*  delta, so the caller replaces its live set instead of appending. */
+		sidechatEvents: (childId, afterSeq, signal) => call("sidechat.events", {
+			childId,
+			...afterSeq !== void 0 ? { afterSeq } : {}
+		}, signal),
 		/** The effective terminal shell and its display name (plugin-global). */
 		shellGet: () => call("shell.get", {}),
 		/** Read the side card preferences (plugin-global, no session scope). */
@@ -8158,30 +8523,15 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		/** Probe a URL's response headers (the sidebar browser's embeddability
 		*  check; see the host's browser.probe route). */
 		browserProbe: (url, signal) => call("browser.probe", { url }, signal),
-		/** External open for the file tree's "open with" menu: reveal a path in
-		*  the OS file manager, or hand a custom-scheme URL (vscode://, cursor://,
-		*  zed://, custom editors) to its registered handler. The host launches
-		*  the platform opener (argv, no shell). */
-		openExternal: (payload) => call("open.external", payload)
+		/** External open for the file tree's "open with" menu. Remote SSH editor
+		*  URLs are launched on the browser/client machine; reveal and local URLs
+		*  keep using the host's platform opener. */
+		openExternal
 	};
 	/** Clamp one terminal font size into the contract range (shared by schema and client reads). */
 	function clampTerminalFontSize(value) {
 		return Math.min(32, Math.max(9, Math.round(value)));
 	}
-	//#endregion
-	//#region src/client/breakpoints.ts
-	/**
-	* Narrow-viewport ("mobile") breakpoint for the sidebar. Width-based, shared
-	* by the layout logic (JS) and the style gates (CSS). The CSS side pairs
-	* with this file via `@media (max-width: 767px)` rules (sidebar.module.css)
-	* — 767px ≡ widths below NARROW_MAX_WIDTH, documented at both ends.
-	*
-	* "Real narrow" on purpose: the mobile layout (one full-screen drawer, the
-	* bottom panel's tabs merged into the right sidebar) is a phone / portrait
-	* tablet experience. The value is deliberately NOT aligned to the DSH app
-	* shell's own 1024px breakpoint — 1024px windows (small laptops, split
-	* panes) keep the desktop two-panel layout.
-	*/
 	//#endregion
 	//#region src/client/state.ts
 	/** Prefix marking a tab id as an agent-owned terminal (suffix is the uuid). */
@@ -8302,23 +8652,419 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 			observer.disconnect();
 		};
 	}
+	//#endregion
+	//#region src/client/terminal-font.ts
+	/**
+	* Terminal font resolution: the user's custom font prefs (SidebarPrefs,
+	* configured under the terminal card's secondary settings) turned into the
+	* xterm options. Kept as a pure module (no DOM, no xterm) so the fallback
+	* chain and clamping are unit-testable without mounting a terminal.
+	*/
+	/** The built-in fallback stack when neither the user nor the theme sets one. */
+	const DEFAULT_TERMINAL_FONT_FAMILY = "\"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace";
+	/**
+	* Icon fonts appended to whichever base stack wins, so shell prompts that
+	* draw glyphs from the Nerd Font Private Use Areas resolve to a real glyph
+	* instead of the missing-glyph box (aka tofu).
+	*
+	* Why this is needed even though the OS "should" fall back automatically:
+	* prompt frameworks (starship, powerlevel10k, oh-my-posh) take their icons
+	* from the PUA. Chromium's implicit system fallback reliably covers the
+	* *BMP* PUA (U+E000–U+F8FF — e.g. the U+E0B0 powerline separator) but NOT
+	* the *supplementary-plane* PUA-B (U+F0000+) where Nerd Fonts v3 relocated
+	* the Material Design icon set. Naming the families explicitly makes the
+	* browser consult them per character, which covers both planes.
+	*
+	* Deliberately NOT listed: color-emoji families. Chromium routes genuine
+	* emoji code points through a dedicated emoji fallback path (which is why
+	* emoji already render), so naming them buys nothing here — while placing a
+	* color font ahead of the generic family risks capturing BMP symbols the
+	* prompt expects in monospace (U+26A0 ⚠, U+2714 ✔ …) and rendering them as
+	* wide color glyphs that break the cell grid.
+	*
+	* Ordering rationale: the symbols-only patches ship glyphs without Latin,
+	* so they can never hijack ASCII metrics — the safest first hop. The
+	* fully-patched distributions follow for users who installed one of those
+	* instead. Both the `… Mono` and proportional family names are listed
+	* because the Nerd Fonts installers register them as distinct families.
+	*
+	* These are strictly *appended*, never prepended: xterm derives its cell
+	* metrics from the first entry, so the base font must stay in front or the
+	* whole grid would be re-measured against an icon font.
+	*/
+	const ICON_FONT_FALLBACKS = [
+		"\"Symbols Nerd Font Mono\"",
+		"\"Symbols Nerd Font\"",
+		"\"Hack Nerd Font Mono\"",
+		"\"Hack Nerd Font\"",
+		"\"JetBrainsMono Nerd Font Mono\"",
+		"\"JetBrainsMono Nerd Font\"",
+		"\"FiraCode Nerd Font Mono\"",
+		"\"FiraCode Nerd Font\"",
+		"\"CaskaydiaCove Nerd Font Mono\"",
+		"\"CaskaydiaCove Nerd Font\"",
+		"\"SauceCodePro Nerd Font Mono\"",
+		"\"UbuntuMono Nerd Font Mono\"",
+		"\"Iosevka Nerd Font Mono\"",
+		"\"MesloLGS Nerd Font Mono\"",
+		"\"MesloLGS NF\""
+	];
+	/** The symbols-only patch count at the head of {@link ICON_FONT_FALLBACKS}
+	*  (these carry no Latin glyphs, so they can never hijack ASCII metrics). */
+	const SYMBOLS_ONLY_COUNT = 2;
+	/**
+	* CSS generic font families. A generic is a catch-all that always resolves,
+	* so icon fonts must be spliced in *before* the first one to stay reachable.
+	*/
+	const GENERIC_FAMILIES = /* @__PURE__ */ new Set([
+		"monospace",
+		"serif",
+		"sans-serif",
+		"cursive",
+		"fantasy",
+		"system-ui",
+		"ui-monospace",
+		"ui-serif",
+		"ui-sans-serif",
+		"ui-rounded",
+		"math",
+		"emoji",
+		"fangsong"
+	]);
+	/**
+	* CSS-wide keywords. These are only valid as an *entire* declaration value,
+	* so a stack cannot be appended to one.
+	*/
+	const CSS_WIDE_KEYWORDS = /* @__PURE__ */ new Set([
+		"inherit",
+		"initial",
+		"unset",
+		"revert",
+		"revert-layer"
+	]);
+	/** Normalize one family name for comparison: unquote, collapse runs of
+	*  whitespace, casefold. */
+	function normalizeFamily(family) {
+		return family.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+	}
+	/**
+	* Split a CSS font-family stack on its top-level commas.
+	*
+	* Naive `split(',')` would corrupt quoted family names containing a comma
+	* and function values such as `var(--x, monospace)`, so quotes (with
+	* backslash escapes) and parentheses are tracked.
+	*
+	* @param stack - a CSS font-family stack.
+	* @returns the trimmed, non-empty family entries in source order.
+	*/
+	function splitFamilies(stack) {
+		const entries = [];
+		let buffer = "";
+		let quote = null;
+		let depth = 0;
+		for (let i = 0; i < stack.length; i += 1) {
+			const char = stack[i];
+			if (quote !== null) {
+				if (char === "\\" && i + 1 < stack.length) {
+					buffer += char + stack[i + 1];
+					i += 1;
+					continue;
+				}
+				buffer += char;
+				if (char === quote) quote = null;
+				continue;
+			}
+			if (char === "\"" || char === "'") {
+				quote = char;
+				buffer += char;
+				continue;
+			}
+			if (char === "(") depth += 1;
+			else if (char === ")") depth = Math.max(0, depth - 1);
+			else if (char === "," && depth === 0) {
+				entries.push(buffer);
+				buffer = "";
+				continue;
+			}
+			buffer += char;
+		}
+		entries.push(buffer);
+		return entries.map((entry) => entry.trim()).filter((entry) => entry !== "");
+	}
+	/**
+	* Append {@link ICON_FONT_FALLBACKS} to a CSS font-family stack, keeping
+	* the caller's own entries and order intact.
+	*
+	* - Families already named in `stack` are not duplicated (quote-, case- and
+	*   whitespace-insensitive), so a user who already lists their Nerd Font
+	*   keeps their exact priority.
+	* - The icon fonts are spliced in ahead of the *first* generic family
+	*   (`monospace` etc.), because a generic always resolves: anything after it
+	*   would never be consulted. A stack that OPENS with a generic is the one
+	*   exception: only the symbols-only patches (no Latin) may precede it — a
+	*   fully-patched Nerd Font there would become xterm's measuring base font
+	*   and override the user/theme family precedence, so it is placed after the
+	*   generic instead.
+	* - Idempotent — re-applying to an already-topped-up stack is a no-op, which
+	*   matters because `TerminalView` diffs the resolved value against the live
+	*   `term.options.fontFamily` before reflowing.
+	*
+	* @param stack - a CSS font-family stack (base font first).
+	* @returns the stack with icon fallbacks merged in.
+	*/
+	function withIconFontFallbacks(stack) {
+		const entries = splitFamilies(stack);
+		if (entries.length === 0) return ICON_FONT_FALLBACKS.join(", ");
+		const present = new Set(entries.map(normalizeFamily));
+		const notPresent = (family) => !present.has(normalizeFamily(family));
+		const symbolsOnly = ICON_FONT_FALLBACKS.slice(0, SYMBOLS_ONLY_COUNT).filter(notPresent);
+		const patched = ICON_FONT_FALLBACKS.slice(SYMBOLS_ONLY_COUNT).filter(notPresent);
+		if (symbolsOnly.length === 0 && patched.length === 0) return entries.join(", ");
+		const firstGeneric = entries.findIndex((entry) => GENERIC_FAMILIES.has(normalizeFamily(entry)));
+		const cut = firstGeneric === -1 ? entries.length : firstGeneric;
+		if (cut === 0) return [
+			...symbolsOnly,
+			entries[0],
+			...patched,
+			...entries.slice(1)
+		].join(", ");
+		return [
+			...entries.slice(0, cut),
+			...symbolsOnly,
+			...patched,
+			...entries.slice(cut)
+		].join(", ");
+	}
+	/**
+	* Reduce one link of the base-family chain to a usable stack, or `''` when
+	* it cannot carry appended fallbacks so the next link should win.
+	*
+	* Rejecting CSS-wide keywords matters because the theme font arrives as a
+	* raw token value (`tokenValue('--ds-font-family-code')`); skins do set
+	* tokens to `initial`/`inherit`/`unset` (see `effectiveTokenValue` in
+	* `theme.ts`, which guards the color tokens for the same reason). Appending
+	* to such a value yields an invalid `font-family`, which the CSSOM discards
+	* silently — the terminal would lose the theme font *and* the icon fonts.
+	*/
+	function usableBase(value) {
+		const trimmed = (value ?? "").trim();
+		if (trimmed === "") return "";
+		if (CSS_WIDE_KEYWORDS.has(trimmed.toLowerCase())) return "";
+		return trimmed;
+	}
+	/**
+	* Guarantee the stack ends in a generic family, so a font the browser cannot
+	* resolve degrades to a monospace one.
+	*
+	* Without this a stack of unresolvable names (a misspelled family, or one only
+	* installed on the machine running the shell rather than the one running the
+	* browser) falls through to the browser's *standard* font, which is
+	* proportional — xterm then measures its cell from a proportional advance and
+	* the whole grid breaks, rather than merely losing the requested typeface.
+	*
+	* This does not sniff whether the named families exist (an explicit non-goal
+	* of the terminal font design): it only terminates the stack. A stack that
+	* already names a generic family is returned untouched, so a user who
+	* deliberately wrote one keeps it. Generics are matched unquoted only — a
+	* quoted `"monospace"` is a family *name*, not the keyword.
+	*
+	* @param stack - the resolved font-family value.
+	* @returns the stack, ending in a generic family.
+	*/
+	function withMonospaceFallback(stack) {
+		const families = splitFamilies(stack);
+		if (families.length === 0) return DEFAULT_TERMINAL_FONT_FAMILY;
+		const only = families.length === 1 ? families[0] : void 0;
+		if (only !== void 0 && CSS_WIDE_KEYWORDS.has(only.toLowerCase())) return DEFAULT_TERMINAL_FONT_FAMILY;
+		if (families.some((family) => GENERIC_FAMILIES.has(family.toLowerCase()))) return families.join(", ");
+		return `${families.join(", ")}, monospace`;
+	}
 	/**
 	* Resolve the xterm font options for the given prefs.
+	*
+	* The base family keeps its existing precedence — user pref > theme code
+	* font > built-in stack. {@link withMonospaceFallback} then terminates the
+	* stack with a generic family so an unresolvable name degrades to a
+	* monospace instead of the proportional standard font, and finally
+	* {@link withIconFontFallbacks} tops it up so prompt icons resolve
+	* regardless of which base won.
+	*
 	* @param prefs - the current side card preferences.
 	* @param themeFontFamily - the app's theme code font (`--ds-font-family-code`
 	*   token value, read live by the caller); undefined when the token is absent.
 	* @returns the `fontFamily` / `fontSize` xterm options.
 	*/
 	function resolveTerminalFont(prefs, themeFontFamily) {
-		const custom = prefs.terminalFontFamily.trim();
 		return {
-			fontFamily: custom !== "" ? custom : themeFontFamily || "\"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+			fontFamily: withIconFontFallbacks(withMonospaceFallback(usableBase(prefs.terminalFontFamily) || usableBase(themeFontFamily) || "\"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace")),
 			fontSize: clampTerminalFontSize(prefs.terminalFontSize)
 		};
 	}
 	//#endregion
-	//#region \0dsh-css:/root/dsh-work/plugins/dsh-better-sidebar/src/client/sidebar.module.css.mjs
-	const css = "[data-dsh-panel-host]{z-index:40;pointer-events:none;position:fixed;inset:0}[data-dsh-panel-host][data-dsh-panel-host-degraded]{position:absolute;top:0;left:0}.WFZVxa_toggleCluster{top:calc(3px + env(safe-area-inset-top));z-index:45;pointer-events:auto;flex-direction:row;gap:4px;display:flex;position:absolute;right:10px}.WFZVxa_panel:not(.WFZVxa_panelHidden) .WFZVxa_tabBar{padding-right:72px}.WFZVxa_toggleButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;transition:background var(--ds-transition-duration-slow) var(--ds-ease-in-out), color var(--ds-transition-duration-slow) var(--ds-ease-in-out);background:0 0;border:none;border-radius:50%;justify-content:center;align-items:center;display:flex}.WFZVxa_toggleButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_toggleButton:disabled{opacity:.4;cursor:default}.WFZVxa_panel{z-index:40;pointer-events:auto;background:var(--dsw-alias-bg-layer-1);border-left:1px solid var(--dsw-alias-border-l2);padding-bottom:env(safe-area-inset-bottom);transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out), width var(--ds-transition-duration-slow) var(--ds-ease-in-out);flex-direction:column;display:flex;position:absolute;top:0;bottom:0;right:0}.WFZVxa_panelHidden{pointer-events:none;visibility:hidden;transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out), width var(--ds-transition-duration-slow) var(--ds-ease-in-out), visibility 0s linear var(--ds-transition-duration-slow);transform:translate(102%)}.WFZVxa_panel[data-dragging]{transition:none}.WFZVxa_panelResize{cursor:col-resize;z-index:2;touch-action:none;width:8px;position:absolute;top:0;bottom:0;left:-4px}.WFZVxa_panelResizeActive{background:var(--dsw-alias-interactive-bg-hover-accent)}.WFZVxa_panelBody{flex:1;min-width:0;min-height:0;display:flex}.WFZVxa_bottomPanel{z-index:40;background:var(--dsw-alias-bg-layer-1);border-top:1px solid var(--dsw-alias-border-l2);pointer-events:auto;padding-bottom:env(safe-area-inset-bottom);transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out), height var(--ds-transition-duration-slow) var(--ds-ease-in-out);flex-direction:column;display:flex;position:absolute;bottom:0}.WFZVxa_bottomPanelHidden{pointer-events:none;visibility:hidden;transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out), height var(--ds-transition-duration-slow) var(--ds-ease-in-out), visibility 0s linear var(--ds-transition-duration-slow);transform:translateY(102%)}.WFZVxa_bottomPanel[data-dragging]{transition:none}.WFZVxa_panel,.WFZVxa_bottomPanel{contain:layout style}body[data-dsh-sidebar-dragging] .WFZVxa_panel,body[data-dsh-sidebar-dragging] .WFZVxa_bottomPanel{will-change:transform}.WFZVxa_bottomResize{cursor:row-resize;z-index:2;touch-action:none;height:8px;position:absolute;top:-4px;left:0;right:0}.WFZVxa_bottomResizeActive{background:var(--dsw-alias-interactive-bg-hover-accent)}.WFZVxa_bottomClose{z-index:4;width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex;position:absolute;top:3px;right:6px}.WFZVxa_bottomClose:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_bottomPanel .WFZVxa_tabBar{padding-right:40px}.WFZVxa_toggleCluster,.WFZVxa_toggleButton,.WFZVxa_tabBar{-webkit-app-region:no-drag}body[data-dsh-title-bar-compat] .WFZVxa_toggleCluster{top:calc(var(--dsh-title-bar-strip,40px) + 3px)}body[data-dsh-title-bar-compat] .WFZVxa_panel{padding-top:var(--dsh-title-bar-strip,40px)}.WFZVxa_cornerHandle{left:-6px;bottom:calc(var(--dsh-sidebar-height,0px) + 6px);z-index:2;cursor:nwse-resize;touch-action:none;width:12px;height:12px;position:absolute}.WFZVxa_cornerHandle:hover,.WFZVxa_cornerHandle[data-dragging]{background:var(--dsw-alias-interactive-bg-hover-accent)}.WFZVxa_iconButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}.WFZVxa_iconButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_iconButton:disabled{opacity:.4;cursor:default}.WFZVxa_workbench,.WFZVxa_split{flex:1;min-width:0;min-height:0;display:flex}.WFZVxa_splitRow{flex-direction:row}.WFZVxa_splitCol{flex-direction:column}.WFZVxa_splitChild{display:flex;position:relative;overflow:hidden}.WFZVxa_divider{z-index:3;touch-action:none;flex:none;position:relative}.WFZVxa_dividerRow:after,.WFZVxa_dividerCol:after{content:\"\";background:var(--dsw-alias-border-l2);transition:background var(--ds-transition-duration-slow) var(--ds-ease-in-out);position:absolute}.WFZVxa_dividerRow{cursor:col-resize;width:7px;margin:0 -2px}.WFZVxa_dividerRow:after{width:1px;top:0;bottom:0;left:50%;transform:translate(-50%)}.WFZVxa_dividerCol{cursor:row-resize;height:7px;margin:-2px 0}.WFZVxa_dividerCol:after{height:1px;top:50%;left:0;right:0;transform:translateY(-50%)}.WFZVxa_divider:hover:after,.WFZVxa_dividerActive:after{background:var(--dsw-alias-interactive-bg-hover-accent)}.WFZVxa_pane{background:var(--dsw-alias-bg-base);flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;position:relative}.WFZVxa_paneDrop{outline:1px solid var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}.WFZVxa_dropOverlay{z-index:6;pointer-events:none;background:var(--dsw-alias-interactive-bg-hover-accent);opacity:.5;position:absolute}.WFZVxa_dropLeft{width:25%;top:0;bottom:0;left:0}.WFZVxa_dropRight{width:25%;top:0;bottom:0;right:0}.WFZVxa_dropUp{height:25%;top:0;left:0;right:0}.WFZVxa_dropDown{height:25%;bottom:0;left:0;right:0}.WFZVxa_dropCenter{outline:2px dashed var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-2px;background:0 0;inset:25%}.WFZVxa_paneContent{flex-direction:column;flex:1;min-height:0;display:flex;overflow:hidden}.WFZVxa_paneTab{flex-direction:column;flex:1;min-height:0;display:flex}.WFZVxa_paneTabHidden{display:none}.WFZVxa_paneEmptyCards{flex:1;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));align-content:start;gap:8px;min-height:0;padding:12px;display:grid;overflow:hidden}.WFZVxa_paneCard{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-strong-12);cursor:pointer;text-align:center;border-radius:8px;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:12px 8px;display:flex}.WFZVxa_paneCard:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}.WFZVxa_paneCard:disabled{opacity:.45;cursor:default}.WFZVxa_tabBar{border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);flex:none;align-items:stretch;height:34px;display:flex}.WFZVxa_tabBarDrop{outline:1px dashed var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}.WFZVxa_tabList{scrollbar-width:none;flex:1;min-width:0;display:flex;overflow-x:auto}.WFZVxa_tabList::-webkit-scrollbar{display:none}.WFZVxa_tab{min-width:64px;max-width:160px;font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-secondary);border-right:1px solid var(--dsw-alias-border-l1);cursor:pointer;user-select:none;background:0 0;flex:none;align-items:center;gap:4px;padding:0 4px 0 10px;display:flex}.WFZVxa_tab:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_tabActive{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-active)}.WFZVxa_tabTitle{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.WFZVxa_tabBadge{min-width:16px;height:15px;font:var(--dsw-font-xxxs-strong-11);background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-brand-primary);border-radius:8px;flex:none;justify-content:center;align-items:center;padding:0 4px;display:inline-flex}.WFZVxa_tabClose{width:18px;height:18px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:4px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}.WFZVxa_tabClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_tabBarPlus{background:var(--dsw-alias-bg-layer-1);width:22px;height:22px;color:var(--dsw-alias-label-tertiary);cursor:pointer;border:none;border-radius:5px;flex:none;justify-content:center;align-self:center;align-items:center;margin:0 6px;padding:0;display:inline-flex;position:sticky;right:0}.WFZVxa_tabBarPlus:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_explorer{flex-direction:column;flex:1;min-height:0;display:flex}.WFZVxa_explorerHeader{flex:none;justify-content:space-between;align-items:center;gap:8px;height:36px;padding:0 8px 0 12px;display:flex}.WFZVxa_explorerRoot{font:var(--dsw-font-s-14);color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.WFZVxa_explorerBody{flex:1;min-height:0;padding:2px 6px 8px;overflow:hidden auto}.WFZVxa_explorerRow{box-sizing:border-box;width:100%;max-width:100%;height:34px;font:var(--dsw-font-s-14);color:var(--dsw-alias-label-primary);text-align:left;cursor:pointer;white-space:nowrap;animation:WFZVxa_dsh-row-in .15s var(--ds-ease-in-out);background:0 0;border:none;border-radius:8px;align-items:center;gap:6px;padding:0 8px;display:flex}.WFZVxa_explorerRow:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_explorerDir{font:var(--dsw-font-s-strong-14)}.WFZVxa_explorerHidden{opacity:.45}.WFZVxa_explorerSymlink{color:var(--dsw-alias-label-tertiary);flex:none}.WFZVxa_explorerBroken .WFZVxa_explorerName{color:var(--dsw-alias-state-error-primary)}.WFZVxa_explorerName{text-overflow:ellipsis;white-space:nowrap;min-width:0;overflow:hidden}.WFZVxa_explorerRef{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);height:20px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-strong-11);cursor:pointer;border-radius:999px;flex:none;align-items:center;padding:0 8px;display:none}.WFZVxa_explorerRef:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_explorerRow:hover .WFZVxa_explorerRef,.WFZVxa_explorerRow:focus-within .WFZVxa_explorerRef{display:inline-flex}.WFZVxa_explorerCopied{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary);flex:none}.WFZVxa_explorerError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);cursor:default}@keyframes WFZVxa_dsh-row-in{0%{opacity:0}}.WFZVxa_explorerEmpty{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;padding:16px}.WFZVxa_explorerRowDropTarget{background:var(--dsw-alias-interactive-bg-hover);outline:1px dashed var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}.WFZVxa_uploadDropZone{z-index:1001;pointer-events:none;border:2px dashed var(--dsw-alias-interactive-bg-hover-accent);box-shadow:0 0 0 200vmax var(--dsw-alias-bg-mask-drop);animation:WFZVxa_dsh-row-in .15s var(--ds-ease-in-out);border-radius:10px;justify-content:center;align-items:flex-start;padding:12px;display:flex;position:fixed}.WFZVxa_uploadDropHero{flex-direction:column;align-items:center;gap:10px;max-width:100%;padding-top:8px;display:flex}.WFZVxa_uploadDropZonePill{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);max-width:100%;box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-strong-12);border-radius:999px;align-items:center;gap:6px;padding:6px 12px;display:flex}.WFZVxa_uploadDropZoneText{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.WFZVxa_uploadDropChatHint{z-index:1002;pointer-events:none;animation:WFZVxa_dsh-row-in .15s var(--ds-ease-in-out);justify-content:center;align-items:center;padding:24px;display:flex;position:fixed;top:0;bottom:0;left:0}.WFZVxa_uploadDropChatCard{text-align:center;max-width:100%;color:var(--dsw-alias-label-primary);font:var(--dsw-font-s-strong-14);flex-direction:column;align-items:center;gap:12px;display:flex}.WFZVxa_uploadOverlay{z-index:30;background:var(--dsw-alias-bg-mask-1);backdrop-filter:var(--dsw-mask-blur);animation:WFZVxa_dsh-row-in .15s var(--ds-ease-in-out);justify-content:center;align-items:center;display:flex;position:absolute;inset:0}.WFZVxa_uploadOverlayCard{border:1px solid var(--dsw-alias-border-inverted);background:var(--dsw-alias-bg-layer-2);min-width:280px;max-width:min(420px,100% - 48px);box-shadow:var(--dsw-shadow-lv3);border-radius:24px;flex-direction:column;gap:12px;padding:20px 24px;display:flex}.WFZVxa_uploadOverlayTitle{font:var(--dsw-font-s-strong-14);color:var(--dsw-alias-label-primary);align-items:center;gap:8px;display:flex}.WFZVxa_uploadOverlayTitle>svg{flex:none}.WFZVxa_uploadOverlayTitle>span{white-space:nowrap;text-overflow:ellipsis;min-width:0;overflow:hidden}.WFZVxa_uploadOverlayProgress{background:var(--dsw-alias-border-l2);border-radius:3px;height:6px;overflow:hidden}.WFZVxa_uploadOverlayProgressFill{background:var(--dsw-alias-interactive-bg-hover-accent);height:100%;transition:width .15s var(--ds-ease-in-out);border-radius:3px}.WFZVxa_uploadOverlayStatus{min-height:1em;font:var(--dsw-font-xxs-12);font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.WFZVxa_uploadOverlayCancel{border:1px solid var(--dsw-alias-border-l2);height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-strong-12);cursor:pointer;background:0 0;border-radius:8px;align-self:flex-end;padding:0 14px}.WFZVxa_uploadOverlayCancel:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l2)}.WFZVxa_uploadOverlayCancel:disabled{opacity:.4;cursor:default}.WFZVxa_editor{flex-direction:column;flex:1;min-height:0;display:flex}.WFZVxa_editorHeader{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:6px;padding:4px 8px;display:flex}.WFZVxa_editorTitle{min-width:0;font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;overflow:hidden}.WFZVxa_editorPathInput{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 10px}.WFZVxa_editorPathInput:focus{border-color:var(--dsw-alias-border-l2);outline:none}.WFZVxa_editorTreeToggleActive{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-active)}.WFZVxa_editorBody{flex:1;min-height:0;display:flex}.WFZVxa_editorMain{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex}.WFZVxa_editorTreeDock{border-left:1px solid var(--dsw-alias-border-l1);flex:none;min-height:0;display:flex;position:relative}.WFZVxa_editorTreeResize{cursor:col-resize;touch-action:none;z-index:3;width:6px;position:absolute;top:0;bottom:0;left:0}.WFZVxa_editorTreeResize:hover{background:var(--dsw-alias-border-l2)}.WFZVxa_editorTreePanel{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;position:relative}.WFZVxa_editorTreePanelFull{flex:1}.WFZVxa_editorTreeSearch{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:4px;padding:6px 8px;display:flex}.WFZVxa_editorSearchInput{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;height:26px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 10px}.WFZVxa_editorSearchInput:focus{border-color:var(--dsw-alias-border-l2);outline:none}.WFZVxa_editorSearchHint{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);padding:8px 12px}.WFZVxa_editorSearchResult{width:100%;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);text-align:left;cursor:pointer;text-overflow:ellipsis;white-space:nowrap;background:0 0;border:none;border-radius:6px;padding:4px 8px;display:block;overflow:hidden}.WFZVxa_editorSearchResult:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_editorStatus{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary)}.WFZVxa_editorStatusError{color:var(--dsw-alias-state-error-primary)}.WFZVxa_dirtyDot{background:var(--dsw-alias-state-warn-primary);border-radius:50%;flex:none;width:7px;height:7px}.WFZVxa_editorPlaceholder{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;flex:1;justify-content:center;align-items:center;padding:16px;display:flex}.WFZVxa_orphanedType{opacity:.7;overflow-wrap:anywhere;margin-top:8px;font-size:12px;display:block}.WFZVxa_editorBinary{text-align:center;flex-direction:column;flex:1;justify-content:center;align-items:center;gap:12px;padding:24px 16px;display:flex}.WFZVxa_editorBinaryNotice{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary)}.WFZVxa_editorDownloadLink{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-strong-12);cursor:pointer;transition:background var(--ds-transition-duration-slow) var(--ds-ease-in-out), border-color var(--ds-transition-duration-slow) var(--ds-ease-in-out);border-radius:6px;align-items:center;gap:6px;padding:6px 14px;text-decoration:none;display:inline-flex}.WFZVxa_editorDownloadLink:hover{background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l2)}.WFZVxa_editorError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);padding:12px 16px}.WFZVxa_editorBanner{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex:none;padding:4px 12px}.WFZVxa_editorStaleBanner{width:100%;font:var(--dsw-font-xxxs-11);text-align:left;color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);cursor:pointer;border:0;flex:none;padding:6px 12px;display:block}.WFZVxa_editorStaleBanner:hover{opacity:.85}.WFZVxa_editorRefreshedBanner{color:var(--dsw-alias-text-secondary);background:var(--dsw-alias-bg-layer-2)}.WFZVxa_sandboxStatus{font:var(--dsw-font-xxxs-11);flex:none;align-items:center;gap:8px;padding:4px 10px;display:flex}.WFZVxa_sandboxStatusOn{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border-bottom:1px solid var(--dsw-alias-border-l1)}.WFZVxa_sandboxStatusOff{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);border-bottom:1px solid color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent)}.WFZVxa_sandboxDot{background:var(--dsw-alias-state-success-primary);border-radius:50%;flex:none;width:6px;height:6px}.WFZVxa_sandboxStatusOff .WFZVxa_sandboxDot{background:var(--dsw-alias-state-error-primary)}.WFZVxa_sandboxStatusText{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.WFZVxa_sandboxAction{border:1px solid var(--dsw-alias-border-l2);font:inherit;color:inherit;cursor:pointer;background:0 0;border-radius:6px;flex:none;padding:2px 8px}.WFZVxa_sandboxAction:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_editorHtml{background:var(--dsw-alias-bg-base);border:none;flex:1;width:100%;min-height:0}.WFZVxa_browser{flex-direction:column;flex:1;min-height:0;display:flex}.WFZVxa_browserBar{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:4px;padding:6px 8px;display:flex}.WFZVxa_browserInput{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 10px}.WFZVxa_browserInput:focus{border-color:var(--dsw-alias-border-l2);outline:none}.WFZVxa_browserMessage{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex:none;padding:4px 12px}.WFZVxa_browserFrame{background:var(--dsw-alias-bg-base);border:none;flex:1;width:100%;min-height:0}.WFZVxa_browserStart{text-align:center;min-height:0;font:var(--dsw-font-xs-13);color:var(--dsw-alias-label-tertiary);flex:1;justify-content:center;align-items:center;padding:20px;display:flex}.WFZVxa_browserBlocked{text-align:center;min-height:0;color:var(--dsw-alias-state-warn-primary);flex-direction:column;flex:1;justify-content:center;align-items:center;gap:6px;padding:24px;display:flex}.WFZVxa_browserBlockedTitle{font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-primary)}.WFZVxa_browserBlockedDesc{max-width:280px;font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-secondary)}.WFZVxa_browserBlockedActions{gap:8px;margin-top:6px;display:flex}.WFZVxa_browserBlockedButton{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxxs-11);cursor:pointer;border-radius:6px;padding:4px 12px}.WFZVxa_browserBlockedButton:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_editorCm{background:0 0;flex:1;min-height:0;overflow:hidden}.WFZVxa_editorCmHidden{display:none}.WFZVxa_editorCm .cm-editor{height:100%}.WFZVxa_editorCm .cm-editor.cm-focused{outline:none}.WFZVxa_editorModeToggle{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);border-radius:6px;flex:none;align-items:center;gap:2px;padding:2px;display:inline-flex}.WFZVxa_editorModeButton{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11);cursor:pointer;background:0 0;border:none;border-radius:4px;padding:2px 8px}.WFZVxa_editorModeButton:hover{color:var(--dsw-alias-label-primary)}.WFZVxa_editorModeActive{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}.WFZVxa_editorImageWrap{flex:1;justify-content:center;align-items:center;min-height:0;padding:12px;display:flex;overflow:auto}.WFZVxa_editorImage{object-fit:contain;max-width:100%;max-height:100%}.WFZVxa_editorMd{min-height:0;font:var(--dsw-font-xs-13);flex:1;padding:10px 14px;overflow-y:auto}.WFZVxa_mermaidWrap{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:6px 0;overflow:hidden}.WFZVxa_mermaidHeader{border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);justify-content:space-between;align-items:center;gap:6px;padding:4px 8px;display:flex}.WFZVxa_mermaidInfo{font:var(--dsw-font-xxxs-strong-11);color:var(--dsw-alias-label-tertiary)}.WFZVxa_mermaidCopy{height:20px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxxs-11);cursor:pointer;background:0 0;border:none;border-radius:4px;align-items:center;gap:4px;padding:0 6px;display:inline-flex}.WFZVxa_mermaidCopy:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_mermaidBody{cursor:zoom-in;justify-content:center;padding:10px;display:flex;overflow:auto}.WFZVxa_mermaidBody svg{max-width:100%;height:auto}.WFZVxa_mermaidError{border-bottom:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-state-error-primary);font:var(--dsw-font-xxxs-11);padding:6px 10px}.WFZVxa_mermaidCode{font:var(--dsw-font-xxxs-11);margin:0;padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto}.WFZVxa_mermaidMarkdown .md-code-block[data-mermaid-processed]{display:contents}.WFZVxa_mermaidModal{z-index:1000;background:var(--dsw-alias-bg-mask-1);backdrop-filter:blur(2px);flex-direction:column;justify-content:center;align-items:center;display:flex;position:fixed;inset:0}.WFZVxa_mermaidModalToolbar{z-index:10;gap:8px;display:flex;position:absolute;top:16px;right:16px}.WFZVxa_mermaidModalButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);width:36px;height:36px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-strong-13);cursor:pointer;border-radius:8px;justify-content:center;align-items:center;display:inline-flex}.WFZVxa_mermaidModalButton:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_mermaidModalStage{justify-content:center;align-items:center;width:90vw;height:80vh;display:flex;position:relative;overflow:hidden}.WFZVxa_mermaidModalStage svg{cursor:grab;transform-origin:50%;user-select:none;-webkit-user-drag:none;background:var(--dsw-alias-bg-layer-1);border-radius:12px;max-width:none;max-height:none;padding:16px}.WFZVxa_mermaidModalStage svg:active{cursor:grabbing}.WFZVxa_mermaidModalHint{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11);pointer-events:none;position:absolute;bottom:16px;left:50%;transform:translate(-50%)}.WFZVxa_selectionPopup{z-index:60;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxxs-strong-11);white-space:nowrap;cursor:pointer;border-radius:6px;align-items:center;padding:0 10px;display:inline-flex;position:fixed;transform:translate(-50%,calc(-100% - 8px))}.WFZVxa_selectionPopup:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_editorPdf{background:var(--dsw-alias-bg-base);flex-direction:column;flex:1;min-height:0;display:flex}.WFZVxa_editorPdfToolbar{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;justify-content:flex-end;padding:6px 8px;display:flex}.WFZVxa_editorPdfStage{flex:1;min-height:0;display:flex;position:relative}.WFZVxa_editorPdfFrame{background:var(--dsw-alias-bg-base);border:none;flex:1;width:100%;min-height:0}.WFZVxa_editorPdfFrameBlocked{pointer-events:none}.WFZVxa_editorPdfDragShield{z-index:4;pointer-events:none;background:0 0;position:absolute;inset:0}.WFZVxa_editorPdfDragShieldActive{pointer-events:auto}body[data-dsh-tab-dragging] .WFZVxa_editorPdfFrame{pointer-events:none!important}body[data-dsh-tab-dragging] .WFZVxa_editorPdfDragShield{pointer-events:auto!important}.WFZVxa_terminalWrap{background:var(--dsw-alias-bg-base);flex-direction:column;flex:1;min-height:0;display:flex;position:relative}.WFZVxa_terminal{flex:1;min-height:0;padding:6px 4px 6px 8px}.WFZVxa_terminal .xterm{height:100%}.WFZVxa_terminalBanner{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex-wrap:wrap;flex:none;align-items:center;gap:8px;padding:3px 10px;display:flex}.WFZVxa_terminalBannerUrl{word-break:break-all;opacity:.85;flex-basis:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.WFZVxa_boundaryError{z-index:50;background:var(--dsw-alias-bg-layer-1);border-left:1px solid var(--dsw-alias-border-l2);font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);flex-direction:column;align-items:flex-start;gap:8px;padding:16px;display:flex;position:fixed;top:0;bottom:0;right:0;overflow:auto}.WFZVxa_terminalRetry{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxxs-strong-11);cursor:pointer;border-radius:999px;flex:none;padding:1px 8px}.WFZVxa_terminalRetry:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_terminalDepsBanner{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex-direction:column;flex:none;gap:6px;padding:10px;display:flex}.WFZVxa_terminalDepsTitle{font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-state-warn-primary)}.WFZVxa_terminalDepsHint{opacity:.9}.WFZVxa_terminalDepsCommandRow{align-items:flex-start;gap:8px;display:flex}.WFZVxa_terminalRepairCommand{white-space:pre-wrap;word-break:break-all;user-select:text;min-width:0;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;flex:1;max-height:160px;margin:0;padding:6px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;overflow:auto}.WFZVxa_terminalDepsNote{opacity:.85}.WFZVxa_terminalDepsActions{align-items:center;gap:8px;display:flex}.WFZVxa_tabBoundaryError{min-height:0;font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);flex-direction:column;flex:1;align-items:flex-start;gap:8px;padding:12px 16px;display:flex;overflow:auto}.WFZVxa_git{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;overflow:hidden auto}.WFZVxa_gitHeader{flex:none;align-items:center;gap:8px;height:36px;padding:0 8px 0 12px;display:flex}.WFZVxa_gitBranchSelect{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);min-width:0;height:26px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 6px}.WFZVxa_gitSection{border-top:1px solid var(--dsw-alias-border-l1)}.WFZVxa_gitSectionHeader{font:var(--dsw-font-xxxs-strong-11);color:var(--dsw-alias-label-tertiary);text-transform:uppercase;justify-content:space-between;align-items:center;padding:6px 12px 4px;display:flex}.WFZVxa_gitLink{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-brand-primary);cursor:pointer;background:0 0;border:none;padding:0}.WFZVxa_gitLink:hover:not(:disabled){text-decoration:underline}.WFZVxa_gitLink:disabled{opacity:.4;cursor:default}.WFZVxa_gitRow{min-height:34px;animation:WFZVxa_dsh-row-in .15s var(--ds-ease-in-out);border-radius:8px;align-items:center;gap:6px;margin:0 6px;padding:0 8px;display:flex}.WFZVxa_gitRow:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_gitRowSelected{background:var(--dsw-alias-interactive-bg-active)}.WFZVxa_gitRowMain{cursor:pointer;text-align:left;background:0 0;border:none;flex:1;align-items:center;gap:8px;min-width:0;padding:3px 0;display:flex}.WFZVxa_gitBadge{width:20px;height:16px;font:var(--dsw-font-xxxs-strong-11);background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary);border-radius:4px;flex:none;justify-content:center;align-items:center;display:inline-flex}.WFZVxa_gitName{text-overflow:ellipsis;white-space:nowrap;min-width:0;font:var(--dsw-font-s-14);color:var(--dsw-alias-label-primary);flex:1;overflow:hidden}.WFZVxa_gitEmpty{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);padding:4px 12px 8px}.WFZVxa_gitPlaceholder{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;padding:16px}.WFZVxa_gitError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);white-space:pre-wrap;padding:8px 12px}.WFZVxa_gitDiff{border-top:1px solid var(--dsw-alias-border-l1);padding:8px}.WFZVxa_gitDiffTab{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;overflow:hidden auto}.WFZVxa_gitDiffTabHeader{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:8px;height:36px;padding:0 8px 0 12px;display:flex}.WFZVxa_gitDiffTabTitle{text-overflow:ellipsis;white-space:nowrap;min-width:0;font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-primary);flex:1;overflow:hidden}.WFZVxa_gitDiffFile{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:0;align-items:baseline;gap:6px;padding:8px 2px 2px;display:flex}.WFZVxa_gitDiffFile:disabled{cursor:default}.WFZVxa_gitDiffFile:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_gitDiffFileChevron{color:var(--dsw-alias-label-tertiary);flex:none;transform:rotate(0)}.WFZVxa_gitDiffFileChevronExpanded{transform:rotate(90deg)}.WFZVxa_gitDiffFilePath{font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.WFZVxa_gitDiffFileOld{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;flex:none;max-width:40%;overflow:hidden}.WFZVxa_gitDiffFileTag{border:1px solid var(--dsw-alias-border-l2);font:var(--dsw-font-xxxs-strong-11);color:var(--dsw-alias-label-secondary);border-radius:999px;flex:none;padding:0 6px}.WFZVxa_gitDiffHunk{font:var(--dsw-font-markdown-code-block-small);color:var(--dsw-alias-label-tertiary);gap:8px;padding:3px 2px;display:flex}.WFZVxa_gitDiffHunkHeader{color:var(--dsw-alias-label-secondary);flex:none}.WFZVxa_gitDiffHunkSection{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.WFZVxa_gitDiffLine{font:var(--dsw-font-markdown-code-block-small);white-space:pre-wrap;overflow-wrap:anywhere;align-items:stretch;min-width:0;line-height:20px;display:flex}.WFZVxa_gitDiffNum{text-align:right;width:36px;color:var(--dsw-alias-label-tertiary);user-select:none;flex:none;padding-right:8px}.WFZVxa_gitDiffCode{flex:1;min-width:0;overflow:visible}.WFZVxa_gitDiffCtx{color:var(--dsw-alias-label-primary)}.WFZVxa_gitDiffDel{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent)}.WFZVxa_gitDiffAdd{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb, var(--dsw-alias-state-success-primary) 12%, transparent)}.WFZVxa_gitDiffMeta{padding-left:2px}.WFZVxa_gitDiffMetaText{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary);font-style:italic}.WFZVxa_gitDiffExpand{width:100%;font:var(--dsw-font-xxs-12);color:var(--dsw-alias-brand-primary);cursor:pointer;text-align:center;background:0 0;border:none;margin:4px 0;display:block}.WFZVxa_gitDiffExpand:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_gitConfirmDesc{font:var(--dsw-font-s-14);color:var(--dsw-alias-label-primary);white-space:pre-wrap;margin:0}.WFZVxa_gitCommit{border-top:1px solid var(--dsw-alias-border-l1);align-items:center;gap:6px;padding:8px 12px;display:flex}.WFZVxa_gitCommitInput{flex:1;min-width:0}.WFZVxa_gitCommitButton{background:var(--dsw-alias-button-primary-fill);height:26px;color:var(--dsw-alias-label-primary-inverted);font:var(--dsw-font-xxs-strong-12);cursor:pointer;border:none;border-radius:6px;flex:none;padding:0 12px}.WFZVxa_gitCommitButton:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}.WFZVxa_gitCommitButton:disabled{opacity:.45;cursor:default}.WFZVxa_gitLogRow{cursor:pointer;border-radius:8px;flex-direction:column;gap:2px;padding:5px 12px;display:flex}.WFZVxa_gitLogRow:hover{background:var(--dsw-alias-interactive-bg-hover)}.WFZVxa_gitLogLine1{align-items:baseline;gap:8px;min-width:0;display:flex}.WFZVxa_gitLogHash{font:var(--dsw-font-markdown-code-block-small);color:var(--dsw-alias-label-tertiary);flex:none}.WFZVxa_gitLogLine2{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex}.WFZVxa_gitLogRef{border:1px solid var(--dsw-alias-border-l2);font:var(--dsw-font-xxxs-strong-11);color:var(--dsw-alias-brand-primary);white-space:nowrap;border-radius:999px;flex:none;padding:0 5px}.WFZVxa_gitLogSubject{text-overflow:ellipsis;white-space:nowrap;min-width:0;font:var(--dsw-font-s-14);color:var(--dsw-alias-label-primary);flex:1;overflow:hidden}.WFZVxa_gitLogMeta{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary)}.WFZVxa_gitLogMore{border:1px solid var(--dsw-alias-border-l2);width:calc(100% - 24px);font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border-radius:6px;margin:4px 12px 8px;padding:6px 0;display:block}.WFZVxa_gitLogMore:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_gitLogMore:disabled{opacity:.5;cursor:default}.WFZVxa_producedRow{flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;display:flex}.WFZVxa_producedLabel{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary)}.WFZVxa_producedChip{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);max-width:200px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12);cursor:pointer;border-radius:999px;align-items:center;gap:4px;padding:2px 8px;display:inline-flex;overflow:hidden}.WFZVxa_producedChip:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_producedChip span{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.WFZVxa_producedMore{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary)}.WFZVxa_toggleButton:focus-visible,.WFZVxa_bottomClose:focus-visible,.WFZVxa_iconButton:focus-visible,.WFZVxa_tab:focus-visible,.WFZVxa_tabClose:focus-visible,.WFZVxa_tabBarPlus:focus-visible,.WFZVxa_paneCard:focus-visible,.WFZVxa_explorerRow:focus-visible,.WFZVxa_explorerRef:focus-visible,.WFZVxa_gitRowMain:focus-visible,.WFZVxa_gitLink:focus-visible,.WFZVxa_gitCommitButton:focus-visible,.WFZVxa_gitLogRow:focus-visible,.WFZVxa_gitLogMore:focus-visible,.WFZVxa_gitDiffFile:focus-visible,.WFZVxa_gitDiffExpand:focus-visible,.WFZVxa_terminalRetry:focus-visible,.WFZVxa_editorModeButton:focus-visible,.WFZVxa_editorDownloadLink:focus-visible,.WFZVxa_editorPptxButton:focus-visible,.WFZVxa_editorDocxZoomRange:focus-visible{outline:2px solid var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}@media (prefers-reduced-motion:reduce){.WFZVxa_panel,.WFZVxa_panelHidden,.WFZVxa_bottomPanel,.WFZVxa_bottomPanelHidden,.WFZVxa_toggleCluster,.WFZVxa_toggleButton,.WFZVxa_tab,.WFZVxa_tabBarPlus,.WFZVxa_paneCard,.WFZVxa_explorerRow,.WFZVxa_gitRow,.WFZVxa_divider,.WFZVxa_dividerRow:after,.WFZVxa_dividerCol:after{transition:none;animation:none}}@media (width<=767px){.WFZVxa_panel:not(.WFZVxa_panelHidden) .WFZVxa_tabBar{padding-right:40px}.WFZVxa_tab{min-width:48px;max-width:128px}}.WFZVxa_openWithLabel{align-items:center;gap:8px;width:100%;min-width:0;display:flex}.WFZVxa_openWithName{text-overflow:ellipsis;white-space:nowrap;flex:auto;min-width:0;overflow:hidden}.WFZVxa_openWithChevron{color:var(--dsw-alias-label-tertiary);flex:none}.WFZVxa_openWithPin{width:20px;height:20px;color:var(--dsw-alias-label-tertiary);cursor:pointer;border-radius:6px;flex:none;justify-content:center;align-items:center;display:inline-flex}.WFZVxa_openWithPin:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.WFZVxa_openWithPinActive{color:var(--dsw-alias-state-business-primary)}";
+	//#region src/client/terminal-links.ts
+	/**
+	* Terminal URL hyperlinks: xterm's `registerLinkProvider` is fed per-line
+	* link descriptors built from the pty stream, so URLs printed by any tool
+	* become hoverable / clickable spans.
+	*
+	* To stay out of the user's way (a terminal's primary interaction is text
+	* selection, not browsing), a click only activates when the user holds
+	* Ctrl (Win/Linux) or Cmd (mac) — a plain click is left for xterm's
+	* normal selection handling. Only http(s) URLs are dispatched to the
+	* browser; other schemes (`file://`, `mailto:`, `javascript:`, …) are
+	* underlined for visibility but rejected at activation, so a `file://`
+	* URL printed by a tool stays inert instead of being handed to
+	* `window.open`.
+	*
+	* Kept as a pure module (no xterm import) so the regex, the line
+	* scanner, the modifier gate and the scheme guard are unit-testable
+	* without mounting a terminal. `buildTerminalLinks` returns plain-object
+	* descriptors whose shape matches xterm's `ILink` minus the `activate`
+	* callback — the caller attaches `activate` (which closes over the
+	* event modifier check + `openTerminalUrl`) so this module never
+	* imports xterm types.
+	*/
+	/** Scheme allowlist for activation. Only http(s) is opened externally. */
+	const OPENABLE_SCHEMES = /* @__PURE__ */ new Set(["http:", "https:"]);
+	/**
+	* The URL pattern used to scan each terminal line.
+	*
+	* A word boundary (`\b`) guards the leading scheme so `notttps://…` does
+	* not match. The character class excludes ASCII whitespace and the
+	* wrapping punctuation that shells commonly emit around URLs (quotes,
+	* angle brackets, brackets/braces, pipes, backslashes, backticks) so a
+	* URL printed as `"https://example.com"` or `<https://example.com>` does
+	* not drag the wrapping character into the link target.
+	*
+	* Carries the `g` flag so `findTerminalUrlsInLine` can iterate every
+	* match on a line; callers must reset `lastIndex` before reuse (the
+	* helper does this defensively).
+	*/
+	const TERMINAL_URL_REGEX = /\bhttps?:\/\/[^\s"'<>[\]{}|\\^`]+/gi;
+	/**
+	* Strip trailing closing parens that are not balanced by an opening paren
+	* earlier in the URL.
+	*
+	* The regex's character class keeps `(` and `)` (Wikipedia-style URLs
+	* carry real parens: `…/Python_(programming_language)`), so a URL wrapped
+	* in parens by a shell (`(https://example.com)`) captures the trailing
+	* `)`. Balanced pairs are kept intact; only the unmatched excess is
+	* trimmed, so:
+	* - `https://example.com)` → `https://example.com`
+	* - `https://en.wikipedia.org/wiki/Python_(programming_language)` → unchanged
+	* - `https://example.com/(` → unchanged (more openers than closers; the
+	*   trailing `(` is the URL's own, not a wrapper)
+	*/
+	function trimUnbalancedTrailingParens(url) {
+		let opens = 0;
+		let closers = 0;
+		for (let i = 0; i < url.length; i += 1) {
+			const ch = url[i];
+			if (ch === "(") opens += 1;
+			else if (ch === ")") closers += 1;
+		}
+		const excess = closers - opens;
+		if (excess <= 0) return url;
+		let end = url.length;
+		let stripped = 0;
+		while (end > 0 && url[end - 1] === ")" && stripped < excess) {
+			end -= 1;
+			stripped += 1;
+		}
+		return url.slice(0, end);
+	}
+	/**
+	* Find every http(s) URL in a line of terminal text, in source order
+	* with 0-based start offsets. A link provider maps these to buffer
+	* ranges for xterm's `registerLinkProvider`.
+	*
+	* Trailing unmatched closing parens are trimmed from each match (see
+	* {@link trimUnbalancedTrailingParens}), so a URL wrapped in parens by
+	* a shell opens without the trailing `)`, while Wikipedia-style URLs
+	* with balanced parens stay intact.
+	*
+	* Resets the regex's `lastIndex` before and after the scan so a
+	* previous partial iteration can't desynchronize a later one (the
+	* regex carries the `g` flag and is module-shared).
+	*/
+	function findTerminalUrlsInLine(line) {
+		TERMINAL_URL_REGEX.lastIndex = 0;
+		const matches = [];
+		let m;
+		while ((m = TERMINAL_URL_REGEX.exec(line)) !== null) {
+			const trimmed = trimUnbalancedTrailingParens(m[0]);
+			if (trimmed.length > 0) matches.push({
+				start: m.index,
+				text: trimmed
+			});
+		}
+		TERMINAL_URL_REGEX.lastIndex = 0;
+		return matches;
+	}
+	/**
+	* Build link descriptors for every URL found in a terminal line.
+	*
+	* @param lineText - the line's text (e.g. from
+	*   `IBufferLine.translateToString(true)`).
+	* @param lineNumber - the buffer line number xterm passed to
+	*   `ILinkProvider.provideLinks` (used as the `y` of every range; URLs
+	*   never span wrapped lines because each wrapped row is its own
+	*   buffer line).
+	* @returns descriptors in source order; empty when the line has no URL.
+	*/
+	function buildTerminalLinks(lineText, lineNumber) {
+		return findTerminalUrlsInLine(lineText).map(({ start, text: url }) => ({
+			range: {
+				start: {
+					x: start + 1,
+					y: lineNumber
+				},
+				end: {
+					x: start + url.length,
+					y: lineNumber
+				}
+			},
+			text: url
+		}));
+	}
+	/**
+	* Decide whether a click on a terminal link should activate (open the URL).
+	*
+	* Mirrors what every modern terminal does (Windows Terminal, iTerm2, the
+	* VSCode integrated terminal): a plain click stays a text-selection
+	* gesture, and only Ctrl (Win/Linux) or Cmd (mac) hands the URL to the
+	* browser. The modifier is read off the activating `MouseEvent`, not
+	* tracked separately, so a key-up between hover and click never
+	* desynchronizes the gate.
+	*/
+	function shouldActivateTerminalLink(event) {
+		return event.ctrlKey || event.metaKey;
+	}
+	/**
+	* Open a URL matched in the terminal, with a scheme guard so a printed
+	* `file://` or anything that slipped past the regex cannot reach
+	* `window.open`. The URL is constructed via `new URL(...)` which throws
+	* on malformed input; the catch makes the function total so the xterm
+	* handler never throws into the terminal's event loop.
+	*
+	* @returns `true` when the URL was dispatched to `window.open`, `false`
+	*   when it was rejected (bad URL, disallowed scheme, no `window`).
+	*/
+	function openTerminalUrl(uri) {
+		if (typeof window === "undefined") return false;
+		let url;
+		try {
+			url = new URL(uri);
+		} catch {
+			return false;
+		}
+		if (!OPENABLE_SCHEMES.has(url.protocol)) return false;
+		window.open(url.toString(), "_blank", "noopener,noreferrer");
+		return true;
+	}
+	//#endregion
+	//#region \0dsh-css:/root/wt-dsh-work-bs019/plugins/dsh-better-sidebar/src/client/sidebar.module.css.mjs
+	const css = "[data-dsh-panel-host]{z-index:25;pointer-events:none;position:fixed;inset:0;overflow:clip}[data-dsh-panel-host][data-dsh-panel-host-degraded]{position:absolute;top:0;left:0}._5neZua_toggleButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;transition:background var(--ds-transition-duration-slow) var(--ds-ease-in-out), color var(--ds-transition-duration-slow) var(--ds-ease-in-out);background:0 0;border:none;border-radius:50%;justify-content:center;align-items:center;display:flex}._5neZua_toggleButton:hover:not(:disabled):not([aria-disabled=true]){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_toggleButton:disabled,._5neZua_toggleButton[aria-disabled=true]{opacity:.4;cursor:default}._5neZua_panelBody{flex:1;min-width:0;min-height:0;display:flex}._5neZua_bottomPanel{z-index:40;background:var(--dsw-alias-bg-layer-1);border-top:1px solid var(--dsw-alias-border-l2);pointer-events:auto;padding-bottom:env(safe-area-inset-bottom);transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out), height var(--ds-transition-duration-slow) var(--ds-ease-in-out);flex-direction:column;display:flex;position:absolute;bottom:0}._5neZua_bottomPanelHidden{pointer-events:none;visibility:hidden;transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out), height var(--ds-transition-duration-slow) var(--ds-ease-in-out), visibility 0s linear var(--ds-transition-duration-slow);transform:translateY(102%)}._5neZua_bottomPanel[data-dragging]{transition:none}._5neZua_bottomPanel{contain:layout style}body[data-dsh-sidebar-dragging] ._5neZua_panel,body[data-dsh-sidebar-dragging] ._5neZua_bottomPanel{will-change:transform}._5neZua_bottomResize{cursor:row-resize;z-index:2;touch-action:none;height:8px;position:absolute;top:-4px;left:0;right:0}._5neZua_bottomResizeActive{background:var(--dsw-alias-interactive-bg-hover-accent)}._5neZua_bottomClose{z-index:4;width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex;position:absolute;top:3px;right:6px}._5neZua_bottomClose:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_bottomPanel ._5neZua_tabBar{padding-right:40px}._5neZua_toggleButton,._5neZua_tabBar{-webkit-app-region:no-drag}._5neZua_iconButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}._5neZua_iconButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_iconButton:disabled{opacity:.4;cursor:default}._5neZua_workbench,._5neZua_split{flex:1;min-width:0;min-height:0;display:flex}._5neZua_splitRow{flex-direction:row}._5neZua_splitCol{flex-direction:column}._5neZua_splitChild{display:flex;position:relative;overflow:hidden}._5neZua_divider{z-index:3;touch-action:none;flex:none;position:relative}._5neZua_dividerRow:after,._5neZua_dividerCol:after{content:\"\";background:var(--dsw-alias-border-l2);transition:background var(--ds-transition-duration-slow) var(--ds-ease-in-out);position:absolute}._5neZua_dividerRow{cursor:col-resize;width:7px;margin:0 -2px}._5neZua_dividerRow:after{width:1px;top:0;bottom:0;left:50%;transform:translate(-50%)}._5neZua_dividerCol{cursor:row-resize;height:7px;margin:-2px 0}._5neZua_dividerCol:after{height:1px;top:50%;left:0;right:0;transform:translateY(-50%)}._5neZua_divider:hover:after,._5neZua_dividerActive:after{background:var(--dsw-alias-interactive-bg-hover-accent)}._5neZua_pane{background:var(--dsw-alias-bg-base);flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;position:relative}._5neZua_paneDrop{outline:1px solid var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}._5neZua_dropOverlay{z-index:6;pointer-events:none;background:var(--dsw-alias-interactive-bg-hover-accent);opacity:.5;position:absolute}._5neZua_dropLeft{width:25%;top:0;bottom:0;left:0}._5neZua_dropRight{width:25%;top:0;bottom:0;right:0}._5neZua_dropUp{height:25%;top:0;left:0;right:0}._5neZua_dropDown{height:25%;bottom:0;left:0;right:0}._5neZua_dropCenter{outline:2px dashed var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-2px;background:0 0;inset:25%}._5neZua_paneContent{flex-direction:column;flex:1;min-height:0;display:flex;overflow:hidden}._5neZua_paneTab{flex-direction:column;flex:1;min-height:0;display:flex}._5neZua_paneTabHidden{display:none}._5neZua_paneEmptyCards{flex:1;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));align-content:start;gap:8px;min-height:0;padding:12px;display:grid;overflow:hidden}._5neZua_paneCard{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-strong-12);cursor:pointer;text-align:center;border-radius:8px;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:12px 8px;display:flex}._5neZua_paneCard:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}._5neZua_paneCard:disabled{opacity:.45;cursor:default}._5neZua_tabBar{border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);flex:none;align-items:stretch;height:34px;display:flex}._5neZua_tabBarDrop{outline:1px dashed var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}._5neZua_tabList{scrollbar-width:none;flex:1;min-width:0;display:flex;overflow-x:auto}._5neZua_tabList::-webkit-scrollbar{display:none}._5neZua_tab{min-width:64px;max-width:160px;font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-secondary);border-right:1px solid var(--dsw-alias-border-l1);cursor:pointer;user-select:none;background:0 0;flex:none;align-items:center;gap:4px;padding:0 4px 0 10px;display:flex}._5neZua_tab:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_tabActive{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-active)}._5neZua_tabTitle{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}._5neZua_tabBadge{min-width:16px;height:15px;font:var(--dsw-font-xxxs-strong-11);background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-brand-primary);border-radius:8px;flex:none;justify-content:center;align-items:center;padding:0 4px;display:inline-flex}._5neZua_tabClose{width:18px;height:18px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:4px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}._5neZua_tabClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_tabBarPlus{background:var(--dsw-alias-bg-layer-1);width:22px;height:22px;color:var(--dsw-alias-label-tertiary);cursor:pointer;border:none;border-radius:5px;flex:none;justify-content:center;align-self:center;align-items:center;margin:0 6px;padding:0;display:inline-flex;position:sticky;right:0}._5neZua_tabBarPlus:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_pinnedTab{color:var(--dsw-alias-label-tertiary);font-style:italic}._5neZua_pinnedTab:hover{color:var(--dsw-alias-label-secondary)}._5neZua_explorer{flex-direction:column;flex:1;min-height:0;display:flex}._5neZua_explorerHeader{flex:none;justify-content:space-between;align-items:center;gap:8px;height:36px;padding:0 8px 0 12px;display:flex}._5neZua_explorerRoot{font:var(--dsw-font-s-14);color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;overflow:hidden}._5neZua_explorerBody{flex:1;min-height:0;padding:4px 8px 8px;overflow:hidden auto}._5neZua_explorerRow{box-sizing:border-box;width:100%;max-width:100%;height:34px;font:var(--dsw-font-s-14);color:var(--dsw-alias-label-primary);text-align:left;cursor:pointer;white-space:nowrap;animation:_5neZua_dsh-row-in .15s var(--ds-ease-in-out);background:0 0;border:none;border-radius:8px;align-items:center;gap:6px;padding:0 8px;display:flex}._5neZua_explorerRow:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_explorerRowRevealed{background:var(--dsw-alias-state-business-tertiary)}._5neZua_explorerRowRevealed+._5neZua_explorerRowRevealed{border-top-left-radius:0;border-top-right-radius:0}._5neZua_explorerRowRevealed:has(+._5neZua_explorerRowRevealed){border-bottom-right-radius:0;border-bottom-left-radius:0}._5neZua_explorerDir{font:var(--dsw-font-s-strong-14)}._5neZua_explorerHidden{opacity:.45}._5neZua_explorerSymlink{color:var(--dsw-alias-label-tertiary);flex:none}._5neZua_explorerBroken ._5neZua_explorerName{color:var(--dsw-alias-state-error-primary)}._5neZua_explorerName{text-overflow:ellipsis;white-space:nowrap;min-width:0;overflow:hidden}._5neZua_explorerRenaming{cursor:text}._5neZua_explorerRenameInput{box-sizing:border-box;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-1);min-width:0;height:24px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:auto;padding:0 6px}._5neZua_explorerRenameInput:focus{border-color:var(--dsw-alias-state-business-primary);outline:none}._5neZua_explorerActionError{box-sizing:border-box;border:1px solid var(--dsw-alias-state-error-primary);background:var(--dsw-alias-bg-layer-1);border-radius:8px;align-items:flex-start;gap:6px;width:100%;margin-bottom:4px;padding:6px 8px;display:flex}._5neZua_explorerActionErrorText{overflow-wrap:anywhere;min-width:0;font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);flex:auto}._5neZua_explorerActionErrorClose{width:20px;height:20px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:5px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}._5neZua_explorerActionErrorClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_explorerConfirmDesc{font:var(--dsw-font-s-14);color:var(--dsw-alias-label-primary);overflow-wrap:anywhere;margin:0}._5neZua_explorerRef,._5neZua_explorerCopied{margin-left:auto}._5neZua_explorerRef{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);height:20px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-strong-11);cursor:pointer;border-radius:999px;flex:none;align-items:center;padding:0 8px;display:none}._5neZua_explorerRef:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_explorerRow:hover ._5neZua_explorerRef,._5neZua_explorerRow:focus-within ._5neZua_explorerRef{display:inline-flex}._5neZua_explorerCopied{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary);flex:none}._5neZua_explorerError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);cursor:default}@keyframes _5neZua_dsh-row-in{0%{opacity:0}}._5neZua_explorerEmpty{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;padding:16px}._5neZua_explorerRowDropTarget{background:var(--dsw-alias-interactive-bg-hover);outline:1px dashed var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}._5neZua_uploadDropZone{z-index:1001;pointer-events:none;border:2px dashed var(--dsw-alias-interactive-bg-hover-accent);box-shadow:0 0 0 200vmax var(--dsw-alias-bg-mask-drop);animation:_5neZua_dsh-row-in .15s var(--ds-ease-in-out);border-radius:10px;justify-content:center;align-items:flex-start;padding:12px;display:flex;position:fixed}._5neZua_uploadDropHero{flex-direction:column;align-items:center;gap:10px;max-width:100%;padding-top:8px;display:flex}._5neZua_uploadDropZonePill{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);max-width:100%;box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-strong-12);border-radius:999px;align-items:center;gap:6px;padding:6px 12px;display:flex}._5neZua_uploadDropZoneText{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}._5neZua_uploadDropChatHint{z-index:1002;pointer-events:none;animation:_5neZua_dsh-row-in .15s var(--ds-ease-in-out);justify-content:center;align-items:center;padding:24px;display:flex;position:fixed;top:0;bottom:0;left:0}._5neZua_uploadDropChatCard{text-align:center;max-width:100%;color:var(--dsw-alias-label-primary);font:var(--dsw-font-s-strong-14);flex-direction:column;align-items:center;gap:12px;display:flex}._5neZua_uploadOverlay{z-index:30;background:var(--dsw-alias-bg-mask-1);backdrop-filter:var(--dsw-mask-blur);animation:_5neZua_dsh-row-in .15s var(--ds-ease-in-out);justify-content:center;align-items:center;display:flex;position:absolute;inset:0}._5neZua_uploadOverlayCard{border:1px solid var(--dsw-alias-border-inverted);background:var(--dsw-alias-bg-layer-2);min-width:280px;max-width:min(420px,100% - 48px);box-shadow:var(--dsw-shadow-lv3);border-radius:24px;flex-direction:column;gap:12px;padding:20px 24px;display:flex}._5neZua_uploadOverlayTitle{font:var(--dsw-font-s-strong-14);color:var(--dsw-alias-label-primary);align-items:center;gap:8px;display:flex}._5neZua_uploadOverlayTitle>svg{flex:none}._5neZua_uploadOverlayTitle>span{white-space:nowrap;text-overflow:ellipsis;min-width:0;overflow:hidden}._5neZua_uploadOverlayProgress{background:var(--dsw-alias-border-l2);border-radius:3px;height:6px;overflow:hidden}._5neZua_uploadOverlayProgressFill{background:var(--dsw-alias-interactive-bg-hover-accent);height:100%;transition:width .15s var(--ds-ease-in-out);border-radius:3px}._5neZua_uploadOverlayStatus{min-height:1em;font:var(--dsw-font-xxs-12);font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}._5neZua_uploadOverlayCancel{border:1px solid var(--dsw-alias-border-l2);height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-strong-12);cursor:pointer;background:0 0;border-radius:8px;align-self:flex-end;padding:0 14px}._5neZua_uploadOverlayCancel:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l2)}._5neZua_uploadOverlayCancel:disabled{opacity:.4;cursor:default}._5neZua_editor{flex-direction:column;flex:1;min-height:0;display:flex}._5neZua_editorHeader{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:6px;padding:6px 8px;display:flex}._5neZua_editorTitle{min-width:0;font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;overflow:hidden}._5neZua_editorPathInput{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 10px}._5neZua_editorPathInput:focus{border-color:var(--dsw-alias-border-l2);outline:none}._5neZua_editorTreeToggleActive{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-active)}._5neZua_editorBody{flex:1;min-height:0;display:flex}._5neZua_editorMain{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex}._5neZua_editorTreeDock{border-left:1px solid var(--dsw-alias-border-l1);flex:none;min-height:0;display:flex;position:relative}._5neZua_editorTreeResize{cursor:col-resize;touch-action:none;z-index:3;width:6px;position:absolute;top:0;bottom:0;left:0}._5neZua_editorTreeResize:hover{background:var(--dsw-alias-border-l2)}._5neZua_editorTreePanel{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;position:relative}._5neZua_editorTreePanelFull{flex:1}._5neZua_editorTreeSearch{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:6px;padding:6px 8px;display:flex}._5neZua_editorSearchInput{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;height:26px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 10px}._5neZua_editorSearchInput:focus{border-color:var(--dsw-alias-border-l2);outline:none}._5neZua_editorSearchHint{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);padding:8px 12px}._5neZua_editorSearchResult{width:100%;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);text-align:left;cursor:pointer;text-overflow:ellipsis;white-space:nowrap;background:0 0;border:none;border-radius:6px;padding:4px 8px;display:block;overflow:hidden}._5neZua_editorSearchResult:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_editorStatus{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary)}._5neZua_editorStatusError{color:var(--dsw-alias-state-error-primary)}._5neZua_dirtyDot{background:var(--dsw-alias-state-warn-primary);border-radius:50%;flex:none;width:7px;height:7px}._5neZua_editorPlaceholder{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;flex:1;justify-content:center;align-items:center;padding:16px;display:flex}._5neZua_orphanedType{opacity:.7;overflow-wrap:anywhere;margin-top:8px;font-size:12px;display:block}._5neZua_editorBinary{text-align:center;flex-direction:column;flex:1;justify-content:center;align-items:center;gap:12px;padding:24px 16px;display:flex}._5neZua_editorBinaryNotice{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary)}._5neZua_editorDownloadLink{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-strong-12);cursor:pointer;transition:background var(--ds-transition-duration-slow) var(--ds-ease-in-out), border-color var(--ds-transition-duration-slow) var(--ds-ease-in-out);border-radius:6px;align-items:center;gap:6px;padding:6px 14px;text-decoration:none;display:inline-flex}._5neZua_editorDownloadLink:hover{background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l2)}._5neZua_editorError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);padding:12px 16px}._5neZua_fenceError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;display:flex}._5neZua_editorBanner{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex:none;padding:4px 8px}._5neZua_sandboxStatus{font:var(--dsw-font-xxxs-11);flex:none;align-items:center;gap:8px;padding:4px 10px;display:flex}._5neZua_sandboxStatusOn{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border-bottom:1px solid var(--dsw-alias-border-l1)}._5neZua_sandboxStatusOff{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);border-bottom:1px solid color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent)}._5neZua_sandboxDot{background:var(--dsw-alias-state-success-primary);border-radius:50%;flex:none;width:6px;height:6px}._5neZua_sandboxStatusOff ._5neZua_sandboxDot{background:var(--dsw-alias-state-error-primary)}._5neZua_sandboxStatusText{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}._5neZua_sandboxAction{border:1px solid var(--dsw-alias-border-l2);font:inherit;color:inherit;cursor:pointer;background:0 0;border-radius:6px;flex:none;padding:2px 8px}._5neZua_sandboxAction:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_editorHtml{background:var(--dsw-alias-bg-base);border:none;flex:1;width:100%;min-height:0}._5neZua_browser{flex-direction:column;flex:1;min-height:0;display:flex}._5neZua_browserBar{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:4px;padding:6px 8px;display:flex}._5neZua_browserInput{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0;height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);border-radius:6px;flex:1;padding:0 10px}._5neZua_browserInput:focus{border-color:var(--dsw-alias-border-l2);outline:none}._5neZua_browserMessage{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex:none;padding:4px 12px}._5neZua_browserFrame{background:var(--dsw-alias-bg-base);border:none;flex:1;width:100%;min-height:0}._5neZua_browserStart{text-align:center;min-height:0;font:var(--dsw-font-xs-13);color:var(--dsw-alias-label-tertiary);flex:1;justify-content:center;align-items:center;padding:20px;display:flex}._5neZua_browserBlocked{text-align:center;min-height:0;color:var(--dsw-alias-state-warn-primary);flex-direction:column;flex:1;justify-content:center;align-items:center;gap:6px;padding:24px;display:flex}._5neZua_browserBlockedTitle{font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-primary)}._5neZua_browserBlockedDesc{max-width:280px;font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-secondary)}._5neZua_browserBlockedActions{gap:8px;margin-top:6px;display:flex}._5neZua_browserBlockedButton{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxxs-11);cursor:pointer;border-radius:6px;padding:4px 12px}._5neZua_browserBlockedButton:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_editorCm{background:0 0;flex:1;min-height:0;overflow:hidden}._5neZua_editorCmHidden{display:none}._5neZua_editorCm .cm-editor{height:100%}._5neZua_editorCm .cm-scroller{padding:12px 16px}._5neZua_editorCm .cm-editor.cm-focused{outline:none}._5neZua_editorModeToggle{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);border-radius:6px;flex:none;align-items:center;gap:2px;padding:2px;display:inline-flex}._5neZua_editorModeButton{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11);cursor:pointer;background:0 0;border:none;border-radius:4px;padding:2px 8px}._5neZua_editorModeButton:hover{color:var(--dsw-alias-label-primary)}._5neZua_editorModeActive{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}._5neZua_editorImageWrap{flex:1;justify-content:center;align-items:center;min-height:0;padding:12px;display:flex;overflow:auto}._5neZua_editorImage{object-fit:contain;max-width:100%;max-height:100%}._5neZua_editorMd{min-height:0;font:var(--dsw-font-xs-13);flex:1;padding:12px 16px;overflow-y:auto}._5neZua_editorMd .md-code-block:not([data-mermaid-processed])>div:first-child{z-index:auto;position:static}._5neZua_mermaidWrap{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:6px 0;overflow:hidden}._5neZua_mermaidHeader{border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);justify-content:space-between;align-items:center;gap:6px;padding:4px 8px;display:flex}._5neZua_mermaidInfo{font:var(--dsw-font-xxxs-strong-11);color:var(--dsw-alias-label-tertiary)}._5neZua_mermaidCopy{height:20px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxxs-11);cursor:pointer;background:0 0;border:none;border-radius:4px;align-items:center;gap:4px;padding:0 6px;display:inline-flex}._5neZua_mermaidCopy:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_mermaidBody{cursor:zoom-in;justify-content:center;padding:10px;display:flex;overflow:auto}._5neZua_mermaidBody svg{max-width:100%;height:auto}._5neZua_mermaidError{border-bottom:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-state-error-primary);font:var(--dsw-font-xxxs-11);padding:6px 10px}._5neZua_mermaidCode{font:var(--dsw-font-xxxs-11);margin:0;padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto}._5neZua_mermaidMarkdown .md-code-block[data-mermaid-processed]{display:contents}._5neZua_mermaidModal{z-index:1000;background:var(--dsw-alias-bg-mask-1);backdrop-filter:blur(2px);flex-direction:column;justify-content:center;align-items:center;display:flex;position:fixed;inset:0}._5neZua_mermaidModalToolbar{z-index:10;gap:8px;display:flex;position:absolute;top:16px;right:16px}._5neZua_mermaidModalButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);width:36px;height:36px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-strong-13);cursor:pointer;border-radius:8px;justify-content:center;align-items:center;display:inline-flex}._5neZua_mermaidModalButton:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_mermaidModalStage{justify-content:center;align-items:center;width:90vw;height:80vh;display:flex;position:relative;overflow:hidden}._5neZua_mermaidModalStage svg{cursor:grab;transform-origin:50%;user-select:none;-webkit-user-drag:none;background:var(--dsw-alias-bg-layer-1);border-radius:12px;max-width:none;max-height:none;padding:16px}._5neZua_mermaidModalStage svg:active{cursor:grabbing}._5neZua_mermaidModalHint{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11);pointer-events:none;position:absolute;bottom:16px;left:50%;transform:translate(-50%)}._5neZua_selectionPopup{z-index:60;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxxs-strong-11);white-space:nowrap;cursor:pointer;border-radius:6px;align-items:center;padding:0 10px;display:inline-flex;position:fixed;transform:translate(-50%,calc(-100% - 8px))}._5neZua_selectionPopup:hover{background:var(--dsw-alias-interactive-bg-hover)}._5neZua_editorPdf{background:var(--dsw-alias-bg-base);flex-direction:column;flex:1;min-height:0;display:flex}._5neZua_editorPdfToolbar{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;justify-content:flex-end;padding:6px 8px;display:flex}._5neZua_editorPdfStage{flex:1;min-height:0;display:flex;position:relative}._5neZua_editorPdfFrame{background:var(--dsw-alias-bg-base);border:none;flex:1;width:100%;min-height:0}._5neZua_editorPdfFrameBlocked{pointer-events:none}._5neZua_editorPdfDragShield{z-index:4;pointer-events:none;background:0 0;position:absolute;inset:0}._5neZua_editorPdfDragShieldActive{pointer-events:auto}body[data-dsh-tab-dragging] ._5neZua_editorPdfFrame{pointer-events:none!important}body[data-dsh-tab-dragging] ._5neZua_editorPdfDragShield{pointer-events:auto!important}._5neZua_terminalWrap{background:var(--dsw-alias-bg-base);flex-direction:column;flex:1;min-height:0;display:flex;position:relative}._5neZua_terminal{flex:1;min-height:0;padding:6px 4px 6px 8px}._5neZua_terminal .xterm{height:100%}._5neZua_terminalBanner{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex-wrap:wrap;flex:none;align-items:center;gap:8px;padding:3px 10px;display:flex}._5neZua_terminalBannerUrl{word-break:break-all;opacity:.85;flex-basis:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}._5neZua_boundaryError{z-index:50;background:var(--dsw-alias-bg-layer-1);border-left:1px solid var(--dsw-alias-border-l2);font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);flex-direction:column;align-items:flex-start;gap:8px;padding:16px;display:flex;position:fixed;top:0;bottom:0;right:0;overflow:auto}._5neZua_terminalRetry{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxxs-strong-11);cursor:pointer;border-radius:999px;flex:none;padding:1px 8px}._5neZua_terminalRetry:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_terminalDepsBanner{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-warn-label);background:var(--dsw-alias-state-warn-tertiary);flex-direction:column;flex:none;gap:6px;padding:10px;display:flex}._5neZua_terminalDepsTitle{font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-state-warn-primary)}._5neZua_terminalDepsHint{opacity:.9}._5neZua_terminalDepsCommandRow{align-items:flex-start;gap:8px;display:flex}._5neZua_terminalRepairCommand{white-space:pre-wrap;word-break:break-all;user-select:text;min-width:0;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;flex:1;max-height:160px;margin:0;padding:6px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;overflow:auto}._5neZua_terminalDepsNote{opacity:.85}._5neZua_terminalDepsActions{align-items:center;gap:8px;display:flex}._5neZua_tabBoundaryError{min-height:0;font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);flex-direction:column;flex:1;align-items:flex-start;gap:8px;padding:12px 16px;display:flex;overflow:auto}._5neZua_nativeTabHost{flex-direction:column;height:100%;min-height:0;display:flex}._5neZua_gitEmpty{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);padding:4px 12px 8px}._5neZua_gitPlaceholder{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;padding:16px}._5neZua_gitError{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-state-error-primary);white-space:pre-wrap;padding:8px 12px}._5neZua_gitDiffTab{flex-direction:column;flex:1;min-width:0;min-height:0;display:flex;overflow:hidden auto}._5neZua_gitDiffTabHeader{border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;align-items:center;gap:8px;height:36px;padding:0 8px 0 12px;display:flex}._5neZua_gitDiffTabTitle{text-overflow:ellipsis;white-space:nowrap;min-width:0;font:var(--dsw-font-xxs-strong-12);color:var(--dsw-alias-label-primary);flex:1;overflow:hidden}._5neZua_producedRow{flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;display:flex}._5neZua_producedLabel{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary)}._5neZua_producedChip{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);max-width:200px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12);cursor:pointer;border-radius:999px;align-items:center;gap:4px;padding:2px 8px;display:inline-flex;overflow:hidden}._5neZua_producedChip:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_producedChip span{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}._5neZua_producedMore{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary)}._5neZua_toggleButton:focus-visible,._5neZua_bottomClose:focus-visible,._5neZua_iconButton:focus-visible,._5neZua_tab:focus-visible,._5neZua_tabClose:focus-visible,._5neZua_tabBarPlus:focus-visible,._5neZua_paneCard:focus-visible,._5neZua_explorerRow:focus-visible,._5neZua_explorerRef:focus-visible,._5neZua_terminalRetry:focus-visible,._5neZua_editorModeButton:focus-visible,._5neZua_editorDownloadLink:focus-visible,._5neZua_editorPptxButton:focus-visible,._5neZua_editorDocxZoomRange:focus-visible{outline:2px solid var(--dsw-alias-interactive-bg-hover-accent);outline-offset:-1px}@media (prefers-reduced-motion:reduce){._5neZua_bottomPanel,._5neZua_bottomPanelHidden,._5neZua_toggleButton,._5neZua_tab,._5neZua_tabBarPlus,._5neZua_paneCard,._5neZua_explorerRow,._5neZua_divider,._5neZua_dividerRow:after,._5neZua_dividerCol:after{transition:none;animation:none}}@media (width<=767px){._5neZua_tab{min-width:48px;max-width:128px}}._5neZua_openWithLabel{align-items:center;gap:8px;width:100%;min-width:0;display:flex}._5neZua_openWithName{text-overflow:ellipsis;white-space:nowrap;flex:auto;min-width:0;overflow:hidden}._5neZua_openWithChevron{color:var(--dsw-alias-label-tertiary);flex:none}._5neZua_openWithPin{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);cursor:pointer;border-radius:5px;flex:none;justify-content:center;align-items:center;display:inline-flex}._5neZua_openWithPin:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_openWithPinActive{color:var(--dsw-alias-state-business-primary)}._5neZua_editorHtmlBlock{margin:8px 0}._5neZua_editorHtmlBlock img,._5neZua_editorHtmlBlock video{max-width:100%}._5neZua_editorHtmlBlock details{margin:4px 0;padding:4px 0}._5neZua_editorHtmlBlock summary{cursor:pointer}._5neZua_tocBar{z-index:7;pointer-events:none;justify-content:flex-end;height:0;display:flex;position:sticky;top:0}._5neZua_tocButton{pointer-events:auto;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);width:26px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:6px;justify-content:center;align-items:center;margin:4px 2px 0 0;padding:0;display:inline-flex}._5neZua_tocButton:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_tocPanel{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);width:min(300px,82%);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);pointer-events:auto;border-radius:8px;flex-direction:column;padding:4px;display:flex;position:absolute;top:32px;right:2px;overflow-y:auto}._5neZua_tocItem{min-width:0;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12);text-align:left;cursor:pointer;background:0 0;border:none;border-radius:6px;align-items:baseline;gap:8px;padding:4px 8px;display:flex}._5neZua_tocItem:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}._5neZua_tocItem[data-level=\"2\"]{padding-left:18px}._5neZua_tocItem[data-level=\"3\"]{padding-left:28px}._5neZua_tocItem[data-level=\"4\"]{padding-left:38px}._5neZua_tocItem[data-level=\"5\"]{padding-left:48px}._5neZua_tocItem[data-level=\"6\"]{padding-left:58px}._5neZua_tocItemLevel{font:var(--dsw-font-xxxs-11);color:var(--dsw-alias-label-tertiary);flex:none}._5neZua_tocItemText{text-overflow:ellipsis;white-space:nowrap;flex:auto;min-width:0;overflow:hidden}@keyframes _5neZua_dsh-toc-flash{0%,60%{background:var(--dsw-alias-interactive-bg-hover)}to{background:0 0}}._5neZua_tocFlash{border-radius:4px;animation:1.2s ease-out _5neZua_dsh-toc-flash}";
 	const tagId = "dsh-better-sidebar/sidebar.module.css";
 	if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 		const tag = document.createElement("style");
@@ -8328,227 +9074,197 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 		document.head.appendChild(tag);
 	}
 	var sidebar_module_css_default = {
-		"tabBar": "WFZVxa_tabBar",
-		"gitDiffLine": "WFZVxa_gitDiffLine",
-		"uploadOverlay": "WFZVxa_uploadOverlay",
-		"openWithChevron": "WFZVxa_openWithChevron",
-		"dropDown": "WFZVxa_dropDown",
-		"splitRow": "WFZVxa_splitRow",
-		"dropRight": "WFZVxa_dropRight",
-		"tabBadge": "WFZVxa_tabBadge",
-		"uploadOverlayCancel": "WFZVxa_uploadOverlayCancel",
-		"editorTreeSearch": "WFZVxa_editorTreeSearch",
-		"selectionPopup": "WFZVxa_selectionPopup",
-		"gitCommitInput": "WFZVxa_gitCommitInput",
-		"openWithLabel": "WFZVxa_openWithLabel",
-		"panelResizeActive": "WFZVxa_panelResizeActive",
-		"mermaidError": "WFZVxa_mermaidError",
-		"uploadOverlayStatus": "WFZVxa_uploadOverlayStatus",
-		"explorerRow": "WFZVxa_explorerRow",
-		"explorerDir": "WFZVxa_explorerDir",
-		"explorerSymlink": "WFZVxa_explorerSymlink",
-		"gitHeader": "WFZVxa_gitHeader",
-		"gitDiff": "WFZVxa_gitDiff",
-		"editorSearchInput": "WFZVxa_editorSearchInput",
-		"dropCenter": "WFZVxa_dropCenter",
-		"dividerCol": "WFZVxa_dividerCol",
-		"mermaidModalToolbar": "WFZVxa_mermaidModalToolbar",
-		"editorPdfStage": "WFZVxa_editorPdfStage",
-		"terminalDepsActions": "WFZVxa_terminalDepsActions",
-		"mermaidInfo": "WFZVxa_mermaidInfo",
-		"gitDiffAdd": "WFZVxa_gitDiffAdd",
-		"uploadOverlayProgressFill": "WFZVxa_uploadOverlayProgressFill",
-		"mermaidCopy": "WFZVxa_mermaidCopy",
-		"explorer": "WFZVxa_explorer",
-		"producedRow": "WFZVxa_producedRow",
-		"producedLabel": "WFZVxa_producedLabel",
-		"gitLogLine2": "WFZVxa_gitLogLine2",
-		"producedChip": "WFZVxa_producedChip",
-		"openWithName": "WFZVxa_openWithName",
-		"mermaidModalStage": "WFZVxa_mermaidModalStage",
-		"mermaidModalHint": "WFZVxa_mermaidModalHint",
-		"producedMore": "WFZVxa_producedMore",
-		"gitDiffCtx": "WFZVxa_gitDiffCtx",
-		"dropOverlay": "WFZVxa_dropOverlay",
-		"editorPdfFrameBlocked": "WFZVxa_editorPdfFrameBlocked",
-		"terminalDepsNote": "WFZVxa_terminalDepsNote",
-		"sandboxDot": "WFZVxa_sandboxDot",
-		"gitDiffFileChevronExpanded": "WFZVxa_gitDiffFileChevronExpanded",
-		"terminalDepsBanner": "WFZVxa_terminalDepsBanner",
-		"terminalDepsCommandRow": "WFZVxa_terminalDepsCommandRow",
-		"toggleCluster": "WFZVxa_toggleCluster",
-		"editorError": "WFZVxa_editorError",
-		"gitSection": "WFZVxa_gitSection",
-		"browserInput": "WFZVxa_browserInput",
-		"toggleButton": "WFZVxa_toggleButton",
-		"editorBinary": "WFZVxa_editorBinary",
-		"editorBanner": "WFZVxa_editorBanner",
-		"tabList": "WFZVxa_tabList",
-		"gitName": "WFZVxa_gitName",
-		"openWithPin": "WFZVxa_openWithPin",
-		"editorHtml": "WFZVxa_editorHtml",
-		"paneDrop": "WFZVxa_paneDrop",
-		"editorTreeDock": "WFZVxa_editorTreeDock",
-		"editorImage": "WFZVxa_editorImage",
-		"gitLogSubject": "WFZVxa_gitLogSubject",
-		"editorModeActive": "WFZVxa_editorModeActive",
-		"editorSearchResult": "WFZVxa_editorSearchResult",
-		"gitConfirmDesc": "WFZVxa_gitConfirmDesc",
-		"panelBody": "WFZVxa_panelBody",
-		"gitBadge": "WFZVxa_gitBadge",
-		"gitLogRow": "WFZVxa_gitLogRow",
-		"editorCm": "WFZVxa_editorCm",
-		"gitDiffFileTag": "WFZVxa_gitDiffFileTag",
-		"cornerHandle": "WFZVxa_cornerHandle",
-		"tabTitle": "WFZVxa_tabTitle",
-		"editorModeButton": "WFZVxa_editorModeButton",
-		"editorMain": "WFZVxa_editorMain",
-		"terminalBannerUrl": "WFZVxa_terminalBannerUrl",
-		"dropUp": "WFZVxa_dropUp",
-		"tabBarDrop": "WFZVxa_tabBarDrop",
-		"tabBarPlus": "WFZVxa_tabBarPlus",
-		"terminalBanner": "WFZVxa_terminalBanner",
-		"bottomPanelHidden": "WFZVxa_bottomPanelHidden",
-		"explorerError": "WFZVxa_explorerError",
-		"editorImageWrap": "WFZVxa_editorImageWrap",
-		"sandboxStatusOn": "WFZVxa_sandboxStatusOn",
-		"terminalRetry": "WFZVxa_terminalRetry",
-		"terminalDepsHint": "WFZVxa_terminalDepsHint",
-		"git": "WFZVxa_git",
-		"gitDiffTab": "WFZVxa_gitDiffTab",
-		"browserBlockedTitle": "WFZVxa_browserBlockedTitle",
-		"mermaidMarkdown": "WFZVxa_mermaidMarkdown",
-		"gitError": "WFZVxa_gitError",
-		"bottomResizeActive": "WFZVxa_bottomResizeActive",
-		"editorTreeResize": "WFZVxa_editorTreeResize",
-		"uploadOverlayCard": "WFZVxa_uploadOverlayCard",
-		"uploadOverlayTitle": "WFZVxa_uploadOverlayTitle",
-		"editorBinaryNotice": "WFZVxa_editorBinaryNotice",
-		"browserMessage": "WFZVxa_browserMessage",
-		"explorerRef": "WFZVxa_explorerRef",
-		"tab": "WFZVxa_tab",
-		"explorerCopied": "WFZVxa_explorerCopied",
-		"uploadDropZone": "WFZVxa_uploadDropZone",
-		"uploadDropHero": "WFZVxa_uploadDropHero",
-		"editorBody": "WFZVxa_editorBody",
-		"mermaidCode": "WFZVxa_mermaidCode",
-		"mermaidModal": "WFZVxa_mermaidModal",
-		"editorPdfDragShieldActive": "WFZVxa_editorPdfDragShieldActive",
-		"editorStatusError": "WFZVxa_editorStatusError",
-		"explorerEmpty": "WFZVxa_explorerEmpty",
-		"divider": "WFZVxa_divider",
-		"editorTreePanelFull": "WFZVxa_editorTreePanelFull",
-		"panel": "WFZVxa_panel",
-		"browserStart": "WFZVxa_browserStart",
-		"editorMd": "WFZVxa_editorMd",
-		"mermaidModalButton": "WFZVxa_mermaidModalButton",
-		"editor": "WFZVxa_editor",
-		"gitDiffTabTitle": "WFZVxa_gitDiffTabTitle",
-		"terminalDepsTitle": "WFZVxa_terminalDepsTitle",
-		"uploadDropZonePill": "WFZVxa_uploadDropZonePill",
-		"iconButton": "WFZVxa_iconButton",
-		"sandboxStatusOff": "WFZVxa_sandboxStatusOff",
-		"bottomClose": "WFZVxa_bottomClose",
-		"gitDiffMetaText": "WFZVxa_gitDiffMetaText",
-		"editorStatus": "WFZVxa_editorStatus",
-		"editorPdfDragShield": "WFZVxa_editorPdfDragShield",
-		"gitLogMeta": "WFZVxa_gitLogMeta",
-		"explorerHidden": "WFZVxa_explorerHidden",
-		"editorRefreshedBanner": "WFZVxa_editorRefreshedBanner",
-		"splitCol": "WFZVxa_splitCol",
-		"gitDiffNum": "WFZVxa_gitDiffNum",
-		"gitCommitButton": "WFZVxa_gitCommitButton",
-		"gitDiffFileOld": "WFZVxa_gitDiffFileOld",
-		"uploadOverlayProgress": "WFZVxa_uploadOverlayProgress",
-		"editorSearchHint": "WFZVxa_editorSearchHint",
-		"terminalRepairCommand": "WFZVxa_terminalRepairCommand",
-		"editorPlaceholder": "WFZVxa_editorPlaceholder",
-		"workbench": "WFZVxa_workbench",
-		"mermaidHeader": "WFZVxa_mermaidHeader",
-		"gitLink": "WFZVxa_gitLink",
-		"explorerBody": "WFZVxa_explorerBody",
-		"editorHeader": "WFZVxa_editorHeader",
-		"paneContent": "WFZVxa_paneContent",
-		"dirtyDot": "WFZVxa_dirtyDot",
-		"gitRow": "WFZVxa_gitRow",
-		"editorStaleBanner": "WFZVxa_editorStaleBanner",
-		"paneEmptyCards": "WFZVxa_paneEmptyCards",
-		"gitDiffTabHeader": "WFZVxa_gitDiffTabHeader",
-		"gitDiffFile": "WFZVxa_gitDiffFile",
-		"terminalWrap": "WFZVxa_terminalWrap",
-		"gitCommit": "WFZVxa_gitCommit",
-		"mermaidWrap": "WFZVxa_mermaidWrap",
-		"paneTabHidden": "WFZVxa_paneTabHidden",
-		"paneTab": "WFZVxa_paneTab",
-		"uploadDropChatCard": "WFZVxa_uploadDropChatCard",
-		"explorerBroken": "WFZVxa_explorerBroken",
-		"bottomPanel": "WFZVxa_bottomPanel",
-		"editorCmHidden": "WFZVxa_editorCmHidden",
-		"editorTreeToggleActive": "WFZVxa_editorTreeToggleActive",
-		"editorPdfFrame": "WFZVxa_editorPdfFrame",
-		"dsh-row-in": "WFZVxa_dsh-row-in",
-		"terminal": "WFZVxa_terminal",
-		"mermaidBody": "WFZVxa_mermaidBody",
-		"gitDiffHunkHeader": "WFZVxa_gitDiffHunkHeader",
-		"editorPptxButton": "WFZVxa_editorPptxButton",
-		"gitDiffHunk": "WFZVxa_gitDiffHunk",
-		"browserBlockedButton": "WFZVxa_browserBlockedButton",
-		"gitRowMain": "WFZVxa_gitRowMain",
-		"sandboxStatusText": "WFZVxa_sandboxStatusText",
-		"dropLeft": "WFZVxa_dropLeft",
-		"editorDownloadLink": "WFZVxa_editorDownloadLink",
-		"gitLogMore": "WFZVxa_gitLogMore",
-		"editorPathInput": "WFZVxa_editorPathInput",
-		"browserBar": "WFZVxa_browserBar",
-		"uploadDropChatHint": "WFZVxa_uploadDropChatHint",
-		"gitDiffFileChevron": "WFZVxa_gitDiffFileChevron",
-		"paneCard": "WFZVxa_paneCard",
-		"gitDiffExpand": "WFZVxa_gitDiffExpand",
-		"dividerRow": "WFZVxa_dividerRow",
-		"tabActive": "WFZVxa_tabActive",
-		"explorerRoot": "WFZVxa_explorerRoot",
-		"splitChild": "WFZVxa_splitChild",
-		"sandboxStatus": "WFZVxa_sandboxStatus",
-		"gitRowSelected": "WFZVxa_gitRowSelected",
-		"sandboxAction": "WFZVxa_sandboxAction",
-		"browserBlockedDesc": "WFZVxa_browserBlockedDesc",
-		"editorPdf": "WFZVxa_editorPdf",
-		"tabClose": "WFZVxa_tabClose",
-		"orphanedType": "WFZVxa_orphanedType",
-		"gitDiffCode": "WFZVxa_gitDiffCode",
-		"split": "WFZVxa_split",
-		"gitDiffMeta": "WFZVxa_gitDiffMeta",
-		"bottomResize": "WFZVxa_bottomResize",
-		"pane": "WFZVxa_pane",
-		"browserBlockedActions": "WFZVxa_browserBlockedActions",
-		"gitDiffHunkSection": "WFZVxa_gitDiffHunkSection",
-		"tabBoundaryError": "WFZVxa_tabBoundaryError",
-		"gitDiffDel": "WFZVxa_gitDiffDel",
-		"panelResize": "WFZVxa_panelResize",
-		"uploadDropZoneText": "WFZVxa_uploadDropZoneText",
-		"gitBranchSelect": "WFZVxa_gitBranchSelect",
-		"gitLogLine1": "WFZVxa_gitLogLine1",
-		"explorerRowDropTarget": "WFZVxa_explorerRowDropTarget",
-		"gitLogHash": "WFZVxa_gitLogHash",
-		"editorDocxZoomRange": "WFZVxa_editorDocxZoomRange",
-		"gitDiffFilePath": "WFZVxa_gitDiffFilePath",
-		"openWithPinActive": "WFZVxa_openWithPinActive",
-		"browserBlocked": "WFZVxa_browserBlocked",
-		"editorPdfToolbar": "WFZVxa_editorPdfToolbar",
-		"panelHidden": "WFZVxa_panelHidden",
-		"gitLogRef": "WFZVxa_gitLogRef",
-		"dividerActive": "WFZVxa_dividerActive",
-		"editorTreePanel": "WFZVxa_editorTreePanel",
-		"editorTitle": "WFZVxa_editorTitle",
-		"browser": "WFZVxa_browser",
-		"explorerHeader": "WFZVxa_explorerHeader",
-		"boundaryError": "WFZVxa_boundaryError",
-		"gitSectionHeader": "WFZVxa_gitSectionHeader",
-		"gitEmpty": "WFZVxa_gitEmpty",
-		"gitPlaceholder": "WFZVxa_gitPlaceholder",
-		"browserFrame": "WFZVxa_browserFrame",
-		"editorModeToggle": "WFZVxa_editorModeToggle",
-		"explorerName": "WFZVxa_explorerName"
+		"tocFlash": "_5neZua_tocFlash",
+		"explorerRenaming": "_5neZua_explorerRenaming",
+		"uploadDropHero": "_5neZua_uploadDropHero",
+		"mermaidModalToolbar": "_5neZua_mermaidModalToolbar",
+		"divider": "_5neZua_divider",
+		"mermaidMarkdown": "_5neZua_mermaidMarkdown",
+		"terminalDepsTitle": "_5neZua_terminalDepsTitle",
+		"paneCard": "_5neZua_paneCard",
+		"tab": "_5neZua_tab",
+		"orphanedType": "_5neZua_orphanedType",
+		"terminalBanner": "_5neZua_terminalBanner",
+		"paneTabHidden": "_5neZua_paneTabHidden",
+		"browserInput": "_5neZua_browserInput",
+		"paneEmptyCards": "_5neZua_paneEmptyCards",
+		"uploadDropChatHint": "_5neZua_uploadDropChatHint",
+		"toggleButton": "_5neZua_toggleButton",
+		"bottomResize": "_5neZua_bottomResize",
+		"tabActive": "_5neZua_tabActive",
+		"editorModeButton": "_5neZua_editorModeButton",
+		"terminalRepairCommand": "_5neZua_terminalRepairCommand",
+		"explorerName": "_5neZua_explorerName",
+		"pinnedTab": "_5neZua_pinnedTab",
+		"editorDownloadLink": "_5neZua_editorDownloadLink",
+		"editorPathInput": "_5neZua_editorPathInput",
+		"mermaidError": "_5neZua_mermaidError",
+		"explorerRowRevealed": "_5neZua_explorerRowRevealed",
+		"browserBlockedDesc": "_5neZua_browserBlockedDesc",
+		"editorModeActive": "_5neZua_editorModeActive",
+		"mermaidModalStage": "_5neZua_mermaidModalStage",
+		"explorerRow": "_5neZua_explorerRow",
+		"editorStatusError": "_5neZua_editorStatusError",
+		"browserBlockedActions": "_5neZua_browserBlockedActions",
+		"explorerBody": "_5neZua_explorerBody",
+		"explorerEmpty": "_5neZua_explorerEmpty",
+		"dirtyDot": "_5neZua_dirtyDot",
+		"sandboxStatus": "_5neZua_sandboxStatus",
+		"uploadOverlayStatus": "_5neZua_uploadOverlayStatus",
+		"browserBar": "_5neZua_browserBar",
+		"mermaidModalHint": "_5neZua_mermaidModalHint",
+		"uploadDropZonePill": "_5neZua_uploadDropZonePill",
+		"editorPdfToolbar": "_5neZua_editorPdfToolbar",
+		"producedMore": "_5neZua_producedMore",
+		"editorTreeDock": "_5neZua_editorTreeDock",
+		"dividerCol": "_5neZua_dividerCol",
+		"paneTab": "_5neZua_paneTab",
+		"editorPdfDragShield": "_5neZua_editorPdfDragShield",
+		"gitPlaceholder": "_5neZua_gitPlaceholder",
+		"editorDocxZoomRange": "_5neZua_editorDocxZoomRange",
+		"dropDown": "_5neZua_dropDown",
+		"mermaidCode": "_5neZua_mermaidCode",
+		"terminalRetry": "_5neZua_terminalRetry",
+		"editorPdfStage": "_5neZua_editorPdfStage",
+		"uploadDropZoneText": "_5neZua_uploadDropZoneText",
+		"dropUp": "_5neZua_dropUp",
+		"explorerRowDropTarget": "_5neZua_explorerRowDropTarget",
+		"editorSearchResult": "_5neZua_editorSearchResult",
+		"workbench": "_5neZua_workbench",
+		"tabBarDrop": "_5neZua_tabBarDrop",
+		"explorer": "_5neZua_explorer",
+		"editorTreePanel": "_5neZua_editorTreePanel",
+		"terminalDepsActions": "_5neZua_terminalDepsActions",
+		"editorPdf": "_5neZua_editorPdf",
+		"editorSearchHint": "_5neZua_editorSearchHint",
+		"sandboxStatusOff": "_5neZua_sandboxStatusOff",
+		"explorerBroken": "_5neZua_explorerBroken",
+		"paneDrop": "_5neZua_paneDrop",
+		"explorerRoot": "_5neZua_explorerRoot",
+		"splitChild": "_5neZua_splitChild",
+		"editorTitle": "_5neZua_editorTitle",
+		"editorBanner": "_5neZua_editorBanner",
+		"tabBadge": "_5neZua_tabBadge",
+		"editorPdfFrame": "_5neZua_editorPdfFrame",
+		"tabBar": "_5neZua_tabBar",
+		"editorSearchInput": "_5neZua_editorSearchInput",
+		"editorModeToggle": "_5neZua_editorModeToggle",
+		"editorTreeSearch": "_5neZua_editorTreeSearch",
+		"terminalWrap": "_5neZua_terminalWrap",
+		"dividerRow": "_5neZua_dividerRow",
+		"explorerActionErrorClose": "_5neZua_explorerActionErrorClose",
+		"gitDiffTabTitle": "_5neZua_gitDiffTabTitle",
+		"dropCenter": "_5neZua_dropCenter",
+		"uploadDropChatCard": "_5neZua_uploadDropChatCard",
+		"producedRow": "_5neZua_producedRow",
+		"gitDiffTabHeader": "_5neZua_gitDiffTabHeader",
+		"explorerRenameInput": "_5neZua_explorerRenameInput",
+		"splitCol": "_5neZua_splitCol",
+		"explorerActionError": "_5neZua_explorerActionError",
+		"split": "_5neZua_split",
+		"producedLabel": "_5neZua_producedLabel",
+		"dividerActive": "_5neZua_dividerActive",
+		"selectionPopup": "_5neZua_selectionPopup",
+		"gitEmpty": "_5neZua_gitEmpty",
+		"dropRight": "_5neZua_dropRight",
+		"pane": "_5neZua_pane",
+		"editorHtml": "_5neZua_editorHtml",
+		"gitDiffTab": "_5neZua_gitDiffTab",
+		"tocPanel": "_5neZua_tocPanel",
+		"tocItem": "_5neZua_tocItem",
+		"boundaryError": "_5neZua_boundaryError",
+		"bottomResizeActive": "_5neZua_bottomResizeActive",
+		"editorMain": "_5neZua_editorMain",
+		"uploadOverlayCancel": "_5neZua_uploadOverlayCancel",
+		"fenceError": "_5neZua_fenceError",
+		"producedChip": "_5neZua_producedChip",
+		"mermaidModalButton": "_5neZua_mermaidModalButton",
+		"editorTreeToggleActive": "_5neZua_editorTreeToggleActive",
+		"panel": "_5neZua_panel",
+		"browserBlockedButton": "_5neZua_browserBlockedButton",
+		"openWithLabel": "_5neZua_openWithLabel",
+		"paneContent": "_5neZua_paneContent",
+		"iconButton": "_5neZua_iconButton",
+		"explorerSymlink": "_5neZua_explorerSymlink",
+		"sandboxStatusOn": "_5neZua_sandboxStatusOn",
+		"browserBlockedTitle": "_5neZua_browserBlockedTitle",
+		"editorBinary": "_5neZua_editorBinary",
+		"editorCm": "_5neZua_editorCm",
+		"panelBody": "_5neZua_panelBody",
+		"mermaidModal": "_5neZua_mermaidModal",
+		"gitError": "_5neZua_gitError",
+		"terminalDepsBanner": "_5neZua_terminalDepsBanner",
+		"openWithPinActive": "_5neZua_openWithPinActive",
+		"tocItemText": "_5neZua_tocItemText",
+		"editorPdfDragShieldActive": "_5neZua_editorPdfDragShieldActive",
+		"terminalDepsCommandRow": "_5neZua_terminalDepsCommandRow",
+		"editorTreePanelFull": "_5neZua_editorTreePanelFull",
+		"editor": "_5neZua_editor",
+		"sandboxAction": "_5neZua_sandboxAction",
+		"mermaidBody": "_5neZua_mermaidBody",
+		"terminalBannerUrl": "_5neZua_terminalBannerUrl",
+		"editorStatus": "_5neZua_editorStatus",
+		"uploadOverlay": "_5neZua_uploadOverlay",
+		"editorBinaryNotice": "_5neZua_editorBinaryNotice",
+		"sandboxDot": "_5neZua_sandboxDot",
+		"uploadOverlayProgress": "_5neZua_uploadOverlayProgress",
+		"openWithPin": "_5neZua_openWithPin",
+		"editorCmHidden": "_5neZua_editorCmHidden",
+		"bottomClose": "_5neZua_bottomClose",
+		"browserFrame": "_5neZua_browserFrame",
+		"editorTreeResize": "_5neZua_editorTreeResize",
+		"editorPlaceholder": "_5neZua_editorPlaceholder",
+		"browserBlocked": "_5neZua_browserBlocked",
+		"terminalDepsNote": "_5neZua_terminalDepsNote",
+		"tocButton": "_5neZua_tocButton",
+		"explorerRef": "_5neZua_explorerRef",
+		"explorerHeader": "_5neZua_explorerHeader",
+		"bottomPanel": "_5neZua_bottomPanel",
+		"openWithName": "_5neZua_openWithName",
+		"tocItemLevel": "_5neZua_tocItemLevel",
+		"tabList": "_5neZua_tabList",
+		"dropLeft": "_5neZua_dropLeft",
+		"editorError": "_5neZua_editorError",
+		"dropOverlay": "_5neZua_dropOverlay",
+		"tabBarPlus": "_5neZua_tabBarPlus",
+		"browser": "_5neZua_browser",
+		"terminal": "_5neZua_terminal",
+		"dsh-toc-flash": "_5neZua_dsh-toc-flash",
+		"mermaidCopy": "_5neZua_mermaidCopy",
+		"terminalDepsHint": "_5neZua_terminalDepsHint",
+		"mermaidInfo": "_5neZua_mermaidInfo",
+		"uploadOverlayCard": "_5neZua_uploadOverlayCard",
+		"uploadOverlayTitle": "_5neZua_uploadOverlayTitle",
+		"editorHeader": "_5neZua_editorHeader",
+		"sandboxStatusText": "_5neZua_sandboxStatusText",
+		"splitRow": "_5neZua_splitRow",
+		"editorImageWrap": "_5neZua_editorImageWrap",
+		"tabClose": "_5neZua_tabClose",
+		"editorImage": "_5neZua_editorImage",
+		"mermaidWrap": "_5neZua_mermaidWrap",
+		"bottomPanelHidden": "_5neZua_bottomPanelHidden",
+		"explorerActionErrorText": "_5neZua_explorerActionErrorText",
+		"explorerError": "_5neZua_explorerError",
+		"editorBody": "_5neZua_editorBody",
+		"dsh-row-in": "_5neZua_dsh-row-in",
+		"uploadDropZone": "_5neZua_uploadDropZone",
+		"browserMessage": "_5neZua_browserMessage",
+		"editorMd": "_5neZua_editorMd",
+		"explorerDir": "_5neZua_explorerDir",
+		"editorPdfFrameBlocked": "_5neZua_editorPdfFrameBlocked",
+		"explorerConfirmDesc": "_5neZua_explorerConfirmDesc",
+		"browserStart": "_5neZua_browserStart",
+		"nativeTabHost": "_5neZua_nativeTabHost",
+		"editorPptxButton": "_5neZua_editorPptxButton",
+		"explorerHidden": "_5neZua_explorerHidden",
+		"explorerCopied": "_5neZua_explorerCopied",
+		"mermaidHeader": "_5neZua_mermaidHeader",
+		"tabBoundaryError": "_5neZua_tabBoundaryError",
+		"uploadOverlayProgressFill": "_5neZua_uploadOverlayProgressFill",
+		"openWithChevron": "_5neZua_openWithChevron",
+		"tocBar": "_5neZua_tocBar",
+		"tabTitle": "_5neZua_tabTitle",
+		"editorHtmlBlock": "_5neZua_editorHtmlBlock"
 	};
 	//#endregion
 	//#region src/client/TerminalView.tsx
@@ -8595,48 +9311,54 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 	*/
 	const PTY_DEPS_MISSING = "pty-deps-missing";
 	/**
+	* The WS close-reason prefix the host sends when the CONFIGURED shell was
+	* not found (mirror of src/index.ts wsCloseReasonOf; wire contract, keep the
+	* literal in lockstep). The view renders a localized, actionable banner.
+	*/
+	const SHELL_NOT_FOUND_PREFIX = "shell-not-found:";
+	/**
 	* Curated ANSI palettes for the terminal. The surface colors (background,
 	* foreground, cursor, selection) ride the theme tokens so the terminal
 	* blends with the panel in both schemes; the 16 ANSI colors are the same
-	* designed palettes the app's code surfaces use (one-dark family for dark,
-	* one-light family for light), read live so a scheme flip re-themes in
-	* place.
+	* designed syntax families the app's code surfaces use — one-dark for
+	* dark, one-light for light (one-dark-palette.ts, shared with the
+	* CodeMirror themes) — read live so a scheme flip re-themes in place.
 	*/
 	const ANSI_DARK = {
-		black: "#282c34",
-		red: "#e06c75",
-		green: "#98c379",
-		yellow: "#e5c07b",
-		blue: "#61afef",
-		magenta: "#c678dd",
-		cyan: "#56b6c2",
-		white: "#abb2bf",
-		brightBlack: "#5c6370",
-		brightRed: "#e06c75",
-		brightGreen: "#98c379",
-		brightYellow: "#e5c07b",
-		brightBlue: "#61afef",
-		brightMagenta: "#c678dd",
-		brightCyan: "#56b6c2",
-		brightWhite: "#ffffff"
+		black: ONE_DARK.black,
+		red: ONE_DARK.red,
+		green: ONE_DARK.green,
+		yellow: ONE_DARK.yellow,
+		blue: ONE_DARK.blue,
+		magenta: ONE_DARK.magenta,
+		cyan: ONE_DARK.cyan,
+		white: ONE_DARK.gray,
+		brightBlack: ONE_DARK.faintGray,
+		brightRed: ONE_DARK.red,
+		brightGreen: ONE_DARK.green,
+		brightYellow: ONE_DARK.yellow,
+		brightBlue: ONE_DARK.blue,
+		brightMagenta: ONE_DARK.magenta,
+		brightCyan: ONE_DARK.cyan,
+		brightWhite: ONE_DARK.white
 	};
 	const ANSI_LIGHT = {
-		black: "#383a42",
-		red: "#e45649",
-		green: "#50a14f",
-		yellow: "#c18401",
-		blue: "#0184bc",
-		magenta: "#a626a4",
-		cyan: "#0997b3",
-		white: "#a0a1a7",
-		brightBlack: "#4f525e",
-		brightRed: "#e45649",
-		brightGreen: "#50a14f",
-		brightYellow: "#c18401",
-		brightBlue: "#0184bc",
-		brightMagenta: "#a626a4",
-		brightCyan: "#0997b3",
-		brightWhite: "#fafafa"
+		black: ONE_LIGHT.black,
+		red: ONE_LIGHT.red,
+		green: ONE_LIGHT.green,
+		yellow: ONE_LIGHT.yellow,
+		blue: ONE_LIGHT.blue,
+		magenta: ONE_LIGHT.magenta,
+		cyan: ONE_LIGHT.cyan,
+		white: ONE_LIGHT.gray,
+		brightBlack: ONE_LIGHT.faintGray,
+		brightRed: ONE_LIGHT.red,
+		brightGreen: ONE_LIGHT.green,
+		brightYellow: ONE_LIGHT.yellow,
+		brightBlue: ONE_LIGHT.blue,
+		brightMagenta: ONE_LIGHT.magenta,
+		brightCyan: ONE_LIGHT.cyan,
+		brightWhite: ONE_LIGHT.offWhite
 	};
 	/** The xterm theme for the current scheme (surface from tokens, ANSI curated). */
 	function xtermTheme() {
@@ -8675,6 +9397,26 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 			});
 			const fit = new import_addon_fit.FitAddon();
 			term.loadAddon(fit);
+			const linkProvider = term.registerLinkProvider({ provideLinks: (lineNumber, callback) => {
+				const line = term.buffer.active.getLine(lineNumber - 1);
+				if (line === void 0) {
+					callback(void 0);
+					return;
+				}
+				const descriptors = buildTerminalLinks(line.translateToString(true), lineNumber);
+				if (descriptors.length === 0) {
+					callback(void 0);
+					return;
+				}
+				callback(descriptors.map((descriptor) => ({
+					range: descriptor.range,
+					text: descriptor.text,
+					activate: (event) => {
+						if (!shouldActivateTerminalLink(event)) return;
+						openTerminalUrl(descriptor.text);
+					}
+				})));
+			} });
 			const applyTheme = () => {
 				term.options.theme = xtermTheme();
 				term.refresh(0, term.rows - 1);
@@ -8734,6 +9476,10 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 						});
 						return;
 					}
+					if (event.code === 1011 && event.reason.startsWith(SHELL_NOT_FOUND_PREFIX)) {
+						setFatal(t("terminalShellNotFound", { name: event.reason.slice(16) || "?" }));
+						return;
+					}
 					if (event.code === 1011 && event.reason !== "") {
 						setFatal(event.reason);
 						return;
@@ -8755,11 +9501,16 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 			const inputSub = term.onData((data) => {
 				if (socket !== null && socket.readyState === WebSocket.OPEN) socket.send(data);
 			});
+			let resizeFrame = null;
 			const observer = new ResizeObserver(() => {
-				try {
-					fit.fit();
-					sendResize();
-				} catch {}
+				if (resizeFrame !== null) return;
+				resizeFrame = requestAnimationFrame(() => {
+					resizeFrame = null;
+					try {
+						fit.fit();
+						sendResize();
+					} catch {}
+				});
 			});
 			observer.observe(host);
 			const fontSub = store.subscribe(() => {
@@ -8788,6 +9539,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 				cancelOpen();
 				window.clearTimeout(retry);
 				observer.disconnect();
+				if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
 				fontSub();
 				schemeSub();
 				inputSub.dispose();
@@ -8796,6 +9548,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
 				if (!tabStillOpen && socket !== null && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "close" }));
 				else if (tabStillOpen && sessionSwitched && !isAgentTabId(tabId) && socket !== null && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "park" }));
 				socket?.close();
+				linkProvider.dispose();
 				term.dispose();
 				connectRef.current = null;
 			};

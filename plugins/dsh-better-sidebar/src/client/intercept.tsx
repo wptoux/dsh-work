@@ -8,10 +8,9 @@
  */
 import { IconCodeOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Context } from '../context-types.ts'
-import type { SidebarStore } from './state.ts'
+import { revealPaths, type SidebarStore } from './state.ts'
 import { t } from './locales.ts'
 import { resolveSidebarPath, selectProducedFiles } from './produced-files.ts'
-import { wrapOpenPath } from './openpath-intercept.ts'
 import css from './sidebar.module.css'
 
 /** Open a file in the sidebar's editor (used by the intercepted row and the explorer). */
@@ -22,15 +21,44 @@ export function openSidebarFile(ctx: Context, store: SidebarStore, sessionId: st
   const title = at === -1 ? absolute : absolute.slice(at + 1)
   // Route through the sidebar service so the editor descriptor's dedupeKey
   // (per-path) applies; the id is path-derived so multiple editors coexist.
-  ctx.betterSidebar?.openTab({ type: 'editor', title, path: absolute, id: `editor:${absolute}` })
+  ctx.get('betterSidebar')?.openTab({ type: 'editor', title, path: absolute, id: `editor:${absolute}` })
+}
+
+/**
+ * Reveal the produced files in the sidebar explorer: expand their parent
+ * directories, highlight the rows, and focus the explorer tab. Unknown
+ * files fall back to revealing the workspace root itself.
+ */
+export function revealInExplorer(
+  ctx: Context,
+  store: SidebarStore,
+  sessionId: string,
+  files: readonly string[],
+): void {
+  const summary = ctx.sessions.list.getSnapshot().byId[sessionId]
+  const cwd = summary?.cwd
+  // Deliverables report paths as-is (often relative to the session cwd), but
+  // the explorer tree and revealPaths work on absolute paths — resolve every
+  // target so the ancestors expand and the row actually matches.
+  const targets = files.length > 0
+    ? files.map(path => resolveSidebarPath(cwd, path))
+    : cwd === undefined ? [] : [cwd]
+  store.reduce(state => revealPaths(state, cwd, targets))
+  // Focus the single-instance editor home tab (the files window) where the
+  // reveal highlight renders. Read via ctx.get like every other internal
+  // consumer (#357): the provider is not on this fiber chain, so a direct
+  // ctx.betterSidebar read can throw before optional chaining applies.
+  ctx.get('betterSidebar')?.openTab({ type: 'editor', title: t('files') })
 }
 
 /** The intercepted produced-files row (visual twin of the deliverables chips). */
 export function SidebarProducedFiles(props: {
   matched: readonly string[]
   openInSidebar: (path: string) => void
+  /** Reveal the produced files in the explorer ("Show in folder" twin). */
+  onShowInFolder: (files: readonly string[]) => void
 }) {
-  const { matched, openInSidebar } = props
+  const { matched, openInSidebar, onShowInFolder } = props
   const shown = matched.slice(0, 6)
   const hidden = matched.length - shown.length
   return (
@@ -53,6 +81,16 @@ export function SidebarProducedFiles(props: {
         )
       })}
       {hidden > 0 && <span className={css.producedMore}>+{hidden}</span>}
+      {hidden > 0 && (
+        <button
+          type="button"
+          className={css.producedMore}
+          style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          onClick={() => { onShowInFolder(matched) }}
+        >
+          {t('showInFolder')}
+        </button>
+      )}
     </div>
   )
 }
@@ -87,24 +125,7 @@ export function registerTurnTailInterception(ctx: Context, store: SidebarStore):
     registrant: 'dsh-better-sidebar',
     inject: (sessionId: string) => ({
       openInSidebar: (path: string) => { openSidebarFile(ctx, store, sessionId, path) },
+      onShowInFolder: (files: readonly string[]) => { revealInExplorer(ctx, store, sessionId, files) },
     }),
   }, SidebarProducedFiles))
-}
-
-/**
- * Register the chat file-open interception: wraps `ctx.workspaces.openPath`
- * — the single funnel every chat-side file open goes through (tool-row path
- * links, the produced-files row, prose mentions) — so opens land in the
- * sidebar editor instead of the Host OS. Gated by BOTH the `interceptOpenPath`
- * pref and the editor tab's enable switch; declined opens fall through to
- * the original method. Returns the disposer restoring the original (HMR-safe).
- */
-export function registerOpenPathInterception(ctx: Context, store: SidebarStore): () => void {
-  return wrapOpenPath(ctx.workspaces, {
-    takeoverEnabled: () => !store.getSuspended()
-      && store.getPrefs().interceptOpenPath !== false
-      && store.getPrefs().tabsEnabled['editor'] !== false,
-    currentSessionId: () => ctx.sessions.list.getSnapshot().current,
-    openInSidebar: (path, sessionId) => { openSidebarFile(ctx, store, sessionId, path) },
-  })
 }

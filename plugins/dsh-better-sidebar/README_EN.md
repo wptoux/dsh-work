@@ -9,9 +9,9 @@
   <a href="https://github.com/omdsh-dev/DSH-better-sidebar/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/omdsh-dev/DSH-better-sidebar" /></a>
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a>
   <a href="https://dshfind.com/en/plugins/omdsh-dev/DSH-better-sidebar?ref=badge"><img alt="dshfind" src="https://dshfind.com/api/badge/omdsh-dev/DSH-better-sidebar?lang=en" /></a><br /><br />
-  <a href="https://www.npmjs.com/package/@deepseek-ai/dsh?activeTab=versions"><img alt="Supported DSH versions: 0.1.0-rc.8 · 0.1.1-rc.1 · 0.1.1-rc.2" src="https://img.shields.io/badge/DSH-0.1.0--rc.8_%C2%B7_0.1.1--rc.1_%C2%B7_0.1.1--rc.2-4d6bfe" /></a>
+  <a href="https://www.npmjs.com/package/@deepseek-ai/dsh?activeTab=versions"><img alt="Supported DSH versions (v0.19.0): 0.1.5-rc.1+" src="https://img.shields.io/badge/DSH-0.1.5--rc.1%2B-4d6bfe" /></a>
   <a href="https://github.com/topics/dsh-better-sidebar"><img alt="Plugin ecosystem: GitHub topic dsh-better-sidebar" src="https://img.shields.io/badge/plugin%20ecosystem-topic%20dsh--better--sidebar-4d6bfe" /></a><br /><br />
-  <img alt="File management" src="https://img.shields.io/badge/-File%20management-4d6bfe" /> <img alt="Edit &amp; preview" src="https://img.shields.io/badge/-Edit%20%26%20preview-4d6bfe" /> <img alt="Embedded browser" src="https://img.shields.io/badge/-Embedded%20browser-4d6bfe" /> <img alt="Real terminal" src="https://img.shields.io/badge/-Real%20terminal-4d6bfe" /> <img alt="Git panel" src="https://img.shields.io/badge/-Git%20panel-4d6bfe" /> <img alt="Background tasks" src="https://img.shields.io/badge/-Background%20tasks-4d6bfe" /> <img alt="Side Chat" src="https://img.shields.io/badge/-Side%20Chat-4d6bfe" /> <img alt="Plugin integration" src="https://img.shields.io/badge/-Plugin%20integration-4d6bfe" /><br /><br />
+  <img alt="File management" src="https://img.shields.io/badge/-File%20management-4d6bfe" /> <img alt="Edit &amp; preview" src="https://img.shields.io/badge/-Edit%20%26%20preview-4d6bfe" /> <img alt="Embedded browser" src="https://img.shields.io/badge/-Embedded%20browser-4d6bfe" /> <img alt="Real terminal" src="https://img.shields.io/badge/-Real%20terminal-4d6bfe" /> <img alt="Changes" src="https://img.shields.io/badge/-Changes-4d6bfe" /> <img alt="Background tasks" src="https://img.shields.io/badge/-Background%20tasks-4d6bfe" /> <img alt="Side Chat" src="https://img.shields.io/badge/-Side%20Chat-4d6bfe" /> <img alt="Plugin integration" src="https://img.shields.io/badge/-Plugin%20integration-4d6bfe" /><br /><br />
   <b>A dual workbench (right sidebar + bottom panel)</b> that opens its <code>ctx.betterSidebar</code> service to every plugin —<br />
   register new sidebar pages and file viewers via <code>registerTab</code> / <code>registerFileViewer</code>.
 </div>
@@ -43,23 +43,27 @@
 - **🗂️ File Workbench**: file explorer (lazy-loading tree; symlinks show their target kind — directory links expand, dangling links flagged) + CodeMirror editor; inline preview for images / Markdown (incl. Mermaid diagrams, strict-mode safe rendering + click-to-zoom) / HTML / PDF
 - **🌐 Embedded Browser**: multiple web tabs with back / forward / refresh; content runs in a sandboxed iframe; external links are routed by protocol by default — HTTP opens in the sidebar, HTTPS goes to the system browser (both adjustable in settings)
 - **💻 Real Terminal**: xterm.js + node-pty real shell, reconnect with transcript replay; optionally injects `terminal_*` tools for the model
-- **🌿 Git Panel**: real diff + VSCode-style diff tabs, history, right-click to stage / commit / revert
+- **📂 Model-driven sidebar opens (opt-in)**: with the global setting on, the `sidebar_open` tool lets the model actively open files / folders (tree rooted there) / HTTP(S) pages in the sidebar
+- **🌿 Changes**: one tab, two lenses — **Git** (real diff / history / stage·commit·revert / worktree & child-repo selection) and **This Session** (live tracking of every file the model reads / writes / edits, grouped by file with kind filters); a unified diff renderer (mod pairing + intra-line character highlights + syntax coloring incl. mjs/cjs/mts/cts, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, JSONC/JSON5 + context folding), a draggable bottom preview pane, and one-click expansion into a dedicated diff tab; `.md` ops (read / write / edit) offer a **reading-mode** toggle in the preview header — the shared MarkdownText renders GFM tables / task lists / strikethrough / footnotes / math, with local images rewritten through the /sidebar/file media route; documents with ```mermaid fences render through the editor's lazy mermaid renderer (click-to-zoom / pan diagrams); **secret redaction** — credential-shaped paths mask whole files and ordinary files mask secret-shaped values (api_key: / Bearer / sk- / AKIA / ghp_ / PEM …, field names kept), on by default with a one-click preview-pane toggle (persisted in localStorage), display-only — session data untouched. Known edge: an unquoted mermaid label containing a redacted secret breaks the diagram (falls back to source); workaround: quote the label. `.html` ops (read / write / edit) gain a **Render** toggle in the preview head — the editor's `/sidebar/html` route iframe, with relative assets resolving inside the route and segmented reads rendering the full document; always sandboxed (opaque origin + CSP header, no escape hatch). `.pdf` ops (read / write / edit) gain the same **Render** toggle — the editor's PDF preview reused verbatim (media-route bytes + explicit Blob, the browser's native viewer inline, with a download fallback)
 - **🧩 Background Tasks**: agent topology + background tasks (exit codes / live output / force-kill)
 - **💬 Side Chat (beta)**: Codex-style side threads — the child inherits the parent's FULL context (completed turns + the pending question + the in-progress turn's assistant output and tool activity, honestly frozen as "interrupted") and runs independently without entering the main conversation; threads support continuous follow-ups (auto-resumed after a DSH restart) and one-click "Save as new session" promotion to a top-level session
-- **🪟 Dual Workbench**: right sidebar + bottom panel; drag tabs to split / merge panes (cross-panel), mobile auto-merges into a full-width drawer
+- **🖥️ Native right sidebar + plugin bottom workbench**: the right column belongs to DSH 0.1.5's own sidebar — the plugin registers every tab type as a native tab (file opens go through `dsh-resource://file/**`, and the built-in Files page / file tree is taken over), keeping only its own bottom workbench (split panes / terminals / per-session persistence) whose toggle sits in the session header
+- **📌 Pinned Terminals**: right-click a terminal tab to "Pin to Workspace / Pin Globally" — pinned terminals survive session switches and surface inline in the TabBar as virtual tabs (click activates in-place, PTY connects directly to the home session's PTY via WS, no session jump needed); agent terminals exempted from reconcile removal
 - **🔁 Session Isolation**: layout / tabs / panels persisted per session, stale state auto-purged
 - **⚙️ Declarative Settings**: per-item toggles in the "Side Cards" settings section, secondary settings via the gear dialog
 - **⚡ On-demand Loading**: only ~325KB core at startup; heavy deps (terminal / editor / mermaid diagrams) load on demand ([design](docs/plans/2026-08-12-lazy-chunks-design.md))
-- **🌏 i18n**: UI text follows DSH's language (zh / en) with live switching
+- **🌏 i18n**: UI text follows DSH's language (zh / en) with live switching; with the optional `@huanlin/dsh-plugin-better-locale` peer, 19 third-language overlays (ja / de / fr / …) are available
 
-> 🔌 **Core principle**: service-first — the 7 built-in tabs + 6 viewers register through the same `ctx.betterSidebar` API as third-party plugins, with fully equal capabilities; anything the ecosystem can provide better is delegated to ecosystem plugins (**28+ ecosystem plugins** already — see "🌐 Plugin Ecosystem" below). See "🔌 Service API" and the [external plugin guide](./docs/external-plugin-guide.md).
+> 🔌 **Core principle**: service-first — the 8 built-in tabs + 6 viewers register through the same `ctx.betterSidebar` API as third-party plugins, with fully equal capabilities; anything the ecosystem can provide better is delegated to ecosystem plugins (**28+ ecosystem plugins** already — see "🌐 Plugin Ecosystem" below). See "🔌 Service API" and the [external plugin guide](./docs/external-plugin-guide.md).
 
 ## 🚀 Installation
 
 **Prerequisites**: DSH installed (`dsh web` boots), Node.js ≥ 20, pnpm ≥ 10.
 
 **Supported DSH versions**:
-<a href="https://www.npmjs.com/package/@deepseek-ai/dsh?activeTab=versions"><img alt="Supported DSH versions: 0.1.0-rc.8 · 0.1.1-rc.1 · 0.1.1-rc.2" src="https://img.shields.io/badge/DSH-0.1.0--rc.8_%C2%B7_0.1.1--rc.1_%C2%B7_0.1.1--rc.2-4d6bfe" /></a>
+<a href="https://www.npmjs.com/package/@deepseek-ai/dsh?activeTab=versions"><img alt="Supported DSH versions (v0.19.0): 0.1.5-rc.1+" src="https://img.shields.io/badge/DSH-0.1.5--rc.1%2B-4d6bfe" /></a>
+
+> 📌 **Stable release**: starting with `v0.19.0` the plugin targets DSH **0.1.5-rc.1+** (npm dist-tag `latest`). Hosts still on DSH 0.1.5-alpha.2 should stay pinned to `dsh-better-sidebar@0.19.0-alpha.1`; the 0.1.2-rc.1 stable line keeps using `dsh-better-sidebar@0.18.x`; DSH ≤ 0.1.1-rc.2 should use `dsh-better-sidebar@0.17.1`.
 
 ```sh
 dsh plugin --profile web add dsh-better-sidebar@latest   # first run fails: pnpm 11 blocks node-pty build scripts (the dependency is still written)
@@ -80,6 +84,8 @@ Install the dsh-better-sidebar plugin (a sidebar workbench for DSH):
 If anything fails, check the troubleshooting table in the README at https://github.com/omdsh-dev/DSH-better-sidebar
 ```
 
+**Option 3: one-shot script** — from a clone of this repo, run `bash scripts/install.sh` (macOS / Linux / Windows Git Bash; native Windows uses `install.ps1`; `-h` for options) — it automates add → approve-builds → re-run.
+
 <details>
 <summary><b>Updating</b></summary>
 
@@ -87,7 +93,7 @@ If anything fails, check the troubleshooting table in the README at https://gith
 dsh plugin --profile web add dsh-better-sidebar@latest
 ```
 
-or bump the version in `~/.dsh/profiles/web/package.json` (e.g. `"^0.15.0"`) and run `pnpm install`. Then hard-refresh the browser (Cmd/Ctrl+Shift+R) — client changes do not need a DSH restart.
+or bump the version in `~/.dsh/profiles/web/package.json` (e.g. `"^0.16.1"`) and run `pnpm install`. Then hard-refresh the browser (Cmd/Ctrl+Shift+R) — client changes do not need a DSH restart.
 
 </details>
 
@@ -128,7 +134,7 @@ To debug local changes or track the dev branch, point the dependency at a local 
 5. Restart DSH and hard-refresh
 ```
 
-Update: `git pull && pnpm install && pnpm build` → just hard-refresh the browser (client changes hot-reload; only host-half changes need a DSH restart). To switch back to the npm channel, restore `"dsh-better-sidebar": "^0.15.0"` and re-run `pnpm install`.
+Update: `git pull && pnpm install && pnpm build` → just hard-refresh the browser (client changes hot-reload; only host-half changes need a DSH restart). To switch back to the npm channel, restore `"dsh-better-sidebar": "^0.16.1"` and re-run `pnpm install`.
 
 </details>
 
@@ -155,16 +161,16 @@ Update: `git pull && pnpm install && pnpm build` → `node scripts/package-regis
 
 | | |
 |---|---|
-| **🗂️ File Workbench: Explorer**<br/><sub>Two explorer modes: embedded in the file preview / standalone file tree. Lazy-loading directory tree, symlinks classified by target kind (directory links expand, dangling links flagged), global filename search, file/folder upload buttons plus drag-drop upload, context menu (open in new tab / open to the side / copy paths), and a hover `@file` button that references a file straight into the composer.</sub><br/><div align="center"><img width="420" alt="File explorer" src="https://github.com/user-attachments/assets/a410bfd2-a8ba-43e6-873e-22417756e94d" /></div> | **📝 Inline Preview: Markdown · Images · PDF**<br/><sub>The Markdown preview renders **Mermaid diagrams** (strict-mode safe rendering + a second sanitize pass; click a diagram for a zoom modal with wheel-zoom and drag-pan); images / PDFs display inline via the media route; the Office suite is covered by an ecosystem plugin.</sub><br/><div align="center"><img width="420" alt="Markdown + Mermaid preview" src="https://github.com/user-attachments/assets/fe0e5182-55bb-45cc-b98b-a2877c2bdd38" /></div> |
+| **🗂️ File Workbench: Explorer**<br/><sub>Two explorer modes: embedded in the file preview / standalone file tree. Lazy-loading directory tree, symlinks classified by target kind (directory links expand, dangling links flagged), global filename search, file/folder upload buttons plus drag-drop upload, context menu (open in new tab / open to the side / copy paths), and a hover `@file` button that references a file straight into the composer.</sub><br/><div align="center"><img width="420" alt="File explorer" src="https://github.com/user-attachments/assets/a410bfd2-a8ba-43e6-873e-22417756e94d" /></div> | **📝 Inline Preview: Markdown · Images · PDF**<br/><sub>The Markdown preview renders **Mermaid diagrams** (strict-mode safe rendering + a second sanitize pass; click a diagram for a zoom modal with wheel-zoom and drag-pan), **README-level inline HTML** (badge walls `<div align=center>`, `<details>` blocks nesting markdown, inline tags in table cells — DOMPurify-sanitized, `<script>` stripped, local media rewritten to the session media route) and a floating **table of contents** (appears with ≥3 headings, smooth-scroll jumping, auto-expanding folded blocks); images / PDFs display inline via the media route; the Office suite is covered by an ecosystem plugin.</sub><br/><div align="center"><img width="420" alt="Markdown + Mermaid preview" src="https://github.com/user-attachments/assets/fe0e5182-55bb-45cc-b98b-a2877c2bdd38" /></div> |
 | **🖥️ CodeMirror editor**<br/><div align="center"><img width="420" alt="CodeMirror editor" src="https://github.com/user-attachments/assets/b44b488e-568c-4ee0-b96c-e9c906598a77" /></div> | **🖼️ Inline image preview**<br/><div align="center"><img width="420" alt="Inline image preview" src="https://github.com/user-attachments/assets/f9a58c30-5b7a-48b5-9e22-37d7e071f593" /></div> |
-| **💻 Real Terminal**<br/><sub>xterm.js + node-pty real shell (not an emulator): transcript replay on reconnect, configurable shell / shellArgs (settings page or `cordis.patch.yml`), and optional `terminal_*` model tools so the agent can open terminals and run commands itself.</sub><br/><div align="center"><img width="420" alt="Real terminal" src="https://github.com/user-attachments/assets/0dad6ad3-ff3f-4b5a-86d2-f832ce65323e" /></div> | **🌿 Git Panel**<br/><sub>Stage / unstage / commit (`Ctrl+Enter`) / revert, plus a history list; clicking a changed file opens a **VSCode-style diff tab** (line-level red/green).</sub><br/><div align="center"><img width="420" alt="Git panel" src="https://github.com/user-attachments/assets/e7fc1220-305f-4bca-8583-e77ab4f4fa78" /></div> |
-| **🌐 Embedded Browser**<br/><sub>Multiple web tabs with back / forward / reload / address bar; content runs in an **opaque-origin sandboxed iframe** (live sandbox status in the UI, per-page temporary unlock available); external-link clicks in the chat can be taken over into the sidebar (protocol-based routing, configurable).</sub><br/><div align="center"><img width="420" alt="Embedded browser" src="https://github.com/user-attachments/assets/9bc6b65a-64fc-4942-a685-76e391e55606" /></div> | **🧩 Tasks: Agent Topology + Background Jobs**<br/><sub>Live subagent-tree topology (run states, batched live previews) plus the background-jobs list (exit codes / live output / force-kill); new subagents / jobs can auto-expand the sidebar (configurable).</sub><br/><div align="center"><img width="420" alt="Tasks: subagent topology" src="https://github.com/user-attachments/assets/dcd8ed2f-59fa-405b-937b-2d250f5034dd" /></div> |
-| **💬 Side Chat (beta)**<br/><sub>Codex-style side threads: **one independent tab per conversation**; the thread inherits the parent's full context (including the in-progress turn, honestly frozen as "interrupted") and runs independently without polluting the main session; follow-ups survive restarts; one click promotes the thread to a top-level session.</sub><br/><div align="center"><img width="420" alt="Side Chat (beta)" src="https://github.com/user-attachments/assets/3a338c36-f5de-4000-95f3-4b1cd04f60fc" /></div> | **🪟 Dual Workbench: Sidebar + Bottom Panel + Split Panes**<br/><sub>The right sidebar and the bottom panel can stay open together; drag a tab to a pane edge to **split**, to the middle to **merge** (works across panels); panel width/height drag from the left/top edge; on mobile everything merges into a full-width drawer.</sub><br/><div align="center"><img width="420" alt="Dual workbench (right sidebar + bottom panel)" src="https://github.com/user-attachments/assets/dfdb875e-a1a8-4d4b-8340-353736b1708f" /></div> |
+| **💻 Real Terminal**<br/><sub>xterm.js + node-pty real shell (not an emulator): transcript replay on reconnect, configurable shell / shellArgs (settings page or `cordis.patch.yml`), and optional `terminal_*` model tools so the agent can open terminals and run commands itself.</sub><br/><div align="center"><img width="420" alt="Real terminal" src="https://github.com/user-attachments/assets/0dad6ad3-ff3f-4b5a-86d2-f832ce65323e" /></div> | **🌿 Changes: Git lens + This-Session lens**<br/><sub>Two lenses on "what changed?": the **Git lens** keeps the full source-control surface (stage / unstage / commit (`Ctrl+Enter`) / revert, history, worktree and child-repo selectors); the **This Session** lens folds the session event log live, recording every file the model read / wrote / edited (grouped by file, kind-filtered, op-count badge). Clicking any change previews it in the **draggable bottom pane** with the unified diff — del red / add green / mod-blue pairing + intra-line character highlights + syntax coloring + context folding — or expands into a VSCode-style dedicated diff tab (same rendering stack).</sub><br/><div align="center"><img width="420" alt="Changes" src="https://github.com/user-attachments/assets/e7fc1220-305f-4bca-8583-e77ab4f4fa78" /></div> |
+| **🌐 Embedded Browser**<br/><sub>Multiple web tabs with back / forward / reload / address bar; content runs in an **opaque-origin sandboxed iframe** (live sandbox status in the UI, per-page temporary unlock available); external-link clicks in the chat can be taken over into the sidebar (protocol-based routing, configurable).</sub><br/><div align="center"><img width="420" alt="Embedded browser" src="https://github.com/user-attachments/assets/9bc6b65a-64fc-4942-a685-76e391e55606" /></div> | **🧩 Tasks: Agent Topology + Background Jobs**<br/><sub>Live subagent-tree topology (run states, batched live previews) plus the background-jobs list (exit codes / live output / force-kill); new subagents / jobs can auto-activate the Tasks page, expanding the sidebar on wide viewports without forcing narrow full-screen drawers open (configurable).</sub><br/><div align="center"><img width="420" alt="Tasks: subagent topology" src="https://github.com/user-attachments/assets/dcd8ed2f-59fa-405b-937b-2d250f5034dd" /></div> |
+| **💬 Side Chat (beta)**<br/><sub>Codex-style side threads: **one independent tab per conversation**; the thread inherits the parent's full context (including the in-progress turn, honestly frozen as "interrupted") and runs independently without polluting the main session; follow-ups survive restarts; one click promotes the thread to a top-level session.</sub><br/><div align="center"><img width="420" alt="Side Chat (beta)" src="https://github.com/user-attachments/assets/3a338c36-f5de-4000-95f3-4b1cd04f60fc" /></div> | **🖥️ DSH's native right sidebar + plugin bottom workbench**<br/><sub>The right column is DSH's own sidebar: the plugin registers every tab type as a native tab (including the built-in Files page and file previews), so clicking a file in the chat lands there directly; the plugin's own bottom panel can stay open alongside it — drag a tab to a pane edge to **split**, to the middle to **merge**, drag the top edge to resize; the toggle lives in the session header.</sub><br/><div align="center"><img width="420" alt="Dual workbench (right sidebar + bottom panel)" src="https://github.com/user-attachments/assets/dfdb875e-a1a8-4d4b-8340-353736b1708f" /></div> |
 | **⚙️ Declarative Settings**<br/><sub>The "Side card" section in DSH settings: one small card per tab / viewer with an independent toggle (highlighted enabled state + brand switch); secondary settings open from the "Feature settings" strip at the card bottom (switch / text / number / select rows); plugin-owned settings persist under `pluginSettings`.</sub><br/><div align="center"><img width="420" alt="Declarative settings: side cards" src="https://github.com/user-attachments/assets/0800ca64-621e-48da-b7df-aecfddc3ec29" /></div> | **📱 Mobile**<br/><sub>On narrow screens (<768px) the panels become a full-width drawer: bottom-panel tabs merge into the sidebar once, with touch-friendly dragging.</sub><br/><div align="center"><img width="360" alt="Mobile full-width drawer" src="https://github.com/user-attachments/assets/a82ba78a-f4cf-4d85-80e8-050a05beb144" /></div> |
 
 ## 🌐 Plugin Ecosystem
 
-The `ctx.betterSidebar` service opens two extension points to every plugin: **`registerTab` (sidebar pages)** and **`registerFileViewer` (file previewers)**. The 7 built-in tabs + 6 viewers register through the exact same API — fully equal capabilities.
+The `ctx.betterSidebar` service opens two extension points to every plugin: **`registerTab` (sidebar pages)** and **`registerFileViewer` (file previewers)**. The 8 built-in tabs + 6 viewers register through the exact same API — fully equal capabilities.
 
 ```ts
 import type {} from 'dsh-better-sidebar'  // triggers the ctx.betterSidebar type merge
@@ -191,12 +197,13 @@ The GitHub topic [`dsh-better-sidebar`](https://github.com/topics/dsh-better-sid
 ### 📑 Tab Plugins (sidebar pages)
 
 <details>
-<summary><b>23 plugins (click to expand)</b></summary>
+<summary><b>24 plugins (click to expand)</b></summary>
 
 | Plugin | ⭐ | Description |
 |---|---|---|
 | [ChenRuoT/dsh-sidebar-qa](https://github.com/ChenRuoT/dsh-sidebar-qa) | <img alt="stars" src="https://img.shields.io/github/stars/ChenRuoT/dsh-sidebar-qa?style=flat&color=4d6bfe" /> | Selection-based side Q&A — Codex-style side questions / Claude Code `/btw` |
 | [fuhefei/dsh-sentinel](https://github.com/fuhefei/dsh-sentinel) | <img alt="stars" src="https://img.shields.io/github/stars/fuhefei/dsh-sentinel?style=flat&color=4d6bfe" /> | Condition-driven wakeup: file / command / HTTP / process / webhook watches that wake the agent; dock + sidebar branch + global dashboard |
+| [Fisfzy/ego-browser](https://github.com/Fisfzy/ego-browser) | <img alt="stars" src="https://img.shields.io/github/stars/Fisfzy/ego-browser?style=flat&color=4d6bfe" /> | Agent browser: a local browsing tab (`@dsh-external/ego-browser`, auto-registers the sidebar page when better-sidebar is present, floating-bubble fallback otherwise) |
 | [jiuge2467/dsh-studio](https://github.com/jiuge2467/dsh-studio) | <img alt="stars" src="https://img.shields.io/github/stars/jiuge2467/dsh-studio?style=flat&color=4d6bfe" /> | Full-stack enhancement workbench: multi-source MCP visual debugging hub, visual thinking engine |
 | [Iwctwbh/dsh-flowglass](https://github.com/Iwctwbh/dsh-flowglass) | <img alt="stars" src="https://img.shields.io/github/stars/Iwctwbh/dsh-flowglass?style=flat&color=4d6bfe" /> | Flowglass: live session flowgraph (messages / tool groups / subagent branches) |
 | [FeatherHunter/dsh-mattpocock-skills-deck](https://github.com/FeatherHunter/dsh-mattpocock-skills-deck) | <img alt="stars" src="https://img.shields.io/github/stars/FeatherHunter/dsh-mattpocock-skills-deck?style=flat&color=4d6bfe" /> | Game-like mission system for mattpocock/skills: fog-of-war map + task bar |
@@ -218,6 +225,7 @@ The GitHub topic [`dsh-better-sidebar`](https://github.com/topics/dsh-better-sid
 | [yzlin499/dsh-yzlin499-easy-plugins](https://github.com/yzlin499/dsh-yzlin499-easy-plugins) | <img alt="stars" src="https://img.shields.io/github/stars/yzlin499/dsh-yzlin499-easy-plugins?style=flat&color=4d6bfe" /> | A handy utility bundle for a bare-bones DSH |
 | [dong-victor/dsh-better-sidebar-starter](https://github.com/dong-victor/dsh-better-sidebar-starter) | <img alt="stars" src="https://img.shields.io/github/stars/dong-victor/dsh-better-sidebar-starter?style=flat&color=4d6bfe" /> | Run-configurations tab: IDEA-style Run/Debug configs (npm / springboot / python / custom) — one-click launch, history, WebSocket live logs (ANSI colors), parallel instances, cross-platform process-tree kill |
 | [baosfeng/my-dsh-plugins](https://github.com/baosfeng/my-dsh-plugins) | <img alt="stars" src="https://img.shields.io/github/stars/baosfeng/my-dsh-plugins?style=flat&color=4d6bfe" /> | Personal multi-plugin collection (`dsh-file-activity`): a sidebar file-activity tab recording read / added / modified history and stats, flat-browsed by folder, opened with the native preview |
+| [Hoemr/dsh-better-overleaf](https://github.com/Hoemr/dsh-better-overleaf) | <img alt="stars" src="https://img.shields.io/github/stars/Hoemr/dsh-better-overleaf?style=flat&color=4d6bfe" /> | Overleaf tab: direct-CDP browser login (third-party Chromium supported), project switching, local git mirrors under the workspace with two-way sync |
 
 </details>
 
@@ -237,12 +245,13 @@ The GitHub topic [`dsh-better-sidebar`](https://github.com/topics/dsh-better-sid
 ### 🧰 Enhancements & Tools
 
 <details>
-<summary><b>2 plugins (click to expand)</b></summary>
+<summary><b>3 plugins (click to expand)</b></summary>
 
 | Plugin | ⭐ | Description |
 |---|---|---|
 | [dong-victor/dsh-better-sidebar-terminal-plus](https://github.com/dong-victor/dsh-better-sidebar-terminal-plus) | <img alt="stars" src="https://img.shields.io/github/stars/dong-victor/dsh-better-sidebar-terminal-plus?style=flat&color=4d6bfe" /> | Terminal enhancement: bundled Nerd Font icons, xterm glyph fixes, stable terminal cwd |
 | [Max-Null/dsh-sidebar-preview-select](https://github.com/Max-Null/dsh-sidebar-preview-select) | <img alt="stars" src="https://img.shields.io/github/stars/Max-Null/dsh-sidebar-preview-select?style=flat&color=4d6bfe" /> | Preview selection boost: select text in any sidebar preview → floating "send to session" |
+| [Hoemr/dsh-quicklook](https://github.com/Hoemr/dsh-quicklook) | <img alt="stars" src="https://img.shields.io/github/stars/Hoemr/dsh-quicklook?style=flat&color=4d6bfe" /> | QuickLook-style Space preview: press Space on the active file tab for a full-size image / PDF / text overlay; Space or Esc closes |
 
 </details>
 
@@ -255,7 +264,193 @@ The GitHub topic [`dsh-better-sidebar`](https://github.com/topics/dsh-better-sid
   <a href="https://github.com/user-attachments/assets/946f7028-4967-461e-a750-d1b5056b62d0"><img width="33%" alt="Service API base screenshot" src="https://github.com/user-attachments/assets/946f7028-4967-461e-a750-d1b5056b62d0" /></a>
 </div>
 
-**Supported DSH versions**: <a href="https://www.npmjs.com/package/@deepseek-ai/dsh?activeTab=versions"><img alt="Supported DSH versions: 0.1.0-rc.8 · 0.1.1-rc.1 · 0.1.1-rc.2" src="https://img.shields.io/badge/DSH-0.1.0--rc.8_%C2%B7_0.1.1--rc.1_%C2%B7_0.1.1--rc.2-4d6bfe" /></a> · full release history on the [Releases](https://github.com/omdsh-dev/DSH-better-sidebar/releases) page
+**Supported DSH versions**: <a href="https://www.npmjs.com/package/@deepseek-ai/dsh?activeTab=versions"><img alt="Supported DSH versions (v0.19.0): 0.1.5-rc.1+" src="https://img.shields.io/badge/DSH-0.1.5--rc.1%2B-4d6bfe" /></a> · full release history on the [Releases](https://github.com/omdsh-dev/DSH-better-sidebar/releases) page
+
+### v0.19.0
+
+> 📌 **Stable release** (npm `latest`, no prerelease suffix): supports **DSH 0.1.5-rc.1+** only (peer floor `^0.1.5-rc.1`, CI pins `@deepseek-ai/dsh@0.1.5-rc.1`). Hosts on DSH 0.1.5-alpha.2 should stay on **v0.19.0-alpha.1** (the npm `alpha` tag still points there); the 0.1.2-rc.1 stable line keeps using **v0.18.1**.
+
+**✨ New**
+
+- 📝 **The new-tab list gets an optional description back**: DSH 0.1.5-rc.1 restored `SidebarRightGuideEntry.description` (optional), so the plugin restores `TabDescriptor.description` — each of the six built-in types declares a line again (all six guide rows — Files / Changes / Tasks / Side chat / Terminal / Browser — carry one), and the `guideDesc*` keys return to all 20 dictionaries. **The host's native guide renders descriptions only while the listed entries are ≤ 4** (a longer list drops every description rather than truncating), and the plugin contributes six guide entries by default — so in the default composition no description is rendered; they appear once the reader disables enough tab types (per-type switches live on the plugin's settings page) to bring the guide down to four entries or fewer. An entry that declares none stays a single icon + title line (the plugin ships no generic fallback sentence). (#613)
+
+**🐛 Fixes**
+
+- None. The rc.1 delta over alpha.2 is small (373 changed files, overwhelmingly upstream package version bumps, native-sidebar preview UI polish, and test snapshots); apart from the restored description field (plus upstream's `files` type now using its own coloured folder glyph as the guide glyph) nothing needed adapting.
+
+**🧰 CI & internals**
+
+- Baseline moved to **DSH 0.1.5-rc.1+** (#613): peer floor, devDependency pins, the CI mount lane, and `dsh.plugin.json`'s `engines.dsh` all follow (rc.1 is both the `latest` and `next` dist-tag on npm).
+- Explicitly unchanged, no need to re-check: the global main-panel model (the `main` slot / `sidebar.panellist` / `ctx.layout` / root-scoped `rightbar` + `rightbar.session`, still not adopted), the file address grammar (`packages/util/workspace-path` only had its version bumped), the native tab-body host contract (`.paneBody` is still a block scroller with a definite height), the core / agent / session / subagent host APIs, and the `ui-primitives` export surface (only CodeBlock rendering changed).
+- `@deepseek-ai/dsh-client-ui-primitives@0.1.5-rc.1` still declares no `dependencies` while its bundle still bare-imports `anser` / `shiki` / `@shikijs/langs/*` / `mdast-util-*` / `micromark-*` / `katex` — the third-party devDependencies hoisted in the previous release therefore stay, and must not be reverted.
+- Real-host verification (DSH 0.1.5-rc.1 + plugin 0.19.0): `typecheck` / `lint` / `check:consumer-types` green; unit suite **124 files · 1296 passed · 9 skipped**; `pnpm peers check` clean; the mount smoke lane against real rc.1 **7 passed** (including the tab-body fill assertion and the new "descriptions render only at ≤4 guide entries" assertion); on the local 3080 instance the guide still shows six icon+title capsules (6 > 4, so upstream renders no descriptions — upstream also raised the capsule `min-height` from 48px to 56px), clicking `AGENTS.md` in the file tree lands in the plugin editor (CodeMirror mounted), the side-chat composer sits on the pane floor (host box 962px == pane body 962px, composer 8px off the bottom), the bottom workbench's edges coincide with the centre column, and `pageerror` is 0 (the only console noise is the third-party `dsh-tauri-worktree` `/api/dsh-worktree/attach` 500, unrelated to this change).
+
+### v0.19.0-alpha.1
+
+> 🧪 **alpha channel** (npm dist-tag `alpha`, install `dsh-better-sidebar@alpha`): supports **DSH 0.1.5-alpha.2+** only (peer floor `^0.1.5-alpha.2`, CI pins `@deepseek-ai/dsh@0.1.5-alpha.2`). Stay on **v0.19.0-alpha.0** for 0.1.5-alpha.1; the 0.1.2-rc.1 stable line keeps using **v0.18.1** (npm `latest`).
+
+**✨ New**
+
+- 🪟 **Every tab body now fills its pane** (#609): the native sidebar's tab-body host is a block scroller with a definite height, not a flex container, and the plugin's tab roots declared only `flex: 1` — so they collapsed to content height and the side-chat composer sat right after the transcript instead of at the pane bottom (a long transcript pushed it out of view). The native adapter now wraps every tab body in a `height: 100%` column flex host, restoring the same fill semantics the bottom workbench has for all plugin tabs, third-party `registerTab` descriptors included.
+
+**🐛 Fixes**
+
+- 🧭 **File address grammar follows DSH 0.1.5-alpha.2**: `fileAddressFor` always produces a session-scoped address and absolute paths keep their leading `/`; `parseFileAddress` is prefix-based and ignores `?`/`#` suffixes.
+- 🪟 **Center-column anchor follows alpha.2's global panels**: the `conversation` slot became `main.conversation` under the root-scoped keyed `main` slot, so the locator now resolves the new key and skips `display: contents` slot hosts (alpha.1's old key still works).
+
+**🧰 CI & internals**
+
+- Baseline moved to DSH 0.1.5-alpha.2 (#609): peer floor, 22 devDependency pins, the CI mount lane, and `dsh.plugin.json` engines all follow; `pnpm peers check` is clean (hoisted the `dsh-session-persistence` transitive peer per §3-9).
+- **`TabDescriptor.description` removed**: alpha.2's native guide entries no longer render a second line (they are icon + title capsules), so the field and the six `guideDesc*` keys (20 dictionaries) are gone; a new pane's default page is now selected from the registry (exactly one guide entry opens that page directly).
+
+### v0.19.0-alpha.0
+
+> 🧪 **alpha channel** (npm dist-tag `alpha`, install `dsh-better-sidebar@alpha`): supports **DSH 0.1.5-alpha.1+** only (peer floor `^0.1.5-alpha.1`, CI pins `@deepseek-ai/dsh@0.1.5-alpha.1`). The 0.1.2-rc.1 stable line keeps using **v0.18.1** (npm `latest`).
+
+**✨ New**
+
+- 🖥️ **DSH's native right sidebar** (#604): the right column is now DSH's own sidebar — all seven plugin tab types register as native tab types with native tab bodies; every file open from the chat goes through `ctx.sidebarRight.openResource(dsh-resource://file/…)`; the `editor` type claims file resources at `extension` priority (outranking the built-in text preview) and takes over the built-in Files page kind (restored on unregister); cross-session opens queue until the target session is on screen.
+- 🧩 **Own right panel and free windows retired** (#605): with the right column handed back to DSH, the plugin keeps only its bottom workbench (single split tree, per-session persistence) and registers its toggle into DSH's session-header utilities slot; the float API (`floats` / `floatTab` / `dockFloat` / `raiseFloat` / the "Move to Free Window" menu entry), the `'floatWindows'` feature string, and the `openByDefault` / `defaultWidthPercent` / `changesDiffFloat` settings are gone (a persisted `floats` field is ignored, so old documents still load).
+- 🔗 **DSH 0.1.5 host contracts** (#603): the `assistant/chunk` event is gone — live deltas now fold from `agent/assistant-stream` frames (the side chat transcript's `live` field); `sessionPersistence.inspect` is gone — cold reads go through `open(id,'read')`; session headers use `SESSION_FORMAT_VERSION`.
+
+**🐛 Fixes**
+
+- Eight session-event read sites follow the 0.1.5 contracts (side-chat transcript, `jobs.output` replay, fork inheritance); custom seeds now carry the fork marker pair, so they no longer inherit the parent's unclaimed inbox input.
+
+**🧰 CI & internals**
+
+- The real-host mount smoke lane pins 0.1.5-alpha.1 and sweeps the native sidebar's guide page to open every plugin tab type; typecheck / lint / unit tests / mount lane all green.
+
+### v0.18.1
+
+> 📌 **Stable release** (npm `latest`): the DSH baseline is unchanged (**0.1.2-rc.1+**, peer floor `^0.1.2-rc.1`) — this is the incremental cut after v0.18.0: richer op previews in the changes panel, a writable file tree, and five fixes.
+
+**✨ Features**
+
+- 📄 **Op-preview upgrades in the changes panel** (#499): markdown reading mode with mermaid fences, plus inline `.html` and `.pdf` render previews; diff syntax highlighting extended to mjs/cjs/mts/cts, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, JSONC/JSON5; new **secret redaction** layer (on by default for previews, toggleable in the pane header)
+- 🗂️ **File-tree rename / delete** (#550): inline rename plus confirmed delete, slimmer context menus and viewport-clamped submenus
+- 🧩 **Plugin catalog names and shell preset text localized** (#535): they now follow the host language
+
+**🐛 Fixes**
+
+- 🔀 **Git diff gap folds really expand** (#576, fixes #577): the fold row promised "n lines… click to expand" but did nothing (`-U3` leaves gap segments without row text); the hidden rows now load on demand through `git.show`, sliced from both sides' contents, with loading / failure states and request deduplication — plus a fix to that route's `rev:path` addressing (it always returned empty before)
+- 💬 **Side-chat seeds no longer inherit the parent's unclaimed inbox messages** (#562): the seed carries the fork markers, so the "side chat sends earlier User messages first on long contexts" ghost message is gone
+- 🖼️ **Local images in the split markdown renderer** (#569): rewritten to reachable URLs instead of 404ing
+
+**🧰 CI and internals**
+
+- ESLint flat config wired into CI and the Makefile (#536), Makefile command surface (#526), hardened e2e scripts (#527), shared component-test utilities (#524)
+- Refactors: Sidebar.tsx split by concern (#542), four polling idioms converged onto `use-polling` (#541), rc.7 `__DSH_MODULES__` fallback removed (#540), One Dark/Light syntax palettes single-sourced (#534), duplicated implementations converged and dead code removed (#525)
+
+### v0.18.0
+
+> 📌 **Stable release** (npm `latest`): this release targets **DSH 0.1.2-rc.1+ only** (peer floor `^0.1.2-rc.1`); 0.1.0-rc.8 ~ 0.1.1-rc.2 are not supported — stable-DSH users should stay pinned to `dsh-better-sidebar@0.17.1`, hosts on 0.1.2-alpha.x keep `dsh-better-sidebar@alpha` (v0.18.0-alpha.0).
+
+All changes since v0.17.1 (the two intermediate version numbers v0.18.1-alpha.0 / v0.19.0-alpha.0 were never published; their content is folded into this release):
+
+**🔗 Host track graduation**
+
+- **Onto the DSH 0.1.2 line and graduating to stable**: v0.18.0-alpha.0 dropped the 0.1.1-rc.x compatibility layer and fixed blank Side Chat transcripts on alpha.1+ (#472); the baseline then climbed through alpha.3 (#497) and alpha.5 (#516, `Session.events` → `snapshotEvents()`); the chat file-open funnel moved to `remote.session.openWorkspacePath` (#494) and the "Show in folder" reveal scroll was scoped to the tree body (#453). This release pins the baseline to **DSH 0.1.2-rc.1** (zero source delta vs alpha.5 — a pure version bump; `dsh-client-locale` resumed publishing, everything aligned to rc.1; real-host mount smoke 14/14 in CI)
+
+**✨ Features**
+
+- 🌿 **Unified "Changes" tab** (#475): one tab, two lenses — Git (real diff / history / stage·commit·revert / worktree & child-repo selection) and This Session (live tracking of every file the model reads / writes / edits); a unified diff renderer (mod pairing + intra-line character highlights + syntax coloring + context folding), a draggable bottom preview pane, and one-click expansion into a dedicated diff tab
+- 💬 **Side Chat rendering upgrade** (#486): main-conversation-grade Blocks structure, per-turn usage tails, reconnect banner
+- ⚙️ **Workspace path fence toggle** (#458): a new `workspaceFence` declarative settings key with a one-click off affordance and guidance on 403 error surfaces
+
+**⚡ Performance**
+
+- 🚀 **Core bundle -45%** (#489): 19 non-zh/en dictionary chunks lazy-loaded, render stabilization (transcript row reuse / tree Sets / batched drags), startup & polling cost cuts (single settings fetch, one git process per tick); a new perf measurement lane; also fixes the bottom-pane drag leaking panel width into the host layout and jumping the native left sidebar
+- 📉 Fewer repeated center-column DOM queries (#456)
+
+**🐛 Fixes (selection)**
+
+- ✏️ Editor / Markdown: SSH remote editor links open on the client (#522), reading position kept across preview/edit switches (#467), YAML frontmatter hidden in preview (#394), TOC dismiss-on-outside-click + popover z-index (#461), file basename kept in @-reference links (#417)
+- 💻 Terminal / platform: Windows custom shell executables resolve (#503), transient resize failures contained (#428), monospace fallback for unresolvable fonts (#366), Linux absolute paths in WSL workspaces (#455), Windows Explorer reveal selection preserved (#508)
+- 🗂️ Layout / state / file tree / chat: desktop shell layout coexists with the side card (#398), no forced mobile drawer on auto-activation (#373), restored free-window id conflicts (#385), tree auto-refresh on window focus (#469), reference affordance pinned to row tail (#509), selection-popup dismissal + caret-anchored draft insert (#427), collapsed toggle cluster aligned (#361), old-engine scroll-jump compat (#448), worktree listing on older Git (#454)
+
+**🧰 CI & internals**
+
+- Windows CI lane (#520), Makefile command surface (#526), e2e script hardening + aggregate double-mount regression (#527), shared component test utils deduplicating boilerplate (#524), duplicate-implementation convergence + dead code removal (#525)
+
+**🌐 Ecosystem**
+
+- 10+ new curated plugins: dsh-better-sidebar-icons (#441), dsh-sidenote (#451, formerly dsh-sidechat #470), dsh-github-workbench (#410), dsh-bilingual-reader (#379), dsh-server-deck (#413), dsh-md-export (#405), dsh-code-nav (#404), dsh-suhuang-scroll (#392), dsh-better-overleaf (#370), and more (each with 18+ language i18n coverage)
+
+### v0.19.0-alpha.0 (0.1.2-alpha.5 adaptation, unpublished, folded into v0.18.0)
+
+> 🧪 **Alpha track**: this release targeted **DSH 0.1.2-alpha.x only** (peer floor `^0.1.2-alpha.5`, npm dist-tag `alpha`). This number was never published separately — its content shipped in the **v0.18.0** stable release, and the same number was later reused for the 0.1.5 adaptation line (see above).
+
+- 🔗 **Adapted to DSH 0.1.2-alpha.5 (published to npm, `alpha` dist-tag)**: the CI mount gate's pin, the `dsh.plugin.json` engines floor, and the `@deepseek-ai/*` peer / devDependencies baseline moved up to 0.1.2-alpha.5 (verified by a real-host mount smoke 14/14). `dsh-client-locale` has no alpha.5 upstream (newest is 0.1.2-alpha.3), so its peer floor / devDep pin trail the baseline and already accept the alpha.5 runtime (`pnpm peers check` reports zero mismatches — no new transitive peers to hoist). The code adapts to alpha.4's compatibility-flagged change — the `Session.events` property was removed, migrated to the on-demand `snapshotEvents()` API (8 sites: sidechat transcript live reads, fork inheritance, `jobs.output` replay, subagent activity), and the `seedLength` meta field the host dropped was removed from thread creation; alpha.4's remaining changes (bidirectional `send_message`, custom-model discovery reusing Profile headers, `SessionSeq`/`SessionLogOffset` strong typing) and alpha.5's upgrade-startup fix were verified not to touch any other plugin surface.
+
+### v0.18.1-alpha.0
+
+> 🧪 **Alpha track**: this release targets **DSH 0.1.2-alpha.x only** (peer floor `^0.1.2-alpha.3`, npm dist-tag `alpha`, install `dsh-better-sidebar@alpha`). This version number was never published separately; its content is folded into the **v0.18.0** stable release.
+
+- 🔗 **Adapted to DSH 0.1.2-alpha.3 (published to npm, `alpha` dist-tag)**: the CI mount gate's pin, the `dsh.plugin.json` engines floor, and the `@deepseek-ai/*` peer / devDependencies baseline moved up to 0.1.2-alpha.3 (verified by a real-host mount smoke 14/14). All 117 commits between alpha.2 and alpha.3 were audited point by point: every host contract this plugin relies on (token auth, slash RPC, `MarkdownText` labels, the event-stream and persistence APIs behind `sidechat.events`, `SettingsNamespaceInput`, `SUBAGENT_DESCRIPTOR_VERSION` (still 3), `dsh-client-store`, the profile loader, the node-pty pin) is unchanged, so no code adaptation was needed; alpha.3's breaking changes (the required `BeginSubmissionInput.mode`, the renamed `attachment-invalid` subagent error, the removed SQLite persistence backend, the identity-gated projection change feed) were all verified not to touch this plugin.
+
+### v0.18.0-alpha.0
+
+> 🧪 **Alpha track**: this release targets **DSH 0.1.2-alpha.x only** (peer floor `^0.1.2-alpha.2`, npm dist-tag `alpha`, install `dsh-better-sidebar@alpha`); 0.1.0-rc.8 ~ 0.1.1-rc.2 are no longer supported — stable-DSH users should stay on v0.17.1 (npm `latest`).
+
+- 🔗 **Adapted to DSH 0.1.2-alpha.2 (published to npm, `alpha` dist-tag)**: the CI mount gate's pin and the `@deepseek-ai/*` devDependencies baseline moved up to it (verified by a real-host mount smoke 14/14). Adaptation points: `dsh-settings` dropped the runtime `settingsNamespace` export (namespaces are now validated at compile time — the host passes the constant directly); the `dsh-subagent` descriptor version went 2→3 (stamped by the host package; the test assertion follows the `SUBAGENT_DESCRIPTOR_VERSION` constant); the restored `SessionEvent.ignorable` and the Remote gateway's unified `RemoteError` wrapping were verified to not affect this plugin.
+- 🐛 **Fixed blank Side Chat transcripts on DSH 0.1.2-alpha.1+**: transcript polling still called the `ctx.connection.api` face removed in alpha.1 (the error was silently swallowed, so the tab rendered an empty transcript forever). Transcripts now come from the plugin's own `sidechat.events` route (live threads read the in-memory event log, cold threads read session persistence, with `afterSeq` delta pulls, [sidechat-routes.ts](./src/sidechat-routes.ts)).
+- 🧹 **Dropped the pre-alpha (0.1.1-rc.x and older) compatibility layer**: the e2e host RPC collapsed from the dot/slash dual dialect to slash-only (token URL required, [host-protocol.ts](./tests/e2e/host-protocol.ts)); `MarkdownText` labels collapsed to the nested single shape ([markdown-labels.tsx](./src/client/markdown-labels.tsx), no more dual prop names); peerDependencies / devDependencies / `dsh.client.inject` / the chunk externals allowlist all dropped the defunct `@deepseek-ai/dsh-client-runtime` (four synchronized spots).
+
+### v0.17.1
+
+- 🔗 **DSH 0.1.2-alpha.1 adaptation (dual-version compatible)**: fully adapted to DSH 0.1.2-alpha.1's Remote gateway, one-time-token browser authentication, and the `MarkdownText` labels contract change — the plugin works identically on 0.1.0-rc.8 ~ 0.1.1-rc.2 and 0.1.2-alpha.1 (the latter verified by a real-host mount smoke 14/14 against a source build of the GitHub tag; alpha.1 was never published to npm, and the CI pin moved to the npm-published 0.1.2-alpha.2 in v0.18.0-alpha.0). Highlights: all four `MarkdownText` render sites now go through the dual-shape labels helper ([markdown-labels.tsx](./src/client/markdown-labels.tsx)), fixing the `reading 'code'` crash in markdown/mermaid previews on alpha.1; the e2e mount smoke speaks both wire dialects (token-URL cookie exchange, slash `/api` endpoints with parameter-named args, [tests/e2e/host-protocol.ts](./tests/e2e/host-protocol.ts)); dropped the `@deepseek-ai/dsh-client-runtime` peer removed upstream in 0.1.2-alpha.1
+
+### v0.16.1
+
+All changes since v0.16.0:
+
+**🐛 Fixes**
+
+- 🧊 **Git panel freeze + restart loop** ([#376](https://github.com/omdsh-dev/DSH-better-sidebar/pull/376), fixes [#369](https://github.com/omdsh-dev/DSH-better-sidebar/issues/369)): opening the Source Control panel could freeze the whole page, and the frozen layout restored itself after every reload with no way out — three unbounded layers compounding, now all bounded: **① status truncation** — the `git status --untracked-files=all` response is capped at 2,000 entries (capped results carry `truncated` and the panel shows a notice, mirroring `fs.read`'s truncation semantics; worktree change counts inherit the bound), so a huge untracked set can no longer freeze the browser main thread; **② bounded repository discovery** — a non-repository cwd (e.g. the home directory) no longer probes every visible child directory serially without limit: probe timeout 30s→5s, at most 200 probed directories, concurrent requests share one in-flight scan plus a 60s TTL cache, ending the `git rev-parse` spawn storm under `~`; **③ reset escape hatch** — loading with `?dsh-sidebar-reset` drops the persisted layout (shared width included) and starts from the default, breaking the loop even when the page is already hung; persisting resumes once the param is gone; `statusTruncated` copy synced across all 19 dictionaries
+
+### v0.16.0
+
+All changes since v0.15.2:
+
+**✨ New features**
+
+- 🪟 **Free windows** ([#354](https://github.com/omdsh-dev/DSH-better-sidebar/pull/354)): drag any tab (built-in or plugin-registered) out of the tab bar **onto the main conversation area** — a dashed drop hint marks the landing zone and release turns it into a floating window (default 390×780, phone-portrait ratio, clamped to the viewport and centered at the drop point). Windows can be moved by dragging the header, resized from the SE corner (≥320×200), raised to the top by clicking anywhere, sent back with the header context menu ("Back to sidebar" / "Close"), and closed with X through the normal `closeTab` lifecycle (pty release etc.). Dragging over a sidebar pane highlights it and releasing **docks** the window back into that pane. `floats` persist per session (restored as-is after refresh, lenient sanitize + geometry clamping). Service semantics: `features` gains `'floatWindows'` — `openTab`'s dedupe/id focus on a floating tab **raises its window** (no duplicate open, no panel expansion), `closeTab` / `activateTab` work on floating tabs and still fire their lifecycle callbacks, `visible` is always true inside a float, and agent-terminal reconcile covers floating windows. Tab content reuses the regular render path; plugin tabs are fully supported. Also ships the 8px-grid spacing cleanup of file sub-pages ([design](docs/plans/2026-08-23-free-window-design.md))
+- 📂 **Model-driven sidebar opens (`sidebar_open` tool)** ([#353](https://github.com/omdsh-dev/DSH-better-sidebar/pull/353)): a new global setting `agentOpenTools` (**off by default**) injects **one** tool letting the model open local **files** (editor tab, deduped by path), **folders** (full-window tree rooted there, `meta.dir`) and **HTTP(S) pages** (browser tab, URL prefilled) in the caller's sidebar. Turning the setting off unregisters the tool and clears the undelivered queue; already-open tabs stay. Opens targeting non-active sessions queue and replay when visible (`/sidebar/ws/agent-opens` push, same trust fence). No new public API and no new `/sidebar/api` routes ([design](docs/plans/2026-08-23-agent-open-tools-design.md))
+- 📝 **README-level inline HTML + table of contents (TOC) in Markdown previews** ([#360](https://github.com/omdsh-dev/DSH-better-sidebar/pull/360)): previews now genuinely render **block-level inline HTML** — badge walls `<div align=center>`, `<details>` blocks nesting markdown, `<br/>`/`<sub>`/`<img>` inside table cells, `<video>`/`<picture>` — all sanitized through a DOMPurify allowlist (`<script>` and other active content stripped, `<a>` forced `_blank rel=noopener`), with local media `src` rewritten to the session media route. With ≥3 headings a floating **TOC** button appears: smooth scroll, auto-expanding folded `<details>` ancestors, collecting headings from HTML segments too. The renderer is still the host `MarkdownText` (shiki / KaTeX / GFM preserved); pure-markdown documents take the original path with zero regression ([design](docs/plans/2026-08-24-markdown-html-toc-design.md))
+- 🌏 **Third-language coverage (19 languages)** ([#339](https://github.com/omdsh-dev/DSH-better-sidebar/pull/339)): optional peer `@huanlin/dsh-plugin-better-locale` adds full dictionaries for ja / de / fr / pt / ko / ar / hi / id / tr / vi / th / ru / it / nl / sv / pl / zh-HK / zh-TW / zh-MO (~340 keys each). Coverage **borrows the DSH English slot**: it is active only while DSH's active locale is `en` and is completely inert under `zh` (no mixed-language UI). The 19 dictionaries are also registered into better-locale so external `ctx.locale.lookup('betterSidebar', key)` callers get the override text. Without better-locale installed `ctx.get('betterLocale')` is undefined and the whole block is a no-op — zh/en behavior is unchanged
+- 🌿 **Multi-repository Git selection + linked-worktree discovery** ([#326](https://github.com/omdsh-dev/DSH-better-sidebar/pull/326) [#285](https://github.com/omdsh-dev/DSH-better-sidebar/pull/285)): when the session cwd is a workspace container rather than a Git repository, the Git panel discovers direct child repositories and shows a **repository selector** — status / branch / history / diff / stage / commit / revert / cherry-pick / file opening are all threaded through the selected repository. Linked-worktree change discovery and per-worktree git operations are transactionally bound to the selected checkout (including delayed pagination responses), stale/prunable worktree targets are rejected, and individual inventory failures degrade safely
+- 🖥️ **Browser loopback allowlist** ([#365](https://github.com/omdsh-dev/DSH-better-sidebar/pull/365)): a new side-card setting `browserAllowedLoopback` (comma-separated host or host:port entries; bare hosts match every port, host:port matches exactly) lets the sidebar browser navigate to explicitly trusted local addresses. Allowlisted loopback pages additionally get the `allow-same-origin` iframe sandbox token — local dev servers (Vite etc.) need a real origin for their module/HMR/fetch pipeline and would otherwise render blank. The page stays cross-origin to the GUI and to every other site; the server-side `browser.probe` route mirrors the same allowlist
+- 📝 **Vue + 28 legacy languages in the editor** ([#202](https://github.com/omdsh-dev/DSH-better-sidebar/pull/202)): `.vue` maps to `@codemirror/lang-vue` (template / script / style dispatch on the `lang` attribute, `<style lang="scss">` preprocessors); zero new dependencies bring scss/sass/less/stylus/ruby/lua/perl/r/dart/scala/groovy/powershell/diff/protobuf/cmake/pug/tcl/haskell/clojure/erlang/julia/pascal/vb/vhdl/stex/objectivecpp via legacy-modes. A throwing language factory degrades to plain text (console.warn) instead of breaking the editor; ambiguous `.v` / `.m` extensions stay unmapped on purpose
+- 🔄 **Editor preview refresh trio** ([#215](https://github.com/omdsh-dev/DSH-better-sidebar/pull/215) [#228](https://github.com/omdsh-dev/DSH-better-sidebar/pull/228), fixes [#167](https://github.com/omdsh-dev/DSH-better-sidebar/issues/167)): a **manual refresh** button for text previews; switching back to preview after an edit-save auto-reloads (suppressed while dirty so drafts survive); a successful save while in preview mode reloads on the saved edge. Automatic polling and the `fs.stat` version endpoint are gone (zero background API traffic)
+- 🖼️ **Local / relative images in Markdown** ([#292](https://github.com/omdsh-dev/DSH-better-sidebar/pull/292)): `![alt](./img.png)`, `/cwd/img.png` and reference-style `[id]: url` destinations are rewritten to `/sidebar/file` media URLs (still bounded by the session cwd) — previews no longer show just the alt text
+- ➕ **New recommended-catalog entry: ego-browser** ([#340](https://github.com/omdsh-dev/DSH-better-sidebar/pull/340)): `@dsh-external/ego-browser` Agent browser tab (registers a sidebar page automatically when better-sidebar is present, falls back to a floating bubble otherwise); description dictionary completed across 19 languages ([#371](https://github.com/omdsh-dev/DSH-better-sidebar/pull/371))
+
+**🐛 Fixes**
+
+- 🛒 **DSH marketplace managed-install compatibility** ([#338](https://github.com/omdsh-dev/DSH-better-sidebar/pull/338)): the public `cordis` entry was removed from `peerDependencies` (the market preview hard-rejects `cordis` in any dependency field — optional does not help), so the npm package satisfies the [dsh-community-market install rules](https://github.com/anywhere-labs/deepseek-harness-desktop/blob/master/dsh-community-market/docs/install-and-uninstall.zh.md) — catalog sources (dshfind / 1024Store) can re-issue the `repository_backlink` verified target and the plugin becomes installable through the Desktop market
+- 🔤 **Type base migrated to `@deepseek-ai/cordis`** ([#338](https://github.com/omdsh-dev/DSH-better-sidebar/pull/338)): the declaration surface (`src/context-types.ts`) no longer depends on or restates the public `cordis` — `Context` is now an **intersection** of the real vendored cordis Context with the structural service faces, and the `ctx.betterSidebar` type merge lives on `@deepseek-ai/cordis`. **Consumer migration**: change `import type { Context } from 'cordis'` to `import type { Context } from '@deepseek-ai/cordis'` (the `import type {} from 'dsh-better-sidebar'` merge path is unchanged); plugins that never used that import are unaffected
+- 🧩 **All internal `ctx.betterSidebar` reads fixed** ([#357](https://github.com/omdsh-dev/DSH-better-sidebar/pull/357), fixes [#356](https://github.com/omdsh-dev/DSH-better-sidebar/issues/356)): on npm-installed DSH 0.1.1-rc.x (web bundle) the sidebar died on every page load (`cannot get property "betterSidebar" without inject`) — the 26 internal direct reads now go through `ctx.get('betterSidebar')` (root reflect-store resolution, immune to the fiber chain); external consumers keep `inject: ['betterSidebar'] + ctx.betterSidebar`
+- 🔐 **Session-workspace boundary for file APIs** ([#345](https://github.com/omdsh-dev/DSH-better-sidebar/pull/345), fixes [#328](https://github.com/omdsh-dev/DSH-better-sidebar/issues/328)): fixed `fs.tree / fs.read / fs.write` workspace escapes; media, HTML preview and uploads share real-path symlink validation; regression tests for absolute paths, symlinks, uploads and nested Git sessions
+- 🪟 **Panel-host layering and viewport clipping** ([#330](https://github.com/omdsh-dev/DSH-better-sidebar/pull/330) [#278](https://github.com/omdsh-dev/DSH-better-sidebar/pull/278), fixes [#277](https://github.com/omdsh-dev/DSH-better-sidebar/issues/277)): panel host z-index 40→25 — below the DSH cordis dynamic-plugin layer (30), so the workbench no longer covers cordis inventory/approval surfaces (still above AppFrame's 20 and below the 100+ float stack); `overflow: hidden` on the host clips at the viewport edge, so collapsed panels no longer stretch the document into bidirectional scrolling (measured `scrollWidth` 2289→1672 / `scrollHeight` 1280→1032, any skin)
+- 📐 **Layout-push hardening** ([#310](https://github.com/omdsh-dev/DSH-better-sidebar/pull/310) [#130](https://github.com/omdsh-dev/DSH-better-sidebar/pull/130) [#180](https://github.com/omdsh-dev/DSH-better-sidebar/pull/180)): conversation column gets `min-height: 0` + `overflow: hidden` + `overflow-wrap: anywhere` (long unbreakable URLs / OAuth links no longer push the composer and left-rail Settings out of the viewport); the layout-push effect is split into "set only" + "remove only on unmount" and the width push is gated on `panelOpen` — dragging the bottom height with the right panel closed no longer squeezes the conversation, and release no longer flashes full-width; `useLayoutEffect` removes cross-paint full-width frames; all three drags flush the final frame and sync `centerRect.right` before committing; bottom height caps at `viewportHeight - PANEL_MIN`; drag handles no longer highlight mid-drag
+- 📱 **Mobile: unavailable-sidebar clarity + 1px overflow** ([#254](https://github.com/omdsh-dev/DSH-better-sidebar/pull/254)): with no session the toggle uses `aria-disabled` — keeping the non-executable semantics while allowing touch/keyboard focus so the "select a session to use the sidebar" tooltip is reachable; the panel uses `border-box` so mobile `100vw` includes the left border and no longer causes 1px horizontal overflow
+- 📏 **Side-card width shared across sessions** ([#36](https://github.com/omdsh-dev/DSH-better-sidebar/pull/36)): panel width is a layout preference, not session content — "last drag wins" writes the global `dsh-sidebar:v1:width` key that fresh and cached session switches adopt; without a global key (first run / pre-existing sessions) behavior is byte-for-byte unchanged
+- 🧹 **Terminals close immediately on session delete** ([#130](https://github.com/omdsh-dev/DSH-better-sidebar/pull/130)): new `PtyManager.closeSession()` subscribing to DSH's `session/disposed` — deleted sessions no longer wait for the 30s reconnect grace to release their terminals (agent terminals are agent-lifecycle-owned and untouched)
+- 🔍 **Filename search skips noise directories** ([#342](https://github.com/omdsh-dev/DSH-better-sidebar/pull/342)): `node_modules` / `.pnpm-store` / `.yarn` / `.turbo` / `.next` / `dist` / `build` / `coverage` etc. (case-insensitive, `.git` still skipped) — huge dependency trees no longer burn the 100k visit budget and return `truncated` early, so real files in later directories (`docs/`) are found; no `.gitignore` semantics, still filename lookup
+- 📝 **Mermaid global error rendering suppressed** ([#341](https://github.com/omdsh-dev/DSH-better-sidebar/pull/341)): `suppressErrorRendering` enabled — invalid diagrams no longer inject a large error SVG into `document.body`; the component-level error fallback and source display remain
+- 🖥️ **Terminal Nerd Font icon fallback** ([#190](https://github.com/omdsh-dev/DSH-better-sidebar/pull/190)): supplementary-plane PUA icons in starship / powerlevel10k prompts (Nerd Fonts v3 Material icon set) no longer render as tofu — `withIconFontFallbacks()` appends Nerd Font icon families to the winning base font (before the first generic family, deduped by family name, CSS global keywords filtered, no color-emoji fonts)
+- 🌐 **HTML preview declares UTF-8** ([#193](https://github.com/omdsh-dev/DSH-better-sidebar/pull/193), fixes [#170](https://github.com/omdsh-dev/DSH-better-sidebar/issues/170)): `/sidebar/html` responses carry `charset=utf-8` (Chinese fragments without `<meta charset>` no longer mojibake); original file bytes preserved
+- 🧪 **trust-fence Origin compared by hostname** ([#182](https://github.com/omdsh-dev/DSH-better-sidebar/pull/182)): some Chromium builds (Edge 151) serialize the Origin of non-default-port loopback pages without the port — `http://127.0.0.1` against `Host: 127.0.0.1:3080` no longer 403s (mirrors DSH's official gateway fence); different hostnames and opaque null origins are still rejected
+- 🪟 **"Show in folder" now reveals in the explorer** ([#94](https://github.com/omdsh-dev/DSH-better-sidebar/pull/94)): the folder-reveal gesture no longer opens the directory as a file in the editor (`"..." is a directory`) — `revealInExplorer` switches to the explorer tab, auto-expands a collapsed panel, expands the parent folder and highlights/scrolls to the produced file; the produced-files selector now reads the engine's Turn deliverables (same source as ui-deliverables)
+- 🖱️ **Panel-drag layout flash fixed** ([#180](https://github.com/omdsh-dev/DSH-better-sidebar/pull/180)): dragging the bottom height with the right panel closed no longer shifts the conversation left; release no longer flashes full-width before snapping back
+- 🖥️ **PowerShell installer fixes** ([#47](https://github.com/omdsh-dev/DSH-better-sidebar/pull/47)): the remote entry is now "download the script → strip the UTF-8 BOM → run it in memory", so `-Version` / `-DryRun` work again under Windows PowerShell 5.1 (the BOM no longer eats the leading `param(...)`); `pnpm --version` is checked before touching the profile (major <10 fails with a clear error and exit code 1)
+- 🔄 **Browser embed probing GET fallback** ([#69](https://github.com/omdsh-dev/DSH-better-sidebar/pull/69)): when a HEAD response omits both `Content-Security-Policy` and `X-Frame-Options`, probe retries once with GET — sites like Alibaba Bailian that only advertise their embed policy on GET no longer show a misleading "refused to connect"; they get the friendly "site refuses embedding" panel with an "open in browser" button
+- 🔧 **git-source installs fixed via `unrun` devDependency** ([#336](https://github.com/omdsh-dev/DSH-better-sidebar/pull/336)): tsdown 0.22 loads its config through `unrun` and pnpm 11 does not auto-install peer deps — git-hosted `prepare` no longer fails with `Failed to import module "unrun"` (npm tarballs unaffected)
+- 🍃 **Strict `ctx.effect` also fixed 4 latent sites**: interception / IME-guard effect bodies returned `undefined` on failure instead of a disposer (invalid shape under the vendored cordis effect contract) — now a no-op disposer
+
+<details>
+<summary><b>Older releases (v0.12.0 – v0.15.2)</b></summary>
 
 ### v0.15.2
 
@@ -275,9 +470,6 @@ All changes since v0.15.1:
 - 📁 **Untracked files inside new folders** ([#242](https://github.com/omdsh-dev/DSH-better-sidebar/pull/242)): `git status` switched from `--untracked-files=normal` to `--untracked-files=all` — each file inside a new folder now shows as its own row and its diff can be loaded (no more `fs.read` "is a directory" error), matching VSCode's default behavior
 - ⚡ **Per-frame React re-renders eliminated for toggles/drags** (closes [#315](https://github.com/omdsh-dev/DSH-better-sidebar/issues/315)): `centerRect` moved to a ref with direct DOM writes to the bottom bar (zero React renders); `TabContent` memoized with an explicit comparator; a new frame-batcher coalesces Divider/dock drags per frame; meaningless locate passes skipped during drags. 4x CPU-throttled A/B: >17ms frames on toggle collapse 19→6 / expand 24→4~6, p95 21ms→15ms; drags unchanged (non-regression)
 
-<details>
-<summary><b>Older releases (v0.12.0 – v0.15.1)</b></summary>
-
 ### v0.15.1
 
 All changes since v0.15.0:
@@ -291,7 +483,7 @@ All changes since v0.15.0:
 
 - 🖥️ **Terminal pty stays alive across conversation switches** ([#323](https://github.com/omdsh-dev/DSH-better-sidebar/pull/323)): switching sessions is no longer treated as a transient drop — the client sends a `park` control frame on unmount and the host skips the 30s reconnect-grace countdown; switching back (`open()` cancels parked) or explicitly closing the tab resumes the normal lifecycle; agent terminals keep their indefinite lifetime
 - 📂 **File-tree upload overlay no longer intercepts Tab drags** ([#317](https://github.com/omdsh-dev/DSH-better-sidebar/pull/317)): dragging tabs (reorder / cross-pane split) across the explorer no longer shows the upload overlay or swallows the event — gated on `dataTransfer.types` containing `Files` (consistent with the panel-host shield), so tabs land normally; OS file drags behave as before
-- 💬 **Subagent auto-open debounced** ([#314](https://github.com/omdsh-dev/DSH-better-sidebar/pull/314)): Side Chat thread creation no longer pops the task page — the 0→N trigger rearms for 500ms and re-evaluates the original baseline against the live snapshot, by which time the title filter recognizes the thread; genuine subagents still auto-open
+- 💬 **Subagent auto-open debounced** ([#314](https://github.com/omdsh-dev/DSH-better-sidebar/pull/314)): Side Chat thread creation no longer pops the task page — the 0→N trigger rearms for 500ms and re-evaluates the original baseline against the live snapshot, by which time the title filter recognizes the thread; genuine subagents still auto-activate the Tasks page (wide viewports expand the sidebar, while narrow viewports prepare the tab without forcing the drawer open)
 
 ### v0.15.0
 
@@ -310,6 +502,7 @@ All changes since v0.14.0:
 - ⚡ **Batched live preview for the subagent page** ([#298](https://github.com/omdsh-dev/DSH-better-sidebar/pull/298)): the old implementation polled `subagents.history` per running subagent, each poll triggering a full host-side enumeration — an O(N²) amplification that stalled the page with many concurrent subagents; now a single batch route `subagents.live` (one enumeration of the whole tree) plus one client poller with a single in-flight request; display logic and copy unchanged
 - 🖱️ **Interrupted / fast-release drags no longer roll back** ([#249](https://github.com/omdsh-dev/DSH-better-sidebar/pull/249), closes [#247](https://github.com/omdsh-dev/DSH-better-sidebar/issues/247) [#248](https://github.com/omdsh-dev/DSH-better-sidebar/issues/248)): interrupted or fast-released drags commit the last known position; HMR re-activation re-locates the center column (fixes the blank bottom panel after a hot reload)
 - 📐 **Push variables stay effective while mounted** ([#259](https://github.com/omdsh-dev/DSH-better-sidebar/pull/259), fixes [#258](https://github.com/omdsh-dev/DSH-better-sidebar/issues/258)): the bottom panel no longer flashes full-width after a drag is released
+- 🔐 **Workspace boundary hardening for file APIs** ([#328](https://github.com/omdsh-dev/DSH-better-sidebar/issues/328)): `fs.tree/read/write`, media, HTML preview, and uploads now share real-path containment checks that reject outside absolute paths and symlink escapes
 - 🔧 **Adapted to DSH 0.1.1-rc.1 / rc.2 (@next)** ([#297](https://github.com/omdsh-dev/DSH-better-sidebar/pull/297) [#305](https://github.com/omdsh-dev/DSH-better-sidebar/pull/305)): no code changes needed
 - 🔒 **Upload-chain hardening** ([#239](https://github.com/omdsh-dev/DSH-better-sidebar/pull/239)): empty and absolute `relativePath` segments are refused outright; uniquely named temp files (concurrent uploads stay independent, crashed processes never block later uploads); write-stream error listeners (a failing disk can no longer crash the host); client error codes unified with the wire (`too-large`), 413s localized
 
@@ -366,6 +559,7 @@ All changes since v0.14.0:
 
 - 🔧 **xterm migration**: deprecated xterm dependency migrated to `@xterm/xterm` (Closes [#122](https://github.com/omdsh-dev/DSH-better-sidebar/issues/122), [#128](https://github.com/omdsh-dev/DSH-better-sidebar/pull/128))
 - 📝 **Markdown editor**: selection-to-conversation popup restored ([#24](https://github.com/omdsh-dev/DSH-better-sidebar/pull/24))
+- 🖼️ **Markdown preview renders local/relative images**: image destinations that point at local files (relative/absolute paths, reference-style `[id]: url`) are rewritten to `/sidebar/file` media URLs and displayed in the preview (previously only absolute http(s) images rendered; relative paths showed just the alt text)
 - 🐛 **node-pty load failure no longer crashes the server** ([#140](https://github.com/omdsh-dev/DSH-better-sidebar/issues/140)): the host half now lazy-loads node-pty — when it is missing the plugin still mounts, the terminal shows a repair banner (copyable command + Retry button), and agent terminal tools are skipped
 - 🧪 Test engineering: unit spec split (#141) + flaky smoke cleanup fix
 
@@ -385,11 +579,9 @@ All changes since v0.14.0:
 
 ## 🔌 Service API
 
-Since v0.4.0 the plugin exposes the `ctx.betterSidebar` service — other plugins can register sidebar pages and file viewers (the 7 built-in tabs + 6 viewers register through the same service). v0.12.1 completed the base capabilities (complete type exports, capability detection, state subscription, tab badges, lifecycle callbacks, targeted open, plugin-owned settings, etc.).
+Since v0.4.0 the plugin exposes the `ctx.betterSidebar` service — other plugins can register sidebar pages and file viewers (the 8 built-in tabs + 6 viewers register through the same service). v0.12.1 completed the base capabilities (complete type exports, capability detection, state subscription, tab badges, lifecycle callbacks, targeted open, plugin-owned settings, etc.).
 
-Full integration docs:
-- **[`AGENTS.md`](./AGENTS.md)** — the in-repo integration doc (full fields, matching algorithm, HMR pitfalls, declarative settings, version detection);
-- **[`docs/external-plugin-guide.md`](./docs/external-plugin-guide.md)** — the external-plugin guide (with a complete minimal example).
+Full integration docs (complete fields, matching algorithm, HMR pitfalls, declarative settings, version detection, the native-sidebar surface and the skinning contract): **[`docs/external-plugin-guide.md`](./docs/external-plugin-guide.md)**; repository rules (hard constraints / CI / release) live in [`AGENTS.md`](./AGENTS.md).
 
 ### ➕ Add Plugins (recommended plugin catalog)
 
@@ -400,12 +592,23 @@ The dashed cards at the end of the "Sidebar content" / "File viewers" grids in t
 ## 🛠️ Development & Build
 
 ```sh
-pnpm install      # @deepseek-ai/* devDependencies resolve to 0.1.1-rc.1 (published) — no token needed
+pnpm install      # @deepseek-ai/* devDependencies resolve (baseline 0.1.2-rc.1, next dist-tag) — no token needed
 pnpm typecheck    # tsc --noEmit
+pnpm lint         # eslint . (flat config: js + typescript-eslint + react-hooks recommended)
 pnpm build        # → lib/index.js + lib/invariant.js + lib/client.js + lib/client-registry.js + lib/types
 pnpm test         # vitest (includes manifest consistency guard; build first)
 pnpm watch        # tsdown --watch
 ```
+
+**Make thin wrappers** (`make help` lists every target; package.json stays the single source of truth):
+
+```sh
+make check          # aggregate gate: typecheck → build → test → check:consumer-types (mirrors CI)
+make mount          # real-mount smoke: build + pack → install Chromium → pnpm test:mount
+make clean          # remove lib/, *.tgz, playwright-report/, test-results/
+```
+
+`pnpm check:consumer-types`: the consumer-facing declaration-surface guard — type-checks the built `lib/types` from a browser-only consumer's perspective (no `@types/node`, `skipLibCheck: false`); run `pnpm build` first.
 
 **Architecture**: a single npm package with host/client halves — host (`src/index.ts`): `/sidebar/api/*` JSON API, `/sidebar/file` media route, `/sidebar/html` preview route, `/sidebar/ws/terminal` WebSocket (fs / git / pty / preview, all session-scoped with a trust fence); client (`src/client/index.tsx`): portal sidebar + views + interception; state persisted per session in localStorage. Organized per DSH official conventions (no default export, dual client bundles); no dependency on npm / checkout at runtime (`@deepseek-ai/*` provided by the web profile).
 
@@ -417,12 +620,12 @@ pnpm watch        # tsdown --watch
 
 ## ⚠️ Known Limitations
 
-- Git has no push/pull/fetch; no file watcher (manual refresh); tool inline file-open buttons cannot be intercepted
+- Git has no push/pull/fetch; Markdown previews provide a manual refresh button with confirmation before discarding unsaved edits; no file watcher or automatic polling; tool inline file-open buttons cannot be intercepted
 - Dragging a terminal tab to another pane remounts it (shell restarts)
 - Office-suite preview (.docx/.xlsx/.pptx) moved to the recommended office plugin (see the "Add plugins" modals in settings); without it these files fall through to the code/download fallbacks
 - Browser sandbox has no login state / third-party cookies are restricted; some sites need popup login; sites that refuse embedding via `X-Frame-Options`/`frame-ancestors` (e.g. arxiv.org) show a reason panel (with "Open in browser"); in-iframe navigation does not enter the back stack
 - HTML preview renders the saved file (not unsaved drafts)
-- No bottom panel on mobile (<768px): on narrow screens its tabs merge into the right sidebar once (after migrating back to desktop they stay in the right sidebar); the desktop bottom panel is only available on wide viewports; auto-open terminal on first bottom-panel expand does not trigger on mobile
+- No bottom panel on mobile (<768px): on narrow screens its tabs merge into the right sidebar once (after migrating back to desktop they stay in the right sidebar); the desktop bottom panel is only available on wide viewports; auto-open terminal on first bottom-panel expand does not trigger on mobile. Without a selected session, tapping the subdued toggle shows the select-session message; with a selected session, it opens the full-width drawer
 
 ## 🖥️ Platform Support
 
@@ -445,7 +648,7 @@ WeChat / QQ group QR codes will live here. After uploading the QR images (drag t
 
 - **Code changes go through PRs**: develop on a `feat/*` / `fix/*` branch, then `gh pr create`; docs-only changes may be pushed to main directly
 - **Curate an ecosystem plugin**: tag your repo with `dsh-better-sidebar` + PR a `PluginEntry` into [`src/client/plugins-tabs.ts`](./src/client/plugins-tabs.ts) / [`plugins-viewers.ts`](./src/client/plugins-viewers.ts)
-- **Before submitting**: `pnpm typecheck && pnpm build && pnpm test` (CI additionally gates on npm-pack → real-mount → headless-render via `pnpm test:mount`)
+- **Before submitting**: `pnpm typecheck && pnpm build && pnpm test` (or `make check` for the one-shot aggregate; CI additionally gates on npm-pack → real-mount → headless-render via `pnpm test:mount`, plus the aggregate double-mount regression `pnpm test:mount:aggregate`)
 - See [`AGENTS.md`](./AGENTS.md) for the repository rules (hard constraints, CI lanes, release flow)
 
 ## ⭐ Star History

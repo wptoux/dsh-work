@@ -7,20 +7,16 @@
  */
 /** The user-settings namespace holding the side card preferences. */
 export declare const SIDEBAR_PREFS_NS = "dsh-better-sidebar";
-/** User-facing side card preferences (new-conversation defaults). */
+/** User-facing side card preferences. */
 export interface SidebarPrefs {
-    /** Whether a brand-new conversation opens the side card by default. */
-    openByDefault: boolean;
-    /** Default panel width as a percent of the window width (20–60). */
-    defaultWidthPercent: number;
     /**
-     * Whether the sidebar auto-activates (opens the panel) and expands the
-     * Subagent page when the current conversation spawns a new subagent.
+     * Whether the sidebar auto-activates the Tasks page when the current
+     * conversation spawns a new subagent.
      */
     autoOpenSubagent: boolean;
     /**
-     * Whether the sidebar auto-activates (opens the panel) and expands the
-     * Jobs page when a NEW background job appears for the current
+     * Whether the sidebar auto-activates the Tasks page containing the
+     * background-jobs section when a NEW job appears for the current
      * conversation (any new job id, not just the first one).
      */
     autoOpenJobs: boolean;
@@ -31,6 +27,14 @@ export interface SidebarPrefs {
      * user explicitly enables it in the side card settings.
      */
     agentTerminalTools: boolean;
+    /**
+     * Whether the model-facing `sidebar_open` tool is injected into the
+     * model's toolset — one tool that lets the model actively open a local
+     * file, a local folder (as a tree rooted there), or an HTTP(S) page in
+     * the calling session's sidebar. Off by default: the feature stays
+     * dormant until the user explicitly enables it in the side card settings.
+     */
+    agentOpenTools: boolean;
     /**
      * Custom terminal font-family stack (a CSS font-family value, e.g.
      * `'JetBrains Mono', monospace`). Empty string follows the app's theme
@@ -51,14 +55,6 @@ export interface SidebarPrefs {
      */
     bottomPanelAutoTerminal: boolean;
     /**
-     * Whether chat-side file opens (tool-row path links, the produced-files
-     * row, prose file mentions — every path that funnels through the client
-     * runtime's `ctx.workspaces.openPath`) open in the sidebar editor instead
-     * of the Host OS's default application. On by default; the editor tab's
-     * own enable switch gates it too (both must be on for the takeover).
-     */
-    interceptOpenPath: boolean;
-    /**
      * Whether the editor tab runs in merged mode: a path input replaces the
      * plain header and a toggleable file-tree panel (with a global name
      * search) docks at the tab's right edge. On by default; also makes brand
@@ -67,6 +63,20 @@ export interface SidebarPrefs {
      * Side card settings; off restores the pre-merge editor exactly.
      */
     editorExplorer: boolean;
+    /**
+     * Whether the sidebar's filesystem routes enforce the workspace fence:
+     * every client-supplied path must resolve (through symlinks) inside the
+     * session workspace, else the route answers 403 "outside workspace". On
+     * by default; turning it OFF lets the file tree / editor read+write /
+     * media / HTML preview / upload routes reach ANY host path (e.g. the
+     * global ~/.dsh/AGENTS.md or a linked worktree outside the session cwd)
+     * — the trade-off being that any same-origin script (including
+     * third-party consumer plugins) can read/write outside the workspace
+     * through those routes while it is off. The switch lives under the files
+     * tab's gear in the Side card settings; the fence error surfaces offer a
+     * one-click global off + retry.
+     */
+    workspaceFence: boolean;
     /**
      * The shell the UI and agent terminals spawn (absolute path or bare
      * executable name). Empty (default) keeps the legacy resolution order:
@@ -174,6 +184,16 @@ export interface SidebarPrefs {
      */
     browserInterceptHttps: boolean;
     /**
+     * Comma-separated allowlist of local (loopback) authorities the browser
+     * tab may navigate to — `localhost`, `127.0.0.1`, `127.0.0.1:5174`, or
+     * host:port pairs. Empty by default: loopback addresses stay blocked so a
+     * browsed page cannot probe local services. Each entry is either a bare
+     * hostname (all ports) or host:port; the GUI's own origin is always
+     * allowed regardless. The iframe sandbox still renders allowed local
+     * pages in an opaque origin, exactly like any other site.
+     */
+    browserAllowedLoopback: string;
+    /**
      * Per-tab enable switches, keyed by tab descriptor id (`'explorer'`,
      * `'my-plugin:db'`). An ABSENT key means enabled — only an explicit
      * `false` disables a tab type (hidden from the + menu, `openTab` refuses,
@@ -200,10 +220,6 @@ export interface SidebarPrefs {
      */
     pluginSettings: Record<string, Record<string, unknown>>;
 }
-/** Range contract of {@link SidebarPrefs.defaultWidthPercent}. */
-export declare const WIDTH_PERCENT_MIN = 20;
-export declare const WIDTH_PERCENT_MAX = 60;
-export declare const WIDTH_PERCENT_DEFAULT = 35;
 /** Range contract of {@link SidebarPrefs.terminalFontSize}. */
 export declare const TERMINAL_FONT_SIZE_MIN = 9;
 export declare const TERMINAL_FONT_SIZE_MAX = 32;
@@ -217,8 +233,6 @@ export declare const TITLE_BAR_SCHEMES: readonly ["auto", "web", "preset", "cust
 export type TitleBarScheme = typeof TITLE_BAR_SCHEMES[number];
 /** Fallback prefs used whenever the settings document is unreachable or malformed. */
 export declare const SIDEBAR_PREFS_DEFAULTS: SidebarPrefs;
-/** Clamp one width percent into the contract range (shared by schema and client reads). */
-export declare function clampWidthPercent(value: number): number;
 /** Clamp one terminal font size into the contract range (shared by schema and client reads). */
 export declare function clampTerminalFontSize(value: number): number;
 /** Clamp one title-bar strip height into the contract range (shared by schema and client reads). */

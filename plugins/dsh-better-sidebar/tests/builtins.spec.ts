@@ -4,7 +4,8 @@
  * the catch-all `code` viewer, the NUL-sniffing `binary-download` viewer,
  * and the html sandbox settings pin the registry's behavior. (Office
  * previews are NOT built in — they moved to the recommended office plugin,
- * see src/client/plugins-viewers.ts.)
+ * see src/client/plugins-viewers.ts.) The git tab is the unified changes
+ * tab (git lens + session lens, PR #471's file-trace merged in).
  */
 import { describe, expect, it } from 'vitest'
 // First import: browser globals before the xterm-carrying builtin graph loads.
@@ -32,6 +33,55 @@ describe('built-in tab registrations', () => {
     expect(service.getTabs().map(t => t.id).sort()).toEqual(
       ['browser', 'diff', 'editor', 'git', 'sidechat', 'subagent', 'terminal'],
     )
+  })
+
+  it('the git (changes) tab is a single-instance badge-carrying visible tab', () => {
+    const { service } = setup()
+    const changes = service.getTab('git')
+    expect(changes?.single).toBe(true)
+    expect(changes?.hidden).not.toBe(true)
+    expect(changes?.badge).toBeDefined()
+    expect(changes?.component).toBeDefined()
+  })
+
+  it('every visible tab declares a non-empty, mutually distinct title', () => {
+    // The title is the tab's identity in the native new-tab list (guide
+    // page) and the tab strip: it must exist, and no two visible tabs may
+    // share one (identical capsules would be indistinguishable).
+    const { service } = setup()
+    const visible = service.getTabs().filter(descriptor => descriptor.hidden !== true)
+    expect(visible.length).toBeGreaterThan(0)
+    for (const descriptor of visible) {
+      const title = typeof descriptor.title === 'function' ? descriptor.title() : descriptor.title
+      expect(title, `${descriptor.id} must declare a title`).toBeTruthy()
+    }
+    const titles = visible.map(descriptor =>
+      typeof descriptor.title === 'function' ? descriptor.title() : descriptor.title)
+    expect(new Set(titles).size, 'titles must differ per tab').toBe(visible.length)
+  })
+
+  it('every visible tab declares a non-empty, mutually distinct description', () => {
+    // DSH 0.1.5-rc.1 renders `description` under the title while the guide
+    // lists at most 4 entries (a longer list drops every description). With
+    // the host no longer substituting a generic fallback, a tab without one
+    // renders the title alone — so every visible tab declares the real
+    // purpose of its page, and no two may read identically.
+    const { service } = setup()
+    const visible = service.getTabs().filter(descriptor => descriptor.hidden !== true)
+    expect(visible.length).toBeGreaterThan(0)
+    for (const descriptor of visible) {
+      expect(descriptor.description, `${descriptor.id} must declare a description`).toBeDefined()
+      const line = typeof descriptor.description === 'function' ? descriptor.description() : descriptor.description
+      expect(line, `${descriptor.id} description must be non-empty`).toBeTruthy()
+    }
+    const lines = visible.map(descriptor =>
+      typeof descriptor.description === 'function' ? descriptor.description() : descriptor.description)
+    expect(new Set(lines).size, 'descriptions must differ per tab').toBe(visible.length)
+  })
+
+  it('the changes tab declares no settings of its own (the diff always docks)', () => {
+    const { service } = setup()
+    expect(service.getTab('git')?.settings).toBeUndefined()
   })
 
   it('only diff is hidden from the + menu; editor is the visible files window (order 10)', () => {
@@ -86,7 +136,7 @@ describe('built-in tab registrations', () => {
   it('the editor tab declares its merged-mode (embedded file tree) setting', () => {
     const { service } = setup()
     const toggles = service.getTab('editor')?.settings?.toggles ?? []
-    expect(toggles.map(t => t.key)).toEqual(['editorExplorer'])
+    expect(toggles.map(t => t.key)).toEqual(['editorExplorer', 'workspaceFence'])
     expect(toggles[0]?.title).toBeDefined()
     expect(toggles[0]?.desc).toBeDefined()
     // The merged mode is an iconed select (merged vs separate), not a switch.
@@ -94,6 +144,9 @@ describe('built-in tab registrations', () => {
     const options = toggles[0]?.options ?? []
     expect(options.map(o => o.value)).toEqual([true, false])
     expect(options.every(o => o.icon !== undefined && o.title !== undefined)).toBe(true)
+    // The workspace fence switch rides the same card as a plain boolean row.
+    expect(toggles[1]?.title).toBeDefined()
+    expect(toggles[1]?.desc).toBeDefined()
     // The open-with configuration (SSH host + custom editors) is the custom
     // panel rendered below the declarative rows.
     expect(service.getTab('editor')?.settings?.render).toBeDefined()
@@ -131,6 +184,7 @@ describe('built-in tab registrations', () => {
       'browserInterceptLinks',
       'browserInterceptHttp',
       'browserInterceptHttps',
+      'browserAllowedLoopback',
     ])
     for (const toggle of toggles) {
       expect(toggle.title).toBeDefined()
@@ -144,7 +198,7 @@ describe('built-in tab registrations', () => {
     service.openTab({ type: 'browser' })
     service.openTab({ type: 'browser' })
     const state = store.getSnapshot().state!
-    const tabs = allLeaves(state.splits).flatMap(leaf => leaf.tabs).filter(t => t.type === 'browser')
+    const tabs = allLeaves(state.bottomSplits).flatMap(leaf => leaf.tabs).filter(t => t.type === 'browser')
     expect(tabs).toHaveLength(2)
     expect(tabs[0]!.id).toBe('browser:1')
     expect(tabs[1]!.id).toBe('browser:2')
@@ -157,7 +211,7 @@ describe('built-in tab registrations', () => {
     service.openTab({ type: 'terminal' })
     service.openTab({ type: 'terminal' })
     const state = store.getSnapshot().state!
-    const tabs = allLeaves(state.splits).flatMap(leaf => leaf.tabs).filter(t => t.type === 'terminal')
+    const tabs = allLeaves(state.bottomSplits).flatMap(leaf => leaf.tabs).filter(t => t.type === 'terminal')
     expect(tabs).toHaveLength(2)
     expect(tabs[0]!.title).toBe('bash')
     expect(tabs[1]!.title).toBe('bash')
@@ -171,7 +225,7 @@ describe('built-in tab registrations', () => {
     store.setSession('s1')
     service.openTab({ type: 'terminal' })
     const state = store.getSnapshot().state!
-    const tab = allLeaves(state.splits).flatMap(leaf => leaf.tabs).find(t => t.type === 'terminal')
+    const tab = allLeaves(state.bottomSplits).flatMap(leaf => leaf.tabs).find(t => t.type === 'terminal')
     expect(tab?.title).toBe(t('terminal'))
   })
 

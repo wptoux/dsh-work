@@ -25,10 +25,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createElement } from 'react'
 import clsx from 'clsx'
-import { IconCheckOutline16, IconFolderOpen16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCheckOutline16, IconFolderOpen16, IconRefreshOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Context } from '../context-types.ts'
-import { api, mediaUrl, type SessionScope } from './api.ts'
+import { api, isOutsideWorkspaceMessage, mediaUrl, type SessionScope } from './api.ts'
 import { BinaryDownload } from './binary-download.tsx'
+import { FenceErrorNotice } from './FenceErrorNotice.tsx'
 import { planFirstMatch, planFsReadOutcome, type EditorLoadAction } from './editor-load.ts'
 import { baseName } from './FileTree.tsx'
 import { createFrameBatcher } from './frame-batcher.ts'
@@ -39,8 +40,9 @@ import { TreePanel } from './TreePanel.tsx'
 import { t } from './locales.ts'
 import { relativeTo } from './paths.ts'
 import { resolveSidebarPath } from './produced-files.ts'
+import { closePathTabs, retargetPathTabs } from './tree-mutations.ts'
 import type { EditorToolbarControls, EditorToolbarState, FileViewerDescriptor } from './service.ts'
-import { firstLeaf, insertLeafAt, leafWithTab, mintTabId, treeOf, type SidebarStore, type SidebarTab } from './state.ts'
+import { firstLeaf, insertLeafAt, leafWithTab, mintTabId, type SidebarStore, type SidebarTab } from './state.ts'
 import css from './sidebar.module.css'
 
 type EditorLoad =
@@ -53,20 +55,6 @@ type EditorLoad =
 const TREE_WIDTH_DEFAULT = 240
 const TREE_WIDTH_MIN = 160
 const TREE_WIDTH_MAX = 480
-
-/** Staleness poll cadence: a stat-only RPC every 3s while the file tab is
- *  visible (cheap; the version comparison itself is client-side). */
-const STALE_POLL_MS = 3000
-
-/** How long the "refreshed because the file had changed" notice stays. */
-const REFRESH_NOTICE_MS = 4000
-
-/** The file identity (size + mtime) the staleness checks compare: the
- *  version ON DISK vs the version currently on screen. */
-interface FileIdentity {
-  size: number
-  mtimeMs: number
-}
 
 /** Stable empty blob for the editor pluginSettings read (a fresh `?? {}`
  *  would change identity every snapshot and loop useSyncExternalStore). */
@@ -97,7 +85,7 @@ function treeWidthOf(tab: SidebarTab): number {
 
 /** Merge a patch into the tab's persisted meta (rides the layout). */
 function patchMeta(ctx: Context, tab: SidebarTab, patch: Record<string, unknown>): void {
-  ctx.betterSidebar?.updateTab(tab.id, { meta: { ...metaOf(tab), ...patch } })
+  ctx.get('betterSidebar')?.updateTab(tab.id, { meta: { ...metaOf(tab), ...patch } })
 }
 
 /** Clamp one dock width into the contract range. */
@@ -111,38 +99,34 @@ export function EditorHost(props: {
   scope: SessionScope
   tab: SidebarTab
   expanded: string[]
+  revealed: string[]
   onToggleDir: (path: string) => void
-  onReferenceFile: (path: string) => void
-  /** Whether the tab is actually visible (panel open + active): the
-   *  staleness poll pauses on hidden tabs. Absent (older host renders)
-   *  counts as visible. */
-  visible?: boolean
+  onReferenceFile: (path: string, isDir: boolean) => void
 }) {
-  const { ctx, store, scope, tab, expanded, onToggleDir, onReferenceFile, visible = true } = props
+  const { ctx, store, scope, tab, expanded, revealed, onToggleDir, onReferenceFile } = props
   const path = tab.path ?? ''
   const title = tab.title
+  // A folder window: the model's `sidebar_open` (or any caller) opens a
+  // directory as an editor tab carrying `meta.dir: true` with the directory
+  // as its path. It renders the file tree rooted at that folder instead of
+  // the viewer loading flow (a directory is not a file).
+  const isDir = metaOf(tab).dir === true
   const [load, setLoad] = useState<EditorLoad>({ status: 'loading' })
-  /**
-   * Whether the on-disk version no longer matches the version shown (the
-   * persistent "file changed" banner; raised by the staleness poll or by a
-   * refresh that found the shown version stale).
-   */
-  const [stale, setStale] = useState(false)
-  /** Transient "refreshed because it had changed" notice (the 同步提示). */
-  const [refreshed, setRefreshed] = useState(false)
-  /** Bumped by the refresh button: re-runs the load pipeline; the viewer
-   *  element keys on it so a refresh remounts image/PDF/html and re-fetches
-   *  their latest bytes (their routes are no-cache). */
-  const [refreshVersion, setRefreshVersion] = useState(0)
-  /** The identity of the version currently displayed (null before any load). */
-  const identityRef = useRef<FileIdentity | null>(null)
-  /** Guards overlapping refreshes (the button also disables while loading). */
-  const refreshingRef = useRef(false)
-  /** The transient notice's auto-hide timer. */
-  const noticeTimerRef = useRef<number | null>(null)
-  /** Live path mirror: async stat callbacks must not land on a switched path. */
-  const pathRef = useRef(path)
-  useEffect(() => { pathRef.current = path }, [path])
+  // Manual refresh (issue #167): bumping the sequence re-runs the load effect
+  // with the same path/scope — the only reload entry besides open/close.
+  const [reloadSeq, setReloadSeq] = useState(0)
+
+  // Manual refresh (issue #167 + PR #228): a dirty draft is dropped by the
+  // reload (the editor instance remounts), so confirm before discarding it.
+  const refreshFile = (): void => {
+    if (toolbar?.dirty === true) {
+      const confirmed = typeof window.confirm === 'function'
+        ? window.confirm(t('refreshUnsavedConfirm'))
+        : false
+      if (!confirmed) return
+    }
+    setReloadSeq(sequence => sequence + 1)
+  }
 
   // Reactive prefs read: flipping editorExplorer re-renders this tab with no
   // reload. The snapshot is the bare boolean so unrelated store churn never
@@ -162,9 +146,12 @@ export function EditorHost(props: {
   const openWithConfig = useMemo(() => parseOpenWithConfig(editorBlob.openWith), [editorBlob])
   const openWithTargets = useMemo(() => resolveOpenWithTargets(openWithConfig), [openWithConfig])
   // A path-less tab shows the empty-state hint in merged mode — and in split
-  // mode it is the standalone explorer (tree-only, see the render below).
+  // mode it is the standalone explorer (tree-only, see the render below). A
+  // folder tab is a folder window in BOTH modes: the tree rooted at the
+  // folder, no editor chrome.
   const showEmpty = path === ''
   const treeOnly = showEmpty && !inPlace
+  const folderRoot = isDir ? path : undefined
 
   /**
    * Open a file from THIS window (tree click / search row / path input):
@@ -173,7 +160,7 @@ export function EditorHost(props: {
    */
   const openFile = (absolute: string): void => {
     if (inPlace) {
-      ctx.betterSidebar?.updateTab(tab.id, { path: absolute, title: baseName(absolute) })
+      ctx.get('betterSidebar')?.updateTab(tab.id, { path: absolute, title: baseName(absolute) })
     } else {
       openSidebarFile(ctx, store, scope.sessionId, absolute)
     }
@@ -191,8 +178,7 @@ export function EditorHost(props: {
    */
   const openFileSide = (absolute: string): void => {
     store.reduce((state) => {
-      const key = treeOf(state, tab.id)
-      const pane = leafWithTab(state[key], tab.id) ?? firstLeaf(state[key])
+      const pane = leafWithTab(state.bottomSplits, tab.id) ?? firstLeaf(state.bottomSplits)
       const fresh: SidebarTab = {
         id: mintTabId(),
         type: 'editor',
@@ -200,16 +186,17 @@ export function EditorHost(props: {
         path: absolute,
         meta: { treeOpen: false },
       }
-      const { node, leafId } = insertLeafAt(state[key], pane.id, 'row', fresh, false)
-      return { ...state, [key]: node, activePane: leafId }
+      const { node, leafId } = insertLeafAt(state.bottomSplits, pane.id, 'row', fresh, false)
+      return { ...state, bottomSplits: node, activePane: leafId }
     })
   }
 
   /** The context menu's "open with" action: reveal the path in the OS file
-   *  manager, or hand the target's URL (a local `file` URL, or the SSH-remote
-   *  form for VSCode-family editors in remote mode) to the host's external
-   *  opener. Failures are logged only — a missing handler is the OS's
-   *  dialog, not a sidebar error. */
+   *  manager, or hand the target's URL to its opener — local `file` URLs go
+   *  to the host's external opener, while the SSH-remote form for
+   *  VSCode-family editors launches on the browser/client machine (see
+   *  api.openExternal). Failures are logged only — a missing handler is the
+   *  OS's/browser's dialog, not a sidebar error. */
   const openWith = (targetId: string, absolute: string): void => {
     const target = openWithTargets.find(item => item.id === targetId)
     if (target === undefined) return
@@ -238,6 +225,16 @@ export function EditorHost(props: {
     })
   }
 
+  // Tree mutations reconcile the OPEN tabs (both split trees, the bottom
+  // panel, free windows): a rename retargets its tab to the new path; a
+  // delete closes tabs at or under the removed path. See tree-mutations.ts.
+  const onPathRenamed = (oldPath: string, newPath: string): void => {
+    retargetPathTabs(ctx, store, oldPath, newPath)
+  }
+  const onPathDeleted = (path: string): void => {
+    closePathTabs(ctx, store, path)
+  }
+
   // The viewer's toolbar, hoisted into THIS header: the text editor reports
   // its state and registers its commands (both null/absent for viewers
   // without a toolbar — image, pdf, binary download).
@@ -249,63 +246,6 @@ export function EditorHost(props: {
   const onToolbarControls = useCallback((controls: EditorToolbarControls | null) => {
     controlsRef.current = controls
   }, [])
-
-  /**
-   * Stat the open file (identity only — no content bytes). Resolves the
-   * current on-disk identity, or undefined when the stat failed (deleted
-   * file, host error, or the async result landed after a path switch).
-   */
-  const statFile = useCallback((signal?: AbortSignal): Promise<FileIdentity | undefined> => {
-    const target = path
-    try {
-      return api.fsRead(scope, path, signal, { metaOnly: true }).then((result) => {
-        if (pathRef.current !== target) return undefined
-        return result.kind === 'meta' ? { size: result.size, mtimeMs: result.mtimeMs } : undefined
-      }).catch(() => undefined)
-    } catch {
-      return Promise.resolve(undefined)
-    }
-  }, [scope.sessionId, scope.cwd, path])
-
-  /** Flash the transient "refreshed because the file had changed" notice. */
-  const showRefreshedNotice = useCallback((): void => {
-    setRefreshed(true)
-    if (noticeTimerRef.current !== null) window.clearTimeout(noticeTimerRef.current)
-    noticeTimerRef.current = window.setTimeout(() => {
-      noticeTimerRef.current = null
-      setRefreshed(false)
-    }, REFRESH_NOTICE_MS)
-  }, [])
-
-  // Unmount: stop the notice's auto-hide timer.
-  useEffect(() => () => {
-    if (noticeTimerRef.current !== null) window.clearTimeout(noticeTimerRef.current)
-  }, [])
-
-  /**
-   * The refresh button: reload the latest version from disk. The shown
-   * version's identity is captured SYNCHRONOUSLY (the reload overwrites
-   * identityRef before the stat promise lands), then the load pipeline
-   * re-runs and the stat decides the hint: the shown version was stale →
-   * flash the 同步提示; already current → nothing (a poll-raised persistent
-   * banner is cleared by the reload's fresh state).
-   */
-  const refresh = useCallback((): void => {
-    if (refreshingRef.current) return
-    if (load.status === 'loading') return
-    if (toolbar?.dirty === true) return
-    refreshingRef.current = true
-    const shown = identityRef.current
-    setRefreshVersion(version => version + 1)
-    void statFile().then((fresh) => {
-      refreshingRef.current = false
-      if (fresh === undefined) return
-      const changed = shown !== null && (shown.size !== fresh.size || shown.mtimeMs !== fresh.mtimeMs)
-      identityRef.current = fresh
-      if (changed) showRefreshedNotice()
-      else setStale(false)
-    })
-  }, [load.status, toolbar?.dirty, statFile, showRefreshedNotice])
 
   // The docked panel's drag-resize: pointer capture on the handle itself
   // (no window listeners — the captured pointer keeps tracking even off the
@@ -351,20 +291,12 @@ export function EditorHost(props: {
 
   useEffect(() => {
     // A (re)load or a path-less tab clears any hoisted toolbar state — the
-    // fresh viewer re-registers its own. The staleness flags reset too: a
-    // path switch or a refresh starts clean (the refresh's own 同步提示
-    // decision lands through showRefreshedNotice, not these flags).
+    // fresh viewer re-registers its own.
     setToolbar(null)
-    setStale(false)
-    setRefreshed(false)
-    if (noticeTimerRef.current !== null) {
-      window.clearTimeout(noticeTimerRef.current)
-      noticeTimerRef.current = null
-    }
     // The seeded home tab (no path) never loads a viewer — the empty-state
-    // hint renders until the user picks a file.
-    if (showEmpty) return
-    identityRef.current = null
+    // hint renders until the user picks a file. A folder tab never loads a
+    // viewer either — its tree is rooted at the folder.
+    if (showEmpty || isDir) return
     let cancelled = false
     // Aborts the matched viewer's `load` when the editor tears down (tab
     // closed, path changed, session switched) or re-matches the viewer.
@@ -397,22 +329,15 @@ export function EditorHost(props: {
           })
           return
         case 'fetchFsRead':
-          api.fsRead(scope, path, controller.signal).then((result) => {
+          api.fsRead(scope, path).then((result) => {
             if (cancelled) return
-            // This call never asks for metaOnly, so a meta response cannot
-            // arrive (narrow the union for the field reads below).
-            if (result.kind === 'meta') return
-            // The read carries the file identity (staleness bookkeeping).
-            identityRef.current = { size: result.size, mtimeMs: result.mtimeMs }
             // Binary reads carry the head bytes for the detect re-match.
             const outcome = planFsReadOutcome(action.viewer, {
               binary: result.kind === 'binary',
               content: result.kind === 'text' ? result.content : '',
               truncated: result.truncated,
               head: result.kind === 'binary' ? result.head : undefined,
-              size: result.size,
-              mtimeMs: result.mtimeMs,
-            }, (head) => ctx.betterSidebar?.matchFileViewer(path, head), mediaUrlOf)
+            }, (head) => ctx.get('betterSidebar')?.matchFileViewer(path, head), mediaUrlOf)
             apply(outcome)
           }).catch((error: unknown) => {
             if (cancelled) return
@@ -421,46 +346,25 @@ export function EditorHost(props: {
           return
       }
     }
-    const viewer = ctx.betterSidebar?.matchFileViewer(path)
-    // The media / binary-download surfaces never read bytes client-side, so
-    // the read carries no identity — stat the file once so the staleness
-    // checks have a baseline (the fsRead strategy gets it from its read).
-    if (viewer?.fetchStrategy === 'mediaUrl' || viewer?.fetchStrategy === 'binary-download') {
-      void statFile(controller.signal).then((fresh) => {
-        if (!cancelled && fresh !== undefined) identityRef.current = fresh
-      })
-    }
-    apply(planFirstMatch(viewer, mediaUrlOf))
+    apply(planFirstMatch(ctx.get('betterSidebar')?.matchFileViewer(path), mediaUrlOf))
     return () => { cancelled = true; controller.abort() }
-  }, [scope.sessionId, scope.cwd, path, ctx, showEmpty, refreshVersion, statFile])
+    // The deps are deliberately granular: the scope object's identity churns,
+    // only its sessionId / cwd fields gate the (re)fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope.sessionId, scope.cwd, path, ctx, showEmpty, isDir, reloadSeq])
 
-  /**
-   * Staleness poll: while the file tab is visible with a loaded file (and
-   * no unsaved edits), stat the file every STALE_POLL_MS and raise the
-   * persistent banner when the on-disk identity diverges from the shown
-   * one. The stat is metaOnly (no content bytes); the interval restarts on
-   * load/toolbar changes and cleanup stops it.
-   */
+  // Save-then-refresh in preview mode (issue #167 part C): the edge into
+  // 'saved' (never a lingering 'saved' state) triggers exactly one reload, so
+  // a preview-mode Ctrl+S shows the fresh content immediately. Edit mode is
+  // left alone — reloading would remount the editor and drop the caret.
+  const prevSaveState = useRef<EditorToolbarState['saveState'] | undefined>(undefined)
   useEffect(() => {
-    if (showEmpty) return
-    if (!visible) return
-    if (load.status === 'loading' || load.status === 'error') return
-    if (toolbar?.dirty === true) return
-    let inFlight = false
-    const timer = window.setInterval(() => {
-      if (inFlight) return
-      inFlight = true
-      void statFile().then((fresh) => {
-        inFlight = false
-        if (fresh === undefined) return
-        const shown = identityRef.current
-        if (shown !== null && (shown.size !== fresh.size || shown.mtimeMs !== fresh.mtimeMs)) {
-          setStale(true)
-        }
-      })
-    }, STALE_POLL_MS)
-    return () => window.clearInterval(timer)
-  }, [showEmpty, visible, load.status, toolbar?.dirty, statFile])
+    const current = toolbar?.saveState
+    if (prevSaveState.current !== 'saved' && current === 'saved' && toolbar?.mode === 'preview') {
+      setReloadSeq(sequence => sequence + 1)
+    }
+    prevSaveState.current = current
+  }, [toolbar?.saveState, toolbar?.mode])
 
   const treeOpen = treeOpenOf(tab)
   /** Persist the panel flag on the tab (survives reloads with the layout). */
@@ -473,14 +377,18 @@ export function EditorHost(props: {
   // Split mode: the path-less window IS the standalone explorer — the tree
   // panel fills the whole tab (search + FileTree, full form), no editor
   // chrome. File opens land in new per-path tabs through openFile above.
-  if (treeOnly) {
+  // A folder window (meta.dir, any mode) renders the SAME surface rooted
+  // at the folder instead of the session cwd.
+  if (treeOnly || folderRoot !== undefined) {
     return (
       <div className={css.editor}>
         <TreePanel
           full
+          store={store}
           sessionId={scope.sessionId}
-          cwd={scope.cwd}
+          cwd={folderRoot ?? scope.cwd}
           expanded={expanded}
+          revealed={revealed}
           onToggle={onToggleDir}
           onOpenFile={openFile}
           onOpenFileNewTab={openFileNewTab}
@@ -491,6 +399,8 @@ export function EditorHost(props: {
           onOpenWith={openWith}
           onToggleOpenWithPin={toggleOpenWithPin}
           onReferenceFile={onReferenceFile}
+          onPathRenamed={onPathRenamed}
+          onPathDeleted={onPathDeleted}
         />
       </div>
     )
@@ -505,7 +415,16 @@ export function EditorHost(props: {
             <button
               type="button"
               className={clsx(css.editorModeButton, toolbar.mode === 'preview' && css.editorModeActive)}
-              onClick={() => { controlsRef.current?.setMode('preview') }}
+              onClick={() => {
+                // Issue #167 part B: returning from edit to preview reloads so
+                // the preview renders the just-saved content. A dirty draft
+                // (or a failed save) suppresses the reload — the draft only
+                // lives in the editor instance and a remount would drop it.
+                if (toolbar.mode === 'edit' && toolbar.dirty !== true && toolbar.saveState !== 'failed') {
+                  setReloadSeq(sequence => sequence + 1)
+                }
+                controlsRef.current?.setMode('preview')
+              }}
             >
               {t('preview')}
             </button>
@@ -533,16 +452,15 @@ export function EditorHost(props: {
         {saveLabel !== '' && (
           <span className={clsx(css.editorStatus, toolbar?.saveState === 'failed' && css.editorStatusError)}>{saveLabel}</span>
         )}
-        {!showEmpty && (
+        {toolbar !== null && (
           <button
             type="button"
             className={css.iconButton}
-            aria-label={t('refreshFile')}
-            title={toolbar?.dirty === true ? t('refreshDisabledUnsaved') : t('refreshFile')}
-            disabled={toolbar?.dirty === true || load.status === 'loading'}
-            onClick={refresh}
+            aria-label={t('refresh')}
+            title={t('refresh')}
+            onClick={refreshFile}
           >
-            <IconRefreshOutline16 size={14} />
+            <IconRefreshOutline14 size={14} />
           </button>
         )}
         <button
@@ -556,20 +474,13 @@ export function EditorHost(props: {
           <IconFolderOpen16 size={14} />
         </button>
       </div>
-      {!showEmpty && (stale || refreshed) && (
-        <button
-          type="button"
-          className={clsx(css.editorStaleBanner, refreshed && css.editorRefreshedBanner)}
-          onClick={refresh}
-        >
-          {stale ? t('fileUpdatedBanner') : t('fileRefreshedNotice')}
-        </button>
-      )}
       <div className={css.editorBody}>
         <div className={css.editorMain}>
           {showEmpty && <div className={css.editorPlaceholder}>{t('editorEmptyHint')}</div>}
           {!showEmpty && load.status === 'loading' && <div className={css.editorPlaceholder}>{t('loading')}</div>}
-          {!showEmpty && load.status === 'error' && <div className={css.editorError}>{load.message}</div>}
+          {!showEmpty && load.status === 'error' && (isOutsideWorkspaceMessage(load.message)
+            ? <FenceErrorNotice store={store} onDisabled={() => { setReloadSeq(sequence => sequence + 1) }} />
+            : <div className={css.editorError}>{load.message}</div>)}
           {!showEmpty && load.status === 'binary' && <BinaryDownload scope={scope} path={path} />}
           {!showEmpty && load.status === 'ready' && createElement(load.viewer.component, {
             ctx, store, scope, path, title,
@@ -582,10 +493,6 @@ export function EditorHost(props: {
             toolbar: 'host',
             onToolbarState,
             onToolbarControls,
-            // A refresh REMOUNTS the viewer so image/PDF/html re-fetch their
-            // latest bytes (the routes are no-cache; the same element would
-            // keep serving the previously fetched copy).
-            key: refreshVersion,
           })}
         </div>
         {treeOpen && (
@@ -601,9 +508,11 @@ export function EditorHost(props: {
               onPointerCancel={onResizeEnd}
             />
             <TreePanel
+              store={store}
               sessionId={scope.sessionId}
               cwd={scope.cwd}
               expanded={expanded}
+              revealed={revealed}
               onToggle={onToggleDir}
               onOpenFile={openFile}
               onOpenFileNewTab={openFileNewTab}
@@ -614,6 +523,8 @@ export function EditorHost(props: {
               onOpenWith={openWith}
               onToggleOpenWithPin={toggleOpenWithPin}
               onReferenceFile={onReferenceFile}
+              onPathRenamed={onPathRenamed}
+              onPathDeleted={onPathDeleted}
             />
           </div>
         )}

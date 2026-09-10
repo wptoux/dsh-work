@@ -1,17 +1,11 @@
 /**
  * Icons the sidebar needs beyond the primitives set: a terminal glyph (the
- * icon library has none), a diff glyph, and the two panel-toggle glyphs for
- * the top-right cluster. Per-tab icons live on the tab descriptors
+ * icon library has none), a diff glyph, and the bottom-workbench toggle.
+ * Per-tab icons live on the tab descriptors
  * (`descriptor.icon`), not in a type-keyed switch — the icon mapping was
  * registry-ized with the tab types.
  */
 import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives';
-/**
- * Right-panel toggle glyph (the "侧拉" button): a frame with a filled strip
- * along its RIGHT edge, in the app's outline style (1.5px stroke,
- * currentColor).
- */
-export declare const IconPanelRightOutline16: ({ size, className }: IconProps) => import("react").JSX.Element;
 /**
  * Bottom-panel toggle glyph (the "底栏" button): a frame with a filled strip
  * along its BOTTOM edge, in the app's outline style.
@@ -32,6 +26,12 @@ export declare const IconStopOutline16: ({ size, className }: IconProps) => impo
 /** Upload glyph in the app's outline style: an arrow rising into a tray
  *  (the file-manager "upload into the workspace" action). */
 export declare const IconUploadOutline16: ({ size, className }: IconProps) => import("react").JSX.Element;
+/**
+ * Pin glyph in the app's outline style (1.5px stroke, currentColor): a pushpin
+ * tilted to the lower-right. Used by the PinnedRail and the tab context menu's
+ * pin entry (v0.17.0+).
+ */
+export declare const IconPinOutline16: ({ size, className }: IconProps) => import("react").JSX.Element;
 /** Image viewer glyph: a picture frame with a sun and a mountain. */
 export declare const IconImageOutline16: ({ size, className }: IconProps) => import("react").JSX.Element;
 /** PDF viewer glyph: a document frame with the "PDF" label. */

@@ -1,290 +1,175 @@
 /**
- * EditorHost file-refresh behavior (the files window):
- * - a refresh button reloads the latest version of the open file,
- * - a staleness poll raises a persistent "file changed on disk" banner when
- *   the on-disk identity (size/mtimeMs) no longer matches what is shown,
- * - a refresh that finds the SHOWN version stale flashes the "refreshed"
- *   notice (the 同步提示) while one that found it current shows nothing,
- * - the button is disabled while the text editor has unsaved edits, and
- * - the banner resets on refresh and on a path switch.
- * `api.fsRead` is mocked to simulate the disk (read + metaOnly stat).
+ * EditorHost refresh behaviors (issue #167): the manual refresh button
+ * re-runs the load (A), returning from edit to preview reloads unless the
+ * draft is dirty or the save failed (B), and a preview-mode save reloads on
+ * the 'saved' edge (C). A mock viewer reports a hoisted toolbar so the host
+ * chrome renders exactly like the real text editor.
  */
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createElement, useEffect } from 'react'
-import { createRoot } from 'react-dom/client'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createElement, useEffect, useState } from 'react'
 import { act } from 'react-dom/test-utils'
-;(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true
-
-import { api } from '../src/client/api.ts'
-import { EditorHost } from '../src/client/EditorHost.tsx'
-import { createBetterSidebarService } from '../src/client/service.ts'
-import { allLeaves, createSidebarStore, type SidebarStore, type SidebarTab } from '../src/client/state.ts'
+import { renderRoot, setupReactAct } from './test-utils.ts'
 import type { Context } from '../src/context-types.ts'
+import { EditorHost } from '../src/client/EditorHost.tsx'
+import { createBetterSidebarService, type FileViewerProps } from '../src/client/service.ts'
+import { allLeaves, createSidebarStore, type SidebarTab } from '../src/client/state.ts'
 
-/** The on-disk state the mocked fs.read serves (tests mutate it directly). */
-let diskContent = ''
-let diskMtime = 0
+// The act() environment flag (React 18.2 reads it before flushing effects).
+setupReactAct()
 
-const REFRESH_LABEL = 'Refresh file'
-// Distinct fragments so the persistent banner and the transient notice never
-// collide in the assertions: the banner copy names the action, the notice
-// names the state.
-const BANNER_TEXT = 'refresh to view the latest'
-const NOTICE_TEXT = 'Refreshed'
+const fsRead = vi.fn()
+vi.mock('../src/client/api.ts', () => ({
+  api: { fsRead: (...args: unknown[]) => fsRead(...args) },
+  mediaUrl: () => '',
+}))
 
-interface Mounted {
-  container: HTMLDivElement
-  rerender: () => void
-  unmount: () => void
+/** One fsRead call counter reset per test. */
+function reads(): number {
+  return fsRead.mock.calls.length
 }
 
-function setup(): { store: SidebarStore; ctx: Context; fileTab: (path: string) => SidebarTab } {
+interface MockViewerProps {
+  initialMode?: 'preview' | 'edit'
+  dirty?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onToolbarState?: (state: any) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onToolbarControls?: (controls: any) => void
+}
+
+/** A viewer that hoists a real toolbar (mode toggle + save state). */
+function MockTextViewer({ initialMode = 'preview', dirty = false, onToolbarState, onToolbarControls }: MockViewerProps) {
+  const [mode, setMode] = useState(initialMode)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  useEffect(() => {
+    onToolbarState?.({ modes: true, mode, dirty, editable: true, saveState })
+  }, [mode, saveState, dirty, onToolbarState])
+  useEffect(() => {
+    onToolbarControls?.({
+      setMode,
+      // A synchronous save (saving then saved in one batch) drives the edge.
+      save: () => { setSaveState('saving'); setSaveState('saved') },
+    })
+    return () => { onToolbarControls?.(null) }
+  }, [onToolbarControls])
+  return createElement('div', null, `mock-${mode}`)
+}
+
+function setup(initialMode: 'preview' | 'edit' = 'preview', dirty = false): {
+  ctx: Context
+  fileTab: () => SidebarTab
+} {
   const store = createSidebarStore()
   const service = createBetterSidebarService(store)
   service.registerTab({ id: 'editor', title: 'Editor', dedupeKey: (tab) => tab.path, component: () => null })
-  // A text viewer (fsRead strategy: content + file identity from the read).
   service.registerFileViewer({
-    id: 'test:text',
-    exts: ['txt'],
+    id: 'mock-text',
+    exts: ['ts'],
+    priority: 0,
     fetchStrategy: 'fsRead',
-    component: ({ content }) => createElement('pre', null, content ?? ''),
+    component: (props: FileViewerProps) => createElement(MockTextViewer, {
+      initialMode,
+      dirty,
+      onToolbarState: props.onToolbarState,
+      onToolbarControls: props.onToolbarControls,
+    }),
   })
-  // A toolbar-reporting surface (the dirty gate): reports `dirtyNow` live.
-  service.registerFileViewer({
-    id: 'test:dirty',
-    exts: ['dirty'],
-    fetchStrategy: 'none',
-    component: (props) => {
-      useEffect(() => {
-        props.onToolbarState?.({ modes: false, mode: 'preview', dirty: dirtyNow, editable: false, saveState: 'idle' })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [dirtyNow])
-      return createElement('div', null, 'dirty surface')
-    },
-  })
-  store.setSession('editor-refresh-session')
-  const testPath = '/tmp/refresh.txt'
-  service.openTab({ type: 'editor', title: 'refresh.txt', path: testPath, id: `editor:${testPath}` })
-  const fileTab = (path: string): SidebarTab => {
-    const found = allLeaves(store.getSnapshot().state!.splits).flatMap(leaf => leaf.tabs)
-      .find(tab => tab.path === path)
-    if (found !== undefined) return found
-    // The tab may have been re-pointed (in-place switch): match by id.
-    return allLeaves(store.getSnapshot().state!.splits).flatMap(leaf => leaf.tabs)
-      .find(tab => tab.id === `editor:${testPath}`)!
-  }
-  const sessionsSnapshot = { byId: { 'editor-refresh-session': { cwd: '/tmp' } }, current: 'editor-refresh-session' }
+  store.setSession('editor-home-session')
+  const sessionsSnapshot = { byId: { 'editor-home-session': { cwd: '/tmp' } }, current: 'editor-home-session' }
   const ctx = {
     betterSidebar: service,
     sessions: { list: { subscribe: () => () => {}, getSnapshot: () => sessionsSnapshot } },
+    get: (name: string) => name === 'betterSidebar' ? service : undefined,
   } as unknown as Context
-  return { store, ctx, fileTab }
+  ctx.betterSidebar.openTab({ type: 'editor', title: 'a.ts', path: '/tmp/a.ts', id: 'editor:/tmp/a.ts' })
+  const fileTab = (): SidebarTab =>
+    allLeaves(store.getSnapshot().state!.bottomSplits).flatMap(leaf => leaf.tabs)
+      .find(tab => tab.path === '/tmp/a.ts')!
+  return { ctx, fileTab }
 }
 
-/** Mount EditorHost for one tab; visible defaults on (the app passes it). */
-function mountHost(ctx: Context, store: SidebarStore, tab: () => SidebarTab, visible = true): Mounted {
-  const container = document.createElement('div')
-  document.body.append(container)
-  const root = createRoot(container)
-  const render = (): void => {
-    root.render(createElement(EditorHost, {
-      ctx,
-      store,
-      scope: { sessionId: 'editor-refresh-session' },
-      tab: tab(),
-      expanded: [],
-      onToggleDir: () => {},
-      onReferenceFile: () => {},
-      visible,
-    }))
-  }
-  act(render)
-  return {
-    container,
-    rerender: () => { act(render) },
-    unmount: () => {
-      act(() => { root.unmount() })
-      container.remove()
-    },
-  }
+function mount(ctx: Context, tab: () => SidebarTab): { container: HTMLDivElement; unmount: () => void } {
+  return renderRoot(createElement(EditorHost, {
+    ctx, store: ctx.betterSidebar as never, scope: { sessionId: 'editor-home-session' },
+    tab: tab(), expanded: [], revealed: [], onToggleDir: () => {}, onReferenceFile: () => {},
+  }))
 }
 
-/** Drain the pending microtask chains (mocked fs.read + the load effect). */
-async function flush(): Promise<void> {
-  await act(async () => { await Promise.resolve() })
-  await act(async () => { await Promise.resolve() })
+/** The header's refresh button (locale-dependent aria-label), or null. */
+function refreshButton(container: HTMLDivElement): HTMLButtonElement | null {
+  return container.querySelector('button[aria-label="Refresh"], button[aria-label="刷新"]')
 }
 
-const refreshButton = (container: HTMLDivElement): HTMLButtonElement =>
-  container.querySelector<HTMLButtonElement>(`button[aria-label="${REFRESH_LABEL}"]`)!
+function click(button: HTMLButtonElement): void {
+  act(() => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+}
 
 beforeEach(() => {
-  diskContent = 'v1'
-  diskMtime = 1000
-  dirtyNow = false
-  vi.spyOn(api, 'fsRead').mockImplementation((_scope, _path, _signal, opts) => {
-    if (opts?.metaOnly === true) {
-      return Promise.resolve({ kind: 'meta', size: diskContent.length, mtimeMs: diskMtime })
-    }
-    return Promise.resolve({
-      kind: 'text',
-      content: diskContent,
-      truncated: false,
-      size: diskContent.length,
-      mtimeMs: diskMtime,
-    })
-  })
+  fsRead.mockReset()
+  fsRead.mockResolvedValue({ kind: 'text', content: 'hello', truncated: false })
 })
 
-afterEach(() => {
-  vi.useRealTimers()
-  vi.restoreAllMocks()
-  document.body.innerHTML = ''
-})
-
-// The dirty-flag the toolbar-reporting viewer reads (module-level like the
-// disk state; the test flips it and re-renders).
-let dirtyNow = false
-
-describe('EditorHost file refresh', () => {
-  it('renders a refresh button for a file tab (and none for the path-less home)', async () => {
-    const { ctx, store } = setup()
-    const { container, unmount } = mountHost(ctx, store, () => {
-      const found = allLeaves(store.getSnapshot().state!.splits).flatMap(leaf => leaf.tabs)
-        .find(tab => tab.path === '/tmp/refresh.txt')!
-      return found
-    })
+describe('EditorHost refresh (issue #167)', () => {
+  it('A: the refresh button renders for a toolbar-reporting viewer and re-runs the load', async () => {
+    const { ctx, fileTab } = setup()
+    const { container, unmount } = mount(ctx, fileTab)
     try {
-      await flush()
-      expect(refreshButton(container).disabled).toBe(false)
+      // The initial load ran once; settle the async fsRead.
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(1)
+      const refresh = refreshButton(container)
+      expect(refresh).not.toBeNull()
+      click(refresh!)
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(2)
     } finally {
       unmount()
     }
   })
 
-  it('clicking refresh reloads the latest version from disk', async () => {
-    const { ctx, store, fileTab } = setup()
-    const { container, unmount } = mountHost(ctx, store, () => fileTab('/tmp/refresh.txt'))
+  it('B: returning from edit to preview reloads (fresh content shows after save)', async () => {
+    const { ctx, fileTab } = setup('edit')
+    const { container, unmount } = mount(ctx, fileTab)
     try {
-      await flush()
-      expect(container.querySelector('pre')?.textContent).toBe('v1')
-
-      // The file changes on disk between the load and the click.
-      diskContent = 'v2'
-      diskMtime = 2000
-      act(() => { refreshButton(container).click() })
-      await flush()
-
-      expect(container.querySelector('pre')?.textContent).toBe('v2')
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(1)
+      const preview = Array.from(container.querySelectorAll('button'))
+        .find(button => button.textContent === 'Preview')!
+      click(preview)
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(2)
     } finally {
       unmount()
     }
   })
 
-  it('a refresh that found the shown version stale flashes the notice; a current one shows nothing', async () => {
-    const { ctx, store, fileTab } = setup()
-    const { container, unmount } = mountHost(ctx, store, () => fileTab('/tmp/refresh.txt'))
+  it('B: a dirty draft suppresses the edit→preview reload (the draft would be dropped)', async () => {
+    const { ctx, fileTab } = setup('edit', true)
+    const { container, unmount } = mount(ctx, fileTab)
     try {
-      await flush()
-      expect(container.textContent).not.toContain(NOTICE_TEXT)
-
-      // Stale: the disk moved on while the editor still showed v1.
-      diskContent = 'v2'
-      diskMtime = 2000
-      act(() => { refreshButton(container).click() })
-      await flush()
-      expect(container.textContent).toContain(NOTICE_TEXT)
-
-      // Already current: another refresh without a disk change → no notice.
-      act(() => { refreshButton(container).click() })
-      await flush()
-      expect(container.textContent).not.toContain(NOTICE_TEXT)
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(1)
+      const preview = Array.from(container.querySelectorAll('button'))
+        .find(button => button.textContent === 'Preview')!
+      click(preview)
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(1)
     } finally {
       unmount()
     }
   })
 
-  it('the staleness poll raises the persistent banner when the file changes on disk', async () => {
-    vi.useFakeTimers()
-    const { ctx, store, fileTab } = setup()
-    const { container, unmount } = mountHost(ctx, store, () => fileTab('/tmp/refresh.txt'))
+  it('C: a preview-mode save reloads on the saved edge', async () => {
+    const { ctx, fileTab } = setup('preview')
+    const { container, unmount } = mount(ctx, fileTab)
     try {
-      await flush()
-      expect(container.textContent).not.toContain(BANNER_TEXT)
-
-      // External change (no click): the next poll tick notices.
-      diskMtime = 2000
-      diskContent = 'v2'
-      await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
-      expect(container.textContent).toContain(BANNER_TEXT)
-    } finally {
-      unmount()
-    }
-  })
-
-  it('the poll does not run while the tab is not visible', async () => {
-    vi.useFakeTimers()
-    const { ctx, store, fileTab } = setup()
-    const { container, unmount } = mountHost(ctx, store, () => fileTab('/tmp/refresh.txt'), false)
-    try {
-      await flush()
-      diskMtime = 2000
-      await act(async () => { await vi.advanceTimersByTimeAsync(12_000) })
-      expect(container.textContent).not.toContain(BANNER_TEXT)
-    } finally {
-      unmount()
-    }
-  })
-
-  it('the refresh button is disabled while the file has unsaved edits', async () => {
-    const { ctx, store } = setup()
-    store.getSnapshot().state!.splits
-    // Open a tab rendered by the toolbar-reporting viewer.
-    ctx.betterSidebar!.openTab({ type: 'editor', title: 'x.dirty', path: '/tmp/x.dirty', id: 'editor:/tmp/x.dirty' })
-    const dirtyTab = (): SidebarTab =>
-      allLeaves(store.getSnapshot().state!.splits).flatMap(leaf => leaf.tabs)
-        .find(tab => tab.path === '/tmp/x.dirty')!
-    const { container, rerender, unmount } = mountHost(ctx, store, dirtyTab)
-    try {
-      await flush()
-      expect(refreshButton(container).disabled).toBe(false)
-      dirtyNow = true
-      rerender()
-      expect(refreshButton(container).disabled).toBe(true)
-      dirtyNow = false
-      rerender()
-      expect(refreshButton(container).disabled).toBe(false)
-    } finally {
-      unmount()
-    }
-  })
-
-  it('refreshing clears the persistent banner, and so does a path switch', async () => {
-    vi.useFakeTimers()
-    const { ctx, store, fileTab } = setup()
-    const { container, rerender, unmount } = mountHost(ctx, store, () => fileTab('/tmp/refresh.txt'))
-    try {
-      await flush()
-      diskMtime = 2000
-      diskContent = 'v2'
-      await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
-      expect(container.textContent).toContain(BANNER_TEXT)
-
-      // Refresh → the persistent banner goes away (the notice may flash).
-      act(() => { refreshButton(container).click() })
-      await act(async () => { await vi.advanceTimersByTimeAsync(100) })
-      await flush()
-      expect(container.textContent).not.toContain(BANNER_TEXT)
-
-      // Path switch resets any banner state too.
-      diskMtime = 3000
-      await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
-      expect(container.textContent).toContain(BANNER_TEXT)
-      ctx.betterSidebar!.updateTab(`editor:/tmp/refresh.txt`, { path: '/tmp/other.md', title: 'other.md' })
-      rerender()
-      await flush()
-      expect(container.textContent).not.toContain(BANNER_TEXT)
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(1)
+      const save = container.querySelector('button[aria-label="Save"]') as HTMLButtonElement
+      click(save)
+      await act(async () => { await Promise.resolve() })
+      expect(reads()).toBe(2)
     } finally {
       unmount()
     }
