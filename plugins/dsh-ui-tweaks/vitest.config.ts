@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'vitest/config'
 
@@ -7,6 +8,18 @@ export default defineConfig({
       './tsconfig.vitest.json',
     ],
   })],
+  resolve: {
+    alias: {
+      // The 0.1.5 primitives package is the shell's own browser bundle: its
+      // lib/index.js value-imports undeclared runtime deps (shiki, katex,
+      // micromark, clsx, …) plus .module.css files. In the browser the
+      // specifier is answered by the frozen module table (the client bundle
+      // keeps it external), so tests substitute the same surface with a small
+      // double instead of installing the shell's dependency tree here.
+      '@deepseek-ai/dsh-client-ui-primitives':
+        fileURLToPath(new URL('./tests/stubs/primitives.tsx', import.meta.url)),
+    },
+  },
   // npm SDK packages reference sourcemaps that are not published (files
   // exclude *.map); do not attempt to load them during transform.
   server: {

@@ -33,11 +33,15 @@ export declare const FOLD_LAST_ATTR = "data-dsh-fold-last";
 export declare const FOLD_LAST_EXPANDED_ATTR = "data-dsh-fold-last-expanded";
 /**
  * Apply one fold plan to a flow container. Pure DOM — no event wiring (the
- * driver owns the delegated click), no session reads.
+ * driver owns the delegated click), no session reads. Returns whether the
+ * apply changed any layout-affecting state (rows hidden/shown or headers
+ * added/removed) so callers can decide when viewport anchoring is needed.
  * @param container - the `[data-chat-flow]` column element.
  * @param plan - the current fold plan for the session.
  * @param expanded - turns currently expanded (user state, kept by the driver).
  * @param copy - translated header copy.
  */
-export declare function applyFoldPlan(container: HTMLElement, plan: FoldPlan, expanded: ReadonlySet<number>, copy: FoldCopy): void;
+export declare function applyFoldPlan(container: HTMLElement, plan: FoldPlan, expanded: ReadonlySet<number>, copy: FoldCopy): {
+    changed: boolean;
+};
 //# sourceMappingURL=fold-dom.d.ts.map

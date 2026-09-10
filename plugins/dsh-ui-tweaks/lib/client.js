@@ -223,7 +223,9 @@ window.__ModuleLoader__.load({
 		}
 		/**
 		* Apply one fold plan to a flow container. Pure DOM — no event wiring (the
-		* driver owns the delegated click), no session reads.
+		* driver owns the delegated click), no session reads. Returns whether the
+		* apply changed any layout-affecting state (rows hidden/shown or headers
+		* added/removed) so callers can decide when viewport anchoring is needed.
 		* @param container - the `[data-chat-flow]` column element.
 		* @param plan - the current fold plan for the session.
 		* @param expanded - turns currently expanded (user state, kept by the driver).
@@ -232,6 +234,8 @@ window.__ModuleLoader__.load({
 		function applyFoldPlan(container, plan, expanded, copy) {
 			const rows = directRows(container);
 			const foldedTurns = new Set(plan.folds.map((f) => f.turn));
+			const beforeHidden = hiddenRowKeys(rows);
+			const beforeHeaderCount = directHeaders(container).length;
 			for (const header of directHeaders(container)) {
 				const turn = Number(header.getAttribute(FOLD_TURN_ATTR));
 				if (!foldedTurns.has(turn)) header.remove();
@@ -268,6 +272,20 @@ window.__ModuleLoader__.load({
 				setCountBadge(header, fold.hiddenCount, copy);
 				setDurationBadge(header, fold.durationMs, copy);
 			}
+			const afterHidden = hiddenRowKeys(rows);
+			const hiddenChanged = beforeHidden.size !== afterHidden.size || !everyKeyIn(beforeHidden, afterHidden);
+			return { changed: beforeHeaderCount !== directHeaders(container).length || hiddenChanged };
+		}
+		/** Keys of rows currently hidden inside a collapsed fold (layout-removed). */
+		function hiddenRowKeys(rows) {
+			const hidden = /* @__PURE__ */ new Set();
+			for (const [key, row] of rows) if (row.hasAttribute("data-dsh-fold-row") && row.getAttribute("data-dsh-fold-expanded") !== "true") hidden.add(key);
+			return hidden;
+		}
+		/** Every key of `sub` is present in `sup` (both sets are small; no iteration order dependence). */
+		function everyKeyIn(sub, sup) {
+			for (const key of sub) if (!sup.has(key)) return false;
+			return true;
 		}
 		/** First row in flow order whose key is a member of the fold's hidden set. */
 		function firstHiddenRow(container, hiddenKeys) {
@@ -290,10 +308,24 @@ window.__ModuleLoader__.load({
 		*
 		* - projecting the session snapshot into the planner's window,
 		* - translating plans into DOM folds (per flow container),
+		* - anchoring the reader's viewport around fold layout changes (manual
+		*   toggles pin the clicked「已处理」header; auto re-applies — completed
+		*   turns folding in late, re-applies after slow `loadOlder()` pages — pin
+		*   the nearest visible row, except while the reader is pinned to the
+		*   bottom where the host's follow already keeps the view there), so slow
+		*   arrivals (weak networks) never slide the content under the reader,
+		* - anchoring the reader across fold-driven `loadOlder()` cycles: the host
+		*   only armors its own prepend anchor when the load-older BUTTON is used,
+		*   so pages this driver pulls in land un-stabilized — the driver captures
+		*   a visible row + the column's first-row fingerprint when it starts a
+		*   load and restores the row once the prepend appears (dropping the
+		*   anchor if the reader scrolls meanwhile, delegating to their intent),
 		* - auto-loading older history — once, capped — when a closed turn's head
 		*   sits outside the window (page-split turns must complete before folding),
 		* - the per-session expanded set (reset on session switch).
 		*/
+		/** Matches the host ChatView's bottom-follow threshold (px). */
+		const BOTTOM_FOLLOW_THRESHOLD = 24;
 		/** Project a DriverSnapshot into the planner's window, or null while not open. */
 		function windowFromSnapshot(snapshot) {
 			if (snapshot.openState !== "open") return null;
@@ -337,61 +369,126 @@ window.__ModuleLoader__.load({
 			let currentSessionId = null;
 			let olderInFlight = false;
 			let autoPages = 0;
+			/** Armed per container while a fold-driven loadOlder page is in flight. */
+			const pendingLoad = /* @__PURE__ */ new Map();
+			const pendingScrollOff = /* @__PURE__ */ new Map();
+			const clearPendingLoad = (container) => {
+				pendingLoad.delete(container);
+				pendingScrollOff.get(container)?.();
+				pendingScrollOff.delete(container);
+			};
+			const clearAllPendingLoads = () => {
+				for (const container of [...pendingLoad.keys()]) clearPendingLoad(container);
+			};
 			const clean = () => {
 				for (const container of options.containers()) applyFoldPlan(container, EMPTY_PLAN, expanded, options.copy);
 			};
-			const run = () => {
+			/**
+			* Re-plan and apply. `toggleTurn` marks a manual toggle: its header is
+			* anchored (restored to its pre-toggle viewport top) so the click target
+			* never slides, explicitly overriding the at-bottom follow. Auto re-applies
+			* (no `toggleTurn`) anchor a visible row and only compensate while the
+			* reader is not pinned to the bottom — the host follow already keeps the
+			* view there. Compensation runs only when the apply actually changed layout.
+			*/
+			const run = (toggleTurn) => {
 				const handle = source.current();
 				if (handle === null) {
 					currentSessionId = null;
 					expanded = /* @__PURE__ */ new Set();
+					clearAllPendingLoads();
 					clean();
 					return;
 				}
 				if (handle.sessionId !== currentSessionId) {
 					currentSessionId = handle.sessionId;
 					expanded = /* @__PURE__ */ new Set();
+					clearAllPendingLoads();
 				}
 				const snapshot = handle.snapshot();
 				if (snapshot === null) {
+					clearAllPendingLoads();
 					clean();
 					return;
 				}
 				const window = windowFromSnapshot(snapshot);
 				const plan = window === null ? EMPTY_PLAN : planFolds(window);
 				if (plan.completionRequest === null) autoPages = 0;
-				for (const container of options.containers()) applyFoldPlan(container, plan, expanded, options.copy);
+				const toHide = /* @__PURE__ */ new Set();
+				for (const fold of plan.folds) {
+					if (expanded.has(fold.turn)) continue;
+					for (const key of fold.hiddenKeys) toHide.add(key);
+				}
+				for (const container of options.containers()) {
+					const scroller = scrollerOf(container);
+					const anchor = toggleTurn !== void 0 ? foldHeaderAnchor(container, toggleTurn) ?? visibleRowAnchor(container, scroller, toHide) : scroller !== null && pinnedAtBottom(scroller) ? null : visibleRowAnchor(container, scroller, toHide);
+					const captured = anchor === null ? null : {
+						el: anchor,
+						top: anchor.getBoundingClientRect().top
+					};
+					if (applyFoldPlan(container, plan, expanded, options.copy).changed && captured !== null) scheduleRestore(captured);
+					const pending = pendingLoad.get(container);
+					if (pending !== void 0 && firstFlowRowKey(container) !== pending.firstKey) {
+						clearPendingLoad(container);
+						if (pending.el.isConnected) scheduleRestore(pending);
+					}
+				}
 				if (plan.completionRequest !== null && !olderInFlight && autoPages < maxAutoPages) {
 					autoPages += 1;
 					olderInFlight = true;
+					for (const container of options.containers()) {
+						if (pendingLoad.has(container)) continue;
+						const scroller = scrollerOf(container);
+						if (scroller === null || pinnedAtBottom(scroller)) continue;
+						const anchor = visibleRowAnchor(container, scroller, toHide);
+						if (anchor === null) continue;
+						pendingLoad.set(container, {
+							el: anchor,
+							top: anchor.getBoundingClientRect().top,
+							firstKey: firstFlowRowKey(container)
+						});
+						const onScroll = () => {
+							clearPendingLoad(container);
+						};
+						scroller.addEventListener("scroll", onScroll, { passive: true });
+						pendingScrollOff.set(container, () => scroller.removeEventListener("scroll", onScroll));
+					}
 					handle.loadOlder().finally(() => {
 						olderInFlight = false;
 						run();
 					});
 				}
 			};
+			/**
+			* Restore a captured anchor after the layout change and the host's
+			* ResizeObserver follow have both settled: rAF2 runs after the observer
+			* callbacks — a single rAF is undone by them (the CSS toggle is
+			* synchronous, so the height delta is already measurable by then). An
+			* anchor that stopped being rendered (folded away by a concurrent plan
+			* change) is skipped rather than restored from a zeroed rect.
+			*/
+			const scheduleRestore = (captured) => {
+				if (typeof requestAnimationFrame !== "function") return;
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => {
+						if (captured.el.isConnected && captured.el.getBoundingClientRect().height > 0) restoreElementPosition(captured.el, captured.top);
+					});
+				});
+			};
 			const toggle = (turn) => {
 				const next = new Set(expanded);
 				if (next.has(turn)) next.delete(turn);
 				else next.add(turn);
 				expanded = next;
-				const header = findFoldHeader(options.containers(), turn);
-				const captured = header !== null && header.isConnected && header.parentElement !== null ? {
-					header,
-					top: header.getBoundingClientRect().top,
-					scroller: scrollerOf(header.parentElement)
-				} : null;
-				run();
-				if (captured !== null && captured.scroller !== null && typeof requestAnimationFrame === "function") requestAnimationFrame(() => {
-					if (!captured.header.isConnected) return;
-					requestAnimationFrame(() => {
-						if (captured.header.isConnected) restoreHeaderPosition(captured.header, captured.top);
-					});
-				});
+				run(turn);
 			};
 			const start = () => {
 				run();
-				return source.subscribe(run);
+				const off = source.subscribe(run);
+				return () => {
+					clearAllPendingLoads();
+					off();
+				};
 			};
 			return {
 				run,
@@ -399,32 +496,184 @@ window.__ModuleLoader__.load({
 				start
 			};
 		}
-		/** The scroll container the header moves in (the ChatView scroll column). */
+		/** The scroll container the flow moves in (the ChatView scroll column). */
 		function scrollerOf(container) {
 			return container.closest("[data-conversation-scroll]") ?? container.parentElement ?? null;
 		}
+		/** True when the reader is scrolled to (or within ε of) the chat bottom. */
+		function pinnedAtBottom(scroller) {
+			return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <= BOTTOM_FOLLOW_THRESHOLD;
+		}
 		/**
-		* Scroll the scroller back so the header returns to its captured viewport top
-		* (undoing any at-bottom follow shift). Returns whether it scrolled.
+		* Scroll the scroller back so `el` returns to its captured viewport top
+		* (undoing an at-bottom follow shift or the fold's own content shift).
+		* Returns whether it scrolled.
 		*/
-		function restoreHeaderPosition(header, capturedTop) {
-			const container = header.parentElement;
+		function restoreElementPosition(el, capturedTop) {
+			const container = el.parentElement;
 			if (container === null) return false;
 			const scroller = scrollerOf(container);
 			if (scroller === null) return false;
-			const delta = header.getBoundingClientRect().top - capturedTop;
+			const delta = el.getBoundingClientRect().top - capturedTop;
 			if (delta !== 0) {
 				scroller.scrollTop += delta;
 				return true;
 			}
 			return false;
 		}
-		function findFoldHeader(containers, turn) {
-			for (const container of containers) for (const child of container.children) {
+		/** The「已处理」header of one turn in a container, when connected (the manual-toggle anchor). */
+		function foldHeaderAnchor(container, turn) {
+			for (const child of container.children) {
 				const el = child;
-				if (el.hasAttribute("data-dsh-fold-header") && el.getAttribute("data-dsh-fold-turn") === String(turn)) return el;
+				if (el.hasAttribute("data-dsh-fold-header") && el.getAttribute("data-dsh-fold-turn") === String(turn)) return el.isConnected ? el : null;
 			}
 			return null;
+		}
+		/**
+		* First rendered, viewport-visible anchor row (rows carry the host's
+		* `data-chat-anchor-key`, same nodes as `data-chat-flow-key`) that the plan
+		* will not hide — the reader's stable reference for auto re-applies.
+		*/
+		function visibleRowAnchor(container, scroller, toHide) {
+			if (scroller === null) return null;
+			const viewport = scroller.getBoundingClientRect();
+			for (const child of container.children) {
+				const el = child;
+				if (el.getAttribute("data-chat-anchor-key") === null) continue;
+				const key = el.getAttribute("data-chat-flow-key");
+				if (key !== null && toHide.has(key)) continue;
+				const rect = el.getBoundingClientRect();
+				if (rect.height <= 0 || rect.width <= 0) continue;
+				if (rect.bottom <= viewport.top || rect.top >= viewport.bottom) continue;
+				return el;
+			}
+			return null;
+		}
+		/**
+		* Flow key of the column's first rendered row (skipping non-row children
+		* like the host's load-older button), used to detect a landed prepend.
+		*/
+		function firstFlowRowKey(container) {
+			for (const child of container.children) {
+				const key = child.getAttribute("data-chat-flow-key");
+				if (key !== null) return key;
+			}
+			return null;
+		}
+		//#endregion
+		//#region src/client/session-source.ts
+		/**
+		* Project the two 0.1.5 faces onto the planner's minimal window shape. The
+		* plugin's own `DriverSnapshot` contract, the planner, the driver and their
+		* tests are unchanged by the port — only these six reads moved:
+		*
+		* | DriverSnapshot | 0.1.1 source                    | 0.1.5 source                       |
+		* | -------------- | ------------------------------- | ---------------------------------- |
+		* | `openState`    | `ConversationSnapshot.openState`| `SessionSnapshot.openState`        |
+		* | `hasMore`      | `ConversationSnapshot.hasMore`  | `SessionSnapshot.hasMore`          |
+		* | `loadingOlder` | `ConversationSnapshot.loadingOlder` | `SessionSnapshot.loadingOlder` |
+		* | `turns`        | `chat.timeline.turns`           | `ChatSnapshot.timeline.turns`      |
+		* | `order`        | `chat.order`                    | `ChatSnapshot.order`               |
+		* | `nodes`        | `chat.nodes`                    | `ChatSnapshot.nodes`               |
+		*
+		* The `ChatSnapshot` itself is byte-for-byte the 0.1.1 contract (same
+		* `order`/`nodes`/`timeline` shapes; `order` is still visible-node keys only),
+		* so only the read path moved. An absent chat snapshot (target not yet
+		* activated — the official Chat view defaults it to `EMPTY_CHAT_SNAPSHOT`)
+		* projects to an empty window rather than dropping the session handle, so the
+		* driver keeps its per-session expanded state across the transient gap.
+		* @param session - the session's lifecycle snapshot (SessionFace.getSnapshot()).
+		* @param chat - the session's Chat target snapshot, when published yet.
+		* @returns the driver's window shape.
+		*/
+		function projectSnapshot(session, chat) {
+			const turns = /* @__PURE__ */ new Map();
+			for (const [number, location] of chat?.timeline.turns ?? []) turns.set(number, {
+				startTime: location.start?.time,
+				endTime: location.end?.time
+			});
+			return {
+				openState: session.openState,
+				hasMore: session.hasMore,
+				loadingOlder: session.loadingOlder,
+				turns,
+				order: chat?.order ?? [],
+				nodes: { get(key) {
+					const node = chat?.nodes.get(key);
+					if (node === void 0) return void 0;
+					const location = node.location;
+					const turn = location.kind === "turn" || location.kind === "step" ? location.turn.turn : void 0;
+					return {
+						kind: node.kind,
+						anchorSeq: node.anchorSeq,
+						location: {
+							kind: location.kind,
+							turn
+						}
+					};
+				} }
+			};
+		}
+		/**
+		* Resolve the two 0.1.5 data faces of one session, or null while the sessions
+		* service has no binding for it (unlisted and not yet scoped).
+		*/
+		function bind(ctx, id) {
+			const binding = ctx.sessions.binding(id);
+			if (binding === void 0) return null;
+			const session = binding.session;
+			const chat = ctx.uiConversation.binding(binding).target("chat");
+			return {
+				session,
+				chat,
+				handle: {
+					sessionId: id,
+					snapshot: () => projectSnapshot(session.getSnapshot(), chat.getSnapshot()),
+					loadOlder: () => session.loadOlder().catch(() => {})
+				}
+			};
+		}
+		/**
+		* The fold driver's session source: the current selection's session face
+		* (lifecycle read + `loadOlder`) and Chat target (content read), both
+		* re-subscribed when the selection changes.
+		* @param ctx - the client root context.
+		* @returns the driver-facing source.
+		*/
+		function createSessionSource(ctx) {
+			return {
+				current() {
+					const id = ctx.sessions.list.getSnapshot().current;
+					if (id === void 0) return null;
+					return bind(ctx, id)?.handle ?? null;
+				},
+				subscribe(fn) {
+					let offBound = null;
+					const resubscribe = () => {
+						offBound?.();
+						offBound = null;
+						const id = ctx.sessions.list.getSnapshot().current;
+						if (id === void 0) return;
+						const bound = bind(ctx, id);
+						if (bound === null) return;
+						const offSession = bound.session.subscribe(fn);
+						const offChat = bound.chat.subscribe(fn);
+						offBound = () => {
+							offChat();
+							offSession();
+						};
+					};
+					const offList = ctx.sessions.list.subscribe(() => {
+						resubscribe();
+						fn();
+					});
+					resubscribe();
+					return () => {
+						offBound?.();
+						offList();
+					};
+				}
+			};
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/mobile-sidebar.css.mjs
@@ -641,7 +890,7 @@ window.__ModuleLoader__.load({
 		};
 		//#endregion
 		//#region \0dsh-css:src/client/fold.css.mjs
-		const css$1 = "/**\n * dsh-ui-tweaks fold styles. Token-driven where DSH exposes them\n * (--dsw-alias-* / --dsw-font-*), with neutral fallbacks otherwise. The\n * hidden-row rule keys off the row attribute so a row only hides while it is\n * a member of a fold and not expanded — removing the attribute (plan change)\n * restores it without touching React's classes.\n */\n\n.dsh-fold-header {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  width: 100%;\n  margin: 0;\n  /* No horizontal padding so「已处理」left-aligns with the reply text below. */\n  padding: 6px 0;\n  border: none;\n  border-radius: 6px;\n  background: transparent;\n  font: var(--dsw-font-xs-13, 13px/1.5 system-ui, -apple-system, sans-serif);\n  color: var(--dsw-alias-label-secondary, #8f8d99);\n  cursor: pointer;\n  text-align: left;\n  user-select: none;\n}\n\n.dsh-fold-header:hover {\n  color: var(--dsw-alias-label-primary, #dcdae1);\n  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128, 128, 128, 0.1));\n}\n\n.dsh-fold-caret {\n  display: inline-flex;\n  flex: none;\n  font-size: 12px;\n  line-height: 1;\n  transition: transform 0.15s ease;\n}\n\n.dsh-fold-header[aria-expanded='true'] .dsh-fold-caret {\n  transform: rotate(90deg);\n}\n\n.dsh-fold-label {\n  font-weight: 600;\n}\n\n.dsh-fold-count {\n  margin-left: auto;\n  font-size: 12px;\n  color: var(--dsw-alias-label-tertiary, #6e6c78);\n}\n\n.dsh-fold-duration {\n  font-size: 12px;\n  font-variant-numeric: tabular-nums;\n  color: var(--dsw-alias-label-tertiary, #6e6c78);\n}\n\n/* Rows inside a collapsed fold are hidden; an expanded fold restores them. */\n[data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {\n  display: none !important;\n}\n\n/*\n * Expand/collapse animation (progressive enhancement): rows fade and slide\n * down into place below the「已处理」header when the fold opens, and fold back\n * up on close. Browsers without `transition-behavior: allow-discrete` fall\n * back to the instant toggle above.\n */\n@supports (transition-behavior: allow-discrete) {\n  [data-dsh-fold-row] {\n    transition:\n      opacity 0.22s ease,\n      translate 0.22s ease,\n      display 0.22s allow-discrete;\n  }\n  [data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {\n    opacity: 0;\n    translate: 0 -6px;\n  }\n  @starting-style {\n    [data-dsh-fold-row][data-dsh-fold-expanded='true'] {\n      opacity: 0;\n      translate: 0 -6px;\n    }\n  }\n}\n\n/*\n * The folded view shows only the turn's last reply — hide its Think\n * disclosure so the reasoning doesn't leak into the collapsed block.\n * Expanding the fold re-shows it (the row carries the expanded state).\n */\n[data-dsh-fold-last][data-dsh-fold-last-expanded='false'] [data-variant='think'] {\n  display: none !important;\n}";
+		const css$1 = "/**\n * dsh-ui-tweaks fold styles. Token-driven where DSH exposes them\n * (--dsw-alias-* / --dsw-font-*), with neutral fallbacks otherwise. The\n * hidden-row rule keys off the row attribute so a row only hides while it is\n * a member of a fold and not expanded — removing the attribute (plan change)\n * restores it without touching React's classes.\n */\n\n.dsh-fold-header {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  width: 100%;\n  margin: 0;\n  /* No horizontal padding so「已处理」left-aligns with the reply text below. */\n  padding: 6px 0;\n  border: none;\n  border-radius: 6px;\n  background: transparent;\n  font: var(--dsw-font-xs-13, 13px/1.5 system-ui, -apple-system, sans-serif);\n  color: var(--dsw-alias-label-secondary, #8f8d99);\n  cursor: pointer;\n  text-align: left;\n  user-select: none;\n}\n\n.dsh-fold-header:hover {\n  color: var(--dsw-alias-label-primary, #dcdae1);\n  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128, 128, 128, 0.1));\n}\n\n.dsh-fold-caret {\n  display: inline-flex;\n  flex: none;\n  font-size: 12px;\n  line-height: 1;\n  transition: transform 0.15s ease;\n}\n\n.dsh-fold-header[aria-expanded='true'] .dsh-fold-caret {\n  transform: rotate(90deg);\n}\n\n.dsh-fold-label {\n  font-weight: 600;\n}\n\n.dsh-fold-count {\n  margin-left: auto;\n  font-size: 12px;\n  color: var(--dsw-alias-label-tertiary, #6e6c78);\n}\n\n.dsh-fold-duration {\n  font-size: 12px;\n  font-variant-numeric: tabular-nums;\n  color: var(--dsw-alias-label-tertiary, #6e6c78);\n}\n\n/* Rows inside a collapsed fold are hidden; an expanded fold restores them. */\n[data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {\n  display: none !important;\n}\n\n/*\n * Expand/collapse animation (progressive enhancement): rows fade and slide\n * into place below the「已处理」header when the fold opens. `display` is NOT\n * transitioned: the fold's height change must land synchronously with the\n * toggle so the driver's viewport anchoring (fold-driver) can measure and\n * restore the reader's position before the next frame — a delayed\n * `display` flip (allow-discrete) pulls the layout change to 0.22s later,\n * after the restore window, and the view slides. Expanding keeps the\n * fade/slide-in via @starting-style; browsers without it fall back to the\n * instant toggle above.\n */\n[data-dsh-fold-row] {\n  transition:\n    opacity 0.22s ease,\n    translate 0.22s ease;\n}\n[data-dsh-fold-row]:not([data-dsh-fold-expanded='true']) {\n  opacity: 0;\n  translate: 0 -6px;\n}\n@starting-style {\n  [data-dsh-fold-row][data-dsh-fold-expanded='true'] {\n    opacity: 0;\n    translate: 0 -6px;\n  }\n}\n\n/*\n * The folded view shows only the turn's last reply — hide its Think\n * disclosure so the reasoning doesn't leak into the collapsed block.\n * Expanding the fold re-shows it (the row carries the expanded state).\n */\n[data-dsh-fold-last][data-dsh-fold-last-expanded='false'] [data-variant='think'] {\n  display: none !important;\n}";
 		const tagId$1 = "dsh-ui-tweaks/fold.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$1) + "]") === null) {
 			const tag = document.createElement("style");
@@ -667,75 +916,6 @@ window.__ModuleLoader__.load({
 		const NS = "ui-tweaks";
 		/** Services required by this plugin. */
 		const inject = ["sessions", "locale"];
-		/** Project the runtime snapshot onto the planner's minimal window shape. */
-		function projectSnapshot(snapshot) {
-			const turns = /* @__PURE__ */ new Map();
-			for (const [number, location] of snapshot.chat.timeline.turns) turns.set(number, {
-				startTime: location.start?.time,
-				endTime: location.end?.time
-			});
-			return {
-				openState: snapshot.openState,
-				hasMore: snapshot.hasMore,
-				loadingOlder: snapshot.loadingOlder,
-				turns,
-				order: snapshot.chat.order,
-				nodes: { get(key) {
-					const node = snapshot.chat.nodes.get(key);
-					if (node === void 0) return void 0;
-					const location = node.location;
-					const turn = location.kind === "turn" || location.kind === "step" ? location.turn.turn : void 0;
-					return {
-						kind: node.kind,
-						anchorSeq: node.anchorSeq,
-						location: {
-							kind: location.kind,
-							turn
-						}
-					};
-				} }
-			};
-		}
-		/**
-		* The fold driver's session source over the client runtime: the current
-		* selection's SessionFace (read + subscribe + loadOlder), re-subscribed when
-		* the selection changes.
-		*/
-		function sessionSource(ctx) {
-			const currentHandle = () => {
-				const id = ctx.sessions.list.getSnapshot().current;
-				if (id === void 0) return null;
-				const session = ctx.sessions.binding(id)?.session;
-				if (session === void 0) return null;
-				return {
-					sessionId: id,
-					snapshot: () => projectSnapshot(session.getSnapshot()),
-					loadOlder: () => session.loadOlder().catch(() => {})
-				};
-			};
-			return {
-				current: currentHandle,
-				subscribe(fn) {
-					let snapshotUnsub = null;
-					const resubscribe = () => {
-						snapshotUnsub?.();
-						snapshotUnsub = null;
-						const id = ctx.sessions.list.getSnapshot().current;
-						const session = id === void 0 ? void 0 : ctx.sessions.binding(id)?.session;
-						if (session !== void 0) snapshotUnsub = session.subscribe(fn);
-					};
-					const offList = ctx.sessions.list.subscribe(() => {
-						resubscribe();
-						fn();
-					});
-					resubscribe();
-					return () => {
-						snapshotUnsub?.();
-						offList();
-					};
-				}
-			};
-		}
 		/**
 		* Mount the folding. The effect owns the whole lifecycle: creating the
 		* chrome (DOM observation + click delegation) and the driver (session
@@ -783,7 +963,7 @@ window.__ModuleLoader__.load({
 					});
 				};
 				const chrome = createFoldChrome(schedule, (turn) => driver.toggle(turn));
-				driver = createFoldDriver(sessionSource(ctx), {
+				driver = createFoldDriver(createSessionSource(ctx), {
 					containers: () => chrome.containers(),
 					copy
 				});
