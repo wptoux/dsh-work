@@ -8,13 +8,13 @@
  * @module dsh-model-sync/sync
  */
 
-import { SettingsConflictError, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { SettingsConflictError } from '@deepseek-ai/dsh-settings'
 import type { PiAiModelJson } from './catalog-json.ts'
 import { buildMirrorModels, type ModelEntry } from './merge.ts'
 import type { MirrorSpec } from './config.ts'
 
-/** The settings namespace llm-pi-ai owns. */
-export const SETTINGS_NS = settingsNamespace('llm-pi-ai')
+/** The settings namespace llm-pi-ai owns (plain string: DSH 0.1.5 validates namespaces at the service). */
+export const SETTINGS_NS = 'llm-pi-ai'
 
 /** Minimal settings-seam surface the sync needs. */
 export interface SettingsLike {
