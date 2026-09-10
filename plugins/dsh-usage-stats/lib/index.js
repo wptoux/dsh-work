@@ -316,9 +316,34 @@ export async function collectUsage(ctx) {
 					ctx.logger.warn(`usage-stats: listSnapshots failed, falling back to list(): ${String(error)}`);
 				}
 			}
-			const metas = snapshots !== null ? snapshots.map((entry) => entry.header) : await persistence.list();
+			// DSH 0.1.3+ removed listSnapshots; the fallback `list()` returns
+			// snapshots shaped { header, revision } (SessionPersistenceSnapshot)
+			// — map them to headers so the shared `meta`/revision logic below
+			// sees the same shape as the listSnapshots branch.
+			let listed = [];
+			let metas;
+			if (snapshots !== null) {
+				metas = snapshots.map((entry) => entry.header);
+			} else {
+				listed = typeof persistence.list === "function" ? await persistence.list() : [];
+				metas = listed.map((entry) => entry.header);
+			}
 			const revisionOf = new Map();
 			if (snapshots !== null) for (const entry of snapshots) revisionOf.set(entry.header.id, entry.revision);
+			for (const entry of listed) revisionOf.set(entry.header.id, entry.revision);
+			// DSH 0.1.3+ replaced SessionPersistence.readFrom(id, fromSeq) with
+			// open(id,'read') + SessionHandle.read(offset) (+ close()); `read` is
+			// inclusive of the offset seq and never takes ownership, so the
+			// cursor/contiguity semantics below are preserved.
+			const readLog = async (id, fromSeq) => {
+				const handle = await persistence.open(id, "read");
+				try {
+					const { events } = await handle.read(fromSeq);
+					return events;
+				} finally {
+					await handle.close();
+				}
+			};
 			for (const meta of metas) {
 				persistedIds.add(meta.id);
 				if (attached.has(meta.id)) continue;
@@ -329,7 +354,7 @@ export async function collectUsage(ctx) {
 					try {
 						const wasPersisted = state.kind === "persisted";
 						const fromSeq = wasPersisted ? state.consumed : 0;
-						const { events } = await persistence.readFrom(meta.id, fromSeq);
+						const events = await readLog(meta.id, fromSeq);
 						if (!wasPersisted) {
 							state.days = new Map();
 							state.lastSample = null;
@@ -344,7 +369,7 @@ export async function collectUsage(ctx) {
 							state.lastSample = null;
 							state.currentModel = null;
 							state.consumed = 0;
-							const { events: allEvents } = await persistence.readFrom(meta.id, 0);
+							const allEvents = await readLog(meta.id, 0);
 							applyUsageDelta(state, allEvents);
 							state.consumed = allEvents.length > 0 ? allEvents[allEvents.length - 1].seq : 0;
 						} else if (fresh.length > 0) {
