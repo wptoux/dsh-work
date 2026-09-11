@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 // The npm SDK's client half is a closure-factory bundle for the GUI's
 // __ModuleLoader__ (not importable under vitest); provide the one value
 // member the apply chain needs.
-vi.mock('@deepseek-ai/dsh-client-runtime/client', () => ({
+vi.mock('@deepseek-ai/dsh-client-store', () => ({
   createSnapshotStore: (init: unknown) => ({
     get: () => init,
     set: () => {},
@@ -23,8 +23,6 @@ const t: RemoteEntryProps['t'] = (key, params) => {
   }
   return text
 }
-
-const neverHook = (() => { throw new Error('shell must not read this hook') }) as never
 
 /** Minimal EventSource stub: instances record messages for manual dispatch. */
 class FakeEventSource {
@@ -84,8 +82,6 @@ function mount(issue: MockIssue | MockIssue[] = { ok: true, url: 'http://192.168
   const view = render(
     <RemoteEntry
       wide={true}
-      useSessions={neverHook}
-      useWorkspaces={(selector: (s: { recentWorkspaceId: string }) => unknown) => selector({ recentWorkspaceId: 'ws-1' })}
       t={t}
     />,
   )
@@ -126,9 +122,10 @@ describe('RemoteEntry', () => {
     expect(screen.getByRole('button', { name: 'Refresh QR' })).toBeTruthy()
     expect(screen.getByText('Pairing link')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeTruthy()
-    // The issue payload carries the current workspace for the deep link.
+    // The issue payload carries no workspace target (pairing is
+    // workspace-agnostic since DSH 0.1.5).
     const init = fetch.mock.calls.find(call => call[0] === '/api/pair/issue')?.[1] as RequestInit
-    expect(JSON.parse(String(init.body))).toEqual({ workspaceId: 'ws-1' })
+    expect(JSON.parse(String(init.body))).toEqual({})
   })
 
   it('shows the lan-required banner instead of a QR when the bind is loopback-only', async () => {
@@ -214,8 +211,6 @@ describe('RemoteEntry', () => {
     render(
       <RemoteEntry
         wide={true}
-        useSessions={neverHook}
-        useWorkspaces={(selector: (s: { recentWorkspaceId: string }) => unknown) => selector({ recentWorkspaceId: 'ws-1' })}
         t={t}
       />,
     )
@@ -247,7 +242,7 @@ describe('RemoteEntry', () => {
       const calls = fetch.mock.calls.filter(call => call[0] === '/api/pair/issue')
       expect(calls).toHaveLength(2)
       const body = JSON.parse(String((calls[1]?.[1] as RequestInit).body))
-      expect(body).toEqual({ workspaceId: 'ws-1', address: '10.0.0.3' })
+      expect(body).toEqual({ address: '10.0.0.3' })
     })
   })
 
@@ -330,7 +325,7 @@ describe('apply registration', () => {
       },
     }
     apply(ctx as never)
-    expect(injected).toEqual(['sidebar.remote', 'sidebar.footer.action', 'settings.plugin.item'])
+    expect(injected).toEqual(['sidebar.footer.action', 'settings.plugins.tab'])
   })
 
   it('waits for the settings snapshot before mounting the sidebar entry and runtime', async () => {
@@ -368,14 +363,14 @@ describe('apply registration', () => {
       },
     }
     apply(ctx as never)
-    expect(registered).toEqual(['settings.plugin.item'])
+    expect(registered).toEqual(['settings.plugins.tab'])
 
     snapshot = { status: 'ready' as const, writable: true, value: { enabled: false } }
     notify()
-    expect(registered).toEqual(['settings.plugin.item'])
+    expect(registered).toEqual(['settings.plugins.tab'])
 
     snapshot = { status: 'ready' as const, writable: true, value: { enabled: true } }
     notify()
-    expect(registered).toEqual(['settings.plugin.item', 'sidebar.remote', 'sidebar.footer.action'])
+    expect(registered).toEqual(['settings.plugins.tab', 'sidebar.footer.action'])
   })
 })

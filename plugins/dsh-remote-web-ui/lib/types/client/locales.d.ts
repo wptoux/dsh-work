@@ -28,16 +28,6 @@ export declare const zh: {
     'pair.oneTimeHint': string;
     'pair.failed.title': string;
     'pair.failed.detail': string;
-    'fence.unpaired.title': string;
-    'fence.unpaired.eyebrow': string;
-    'fence.unpaired.hint': string;
-    'fence.unpaired.stepDesktop': string;
-    'fence.unpaired.stepLink': string;
-    'fence.unpaired.stepOpen': string;
-    'fence.unpaired.retry': string;
-    'fence.unpaired.footnote': string;
-    'posture.exposed': string;
-    'posture.exposedHint': string;
     'action.stop': string;
     'action.refresh': string;
     'action.copy': string;
@@ -55,6 +45,7 @@ export declare const zh: {
     'tunnel.failed': string;
     'tunnel.unknownError': string;
     'close.label': string;
+    'settings.pluginsTab': string;
     'settings.title': string;
     'settings.description': string;
     'settings.enabled': string;
@@ -69,8 +60,6 @@ export declare const zh: {
     'settings.idleExpireMsHint': string;
     'settings.cookieName': string;
     'settings.cookieNameHint': string;
-    'settings.requirePairingForLan': string;
-    'settings.requirePairingForLanHint': string;
     'settings.publicBaseUrl': string;
     'settings.publicBaseUrlHint': string;
     'settings.autoTunnel': string;
@@ -124,16 +113,6 @@ export declare const en: {
     'pair.oneTimeHint': string;
     'pair.failed.title': string;
     'pair.failed.detail': string;
-    'fence.unpaired.title': string;
-    'fence.unpaired.eyebrow': string;
-    'fence.unpaired.hint': string;
-    'fence.unpaired.stepDesktop': string;
-    'fence.unpaired.stepLink': string;
-    'fence.unpaired.stepOpen': string;
-    'fence.unpaired.retry': string;
-    'fence.unpaired.footnote': string;
-    'posture.exposed': string;
-    'posture.exposedHint': string;
     'action.stop': string;
     'action.refresh': string;
     'action.copy': string;
@@ -151,6 +130,7 @@ export declare const en: {
     'tunnel.failed': string;
     'tunnel.unknownError': string;
     'close.label': string;
+    'settings.pluginsTab': string;
     'settings.title': string;
     'settings.description': string;
     'settings.enabled': string;
@@ -165,8 +145,6 @@ export declare const en: {
     'settings.idleExpireMsHint': string;
     'settings.cookieName': string;
     'settings.cookieNameHint': string;
-    'settings.requirePairingForLan': string;
-    'settings.requirePairingForLanHint': string;
     'settings.publicBaseUrl': string;
     'settings.publicBaseUrlHint': string;
     'settings.autoTunnel': string;

@@ -1,6 +1,6 @@
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots';
 import type { PairingPhase } from '../pairing.ts';
-import { type DeviceFrame, type PostureFrame, type TunnelStatusFrame } from './pair-api.ts';
+import { type DeviceFrame, type TunnelStatusFrame } from './pair-api.ts';
 /** The panel's view state, owned by the entry component. */
 export type PanelState = {
     kind: 'lan-required';
@@ -29,8 +29,6 @@ export type PanelState = {
     publicBaseUrl?: string;
     /** Auto-tunnel status, while the auto-tunnel feature is active. */
     tunnel?: TunnelStatusFrame;
-    /** Latest /api posture probe, once a round has completed. */
-    posture?: PostureFrame;
 };
 /** Full panel props: copy + view state + actions. */
 export interface RemotePanelProps {

@@ -6,7 +6,8 @@
  * each plugin's client bundle; mirrors the official ui-plugin-config
  * card-store pattern.
  */
-import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import { type SnapshotStore } from '@deepseek-ai/dsh-client-store';
 /** The write one field's staged text performs when the card is saved. */
 export type FieldWrite = {
     kind: 'set';
@@ -49,8 +50,7 @@ export interface CardShell {
     available: boolean;
     /**
      * Whether the namespace is actually served to this client. False when the
-     * Host deployment does not expose it (e.g. the official apiproxy settings
-     * allowlist omits third-party namespaces): the card renders an explanation
+     * Host deployment does not expose it: the card renders an explanation
      * instead of its form, so a missing namespace never looks like a missing
      * plugin.
      */
@@ -82,37 +82,6 @@ export interface CardActions {
     save: () => void;
     /** Drop every staged edit. */
     discard: () => void;
-}
-/** One durable write a batched settings scope performs. */
-export interface BatchedWrite {
-    /** Field this entry writes. */
-    field: string;
-    /** set stores a value; unset drops the leaf. */
-    op: 'set' | 'unset';
-    /** Value for op set (absent for unset). */
-    value?: unknown;
-}
-/** Per-field outcome of one batched scope write. */
-export interface BatchedFieldResult {
-    /** Field this entry writes. */
-    field: string;
-    /** Whether the Host accepted this field's write (per the read-back view). */
-    landed: boolean;
-}
-/**
- * Result of a batched scope write. The bridge scope posts every planned write
- * in one /mutate so the Host validate hook judges baseURL+model together; a
- * batched refusal fails the whole save rather than per-field.
- */
-export interface BatchResult {
-    /** Whether the whole mutate was accepted. */
-    ok: boolean;
-    /** Per-field success, in the request order (always present when ok). */
-    fields: BatchedFieldResult[];
-    /** Host rejection code (mutate refused). */
-    code?: string;
-    /** Host rejection message (mutate refused). */
-    message?: string;
 }
 /** Constraints a numeric field's accepted drafts must satisfy, mirroring the host schema. */
 export interface NumberConstraints {
@@ -171,19 +140,12 @@ export declare class CardForm<T> {
     /** The actions the card's slot registration injects. */
     actions(): CardActions;
     /**
-     * Write every staged edit, then re-seed from what the Host accepted.
-     *
-     * When the scope carries the optional batch surface (the dsh-web-ui
-     * bridge scope), every planned write rides one mutation so cross-field
-     * validate hooks (baseURL+model) judge the batch as a unit instead of
-     * deadlocking on per-field writes. Otherwise the per-field loop runs.
-     * A field lands only when the Host reports it held the staged value; a
+     * Write every staged edit, then re-seed from what the Host accepted. A
+     * field lands only when the Host reports it held the staged value; a
      * landed field's draft is dropped, a failed one stays staged for the user.
      * @returns settlement after every write and the read-back.
      */
     save(): Promise<void>;
-    /** The scope's batch surface when it supports one; undefined conservatively otherwise. */
-    private batchedScope;
     /**
      * Every staged edit a save would write. An entry whose draft is not a value
      * its field accepts carries no write: the form is still dirty, and the save

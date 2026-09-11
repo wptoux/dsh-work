@@ -3,21 +3,9 @@
  * same-origin /api (like the connection client); JSON bodies, string
  * responses for the error codes.
  */
-/** Read the host-authoritative desktop pairing policy. */
-export async function readPairGatePolicy() {
-    const response = await fetch('/api/pair/status');
-    if (!response.ok)
-        throw new Error(`remote-web-ui: status failed with ${String(response.status)}`);
-    const value = await response.json();
-    if (typeof value.requirePairingForLan !== 'boolean') {
-        throw new Error('remote-web-ui: status omitted requirePairingForLan');
-    }
-    return { requirePairingForLan: value.requirePairingForLan };
-}
 /**
  * Mint a fresh pairing token (one active token at a time — this invalidates
  * any previous link).
- * @param workspaceId - optional current workspace to deep-link the phone into.
  * @param address - optional LAN IP literal the QR must be built from (the
  * default is the first interface); unknown literals refuse with
  * 'unknown-address'.
@@ -25,12 +13,11 @@ export async function readPairGatePolicy() {
  * 0.0.0.0), or the forbidden refusal (the loopback-only fence rejected this
  * origin — the panel is a desktop control endpoint).
  */
-export async function issuePair(workspaceId, address) {
+export async function issuePair(address) {
     const response = await fetch('/api/pair/issue', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-            ...(workspaceId !== undefined ? { workspaceId } : {}),
             ...(address !== undefined ? { address } : {}),
         }),
     });

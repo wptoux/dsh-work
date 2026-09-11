@@ -40,7 +40,7 @@ export const defaultClock = {
 };
 /**
  * The pairing state machine. Structural mutations issue/accept/stop/revoke
- * and config updates (LAN bases, tunnel, posture) notify state listeners
+ * and config updates (LAN bases, tunnel) notify state listeners
  * after the commit point that makes them true, and notification dedupes
  * against the last emitted snapshot. Presence-only updates (touchDevice /
  * heartbeat) just mark the store dirty and broadcast on the next sweep,
@@ -62,7 +62,6 @@ export class PairingService {
     publicBase;
     /** Auto-tunnel status, while the auto-tunnel feature is active. */
     tunnelStatus;
-    posture;
     /** True when lastSeenAt changed since the last persist (flushed on sweep). */
     dirty = false;
     /**
@@ -193,11 +192,6 @@ export class PairingService {
         this.tunnelStatus = status;
         this.notify();
     }
-    /** Set the latest /api posture probe result (see posture.ts). */
-    setPosture(snapshot) {
-        this.posture = snapshot;
-        this.notify();
-    }
     /**
      * Issue a fresh token, replacing (invalidating) any previous one. A
      * stopped service re-arms through this call (the panel's refresh button).
@@ -297,12 +291,12 @@ export class PairingService {
         return true;
     }
     /**
-     * The api/gate path: record activity for a device id and report whether
-     * the request may proceed. Unknown or revoked ids (including any device
-     * after stop() or idle expiry) are refused.
+     * The pairing-recognition path: record activity for a device id and report
+     * whether the request carries a live session. Unknown or revoked ids
+     * (including any device after stop() or idle expiry) are refused.
      *
-     * Presence refreshes are throttled on purpose: every gated request (and
-     * the remote-channel keepalives) lands here, so a broadcast per call would
+     * Presence refreshes are throttled on purpose: every paired request (and
+     * the phone heartbeats) lands here, so a broadcast per call would
      * fan a full snapshot out to every status stream on the hot path. The refresh
      * only updates lastSeenAt and marks the store dirty; the snapshot reaches
      * listeners at the next sweep() (structural changes notify immediately).
@@ -347,7 +341,6 @@ export class PairingService {
             lanAddresses: [...this.lanBases.keys()],
             ...(this.publicBase !== undefined ? { publicUrl: this.publicBase } : {}),
             ...(this.tunnelStatus !== undefined ? { tunnel: this.tunnelStatus } : {}),
-            ...(this.posture !== undefined ? { posture: this.posture } : {}),
             ...(token !== undefined ? { tokenId: token.record.id, tokenExpiresAt: token.record.expiresAt } : {}),
             deviceCount: this.devices.size,
             onlineCount,

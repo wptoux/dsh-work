@@ -84,8 +84,6 @@ export interface PairRoutesDeps {
     service: PairingService;
     /** The LAN IP literals the fence accepts (derived from the bind host). */
     lanAddresses: readonly string[];
-    /** Current desktop gate policy, re-read for every status response. */
-    requirePairingForLan?: boolean | (() => boolean);
 }
 /**
  * Build the /api/pair route family.

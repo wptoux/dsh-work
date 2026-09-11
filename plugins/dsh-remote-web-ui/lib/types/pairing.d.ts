@@ -16,7 +16,6 @@
  * - `revoke()` drops one device session; idle sessions older than
  *   `idleExpireMs` are deleted on sweep, load, and the next gated request.
  */
-import type { PostureSnapshot } from './posture.ts';
 /** The observable pairing phases the panel renders. */
 export type PairingPhase = 
 /** The server is not bound all-interfaces: no usable QR exists. */
@@ -88,8 +87,6 @@ export interface PairingSnapshot {
     publicUrl?: string;
     /** Auto-tunnel status, while the auto-tunnel feature is active. */
     tunnel?: TunnelStatus;
-    /** Latest /api posture probe (undefined until the first round completes). */
-    posture?: PostureSnapshot;
     /** Opaque (non-secret) id of the active token (undefined when stopped/lan-required). */
     tokenId?: string;
     /** Absolute expiry of the active token. */
@@ -148,7 +145,7 @@ export interface PairingClock {
 export declare const defaultClock: PairingClock;
 /**
  * The pairing state machine. Structural mutations issue/accept/stop/revoke
- * and config updates (LAN bases, tunnel, posture) notify state listeners
+ * and config updates (LAN bases, tunnel) notify state listeners
  * after the commit point that makes them true, and notification dedupes
  * against the last emitted snapshot. Presence-only updates (touchDevice /
  * heartbeat) just mark the store dirty and broadcast on the next sweep,
@@ -170,7 +167,6 @@ export declare class PairingService {
     private publicBase;
     /** Auto-tunnel status, while the auto-tunnel feature is active. */
     private tunnelStatus;
-    private posture;
     /** True when lastSeenAt changed since the last persist (flushed on sweep). */
     private dirty;
     /**
@@ -218,8 +214,6 @@ export declare class PairingService {
     setPublicBaseUrl(url: string | undefined): void;
     /** Set or clear the auto-tunnel status frame (undefined when the feature is off). */
     setTunnelStatus(status: TunnelStatus | undefined): void;
-    /** Set the latest /api posture probe result (see posture.ts). */
-    setPosture(snapshot: PostureSnapshot | undefined): void;
     /**
      * Issue a fresh token, replacing (invalidating) any previous one. A
      * stopped service re-arms through this call (the panel's refresh button).
@@ -259,12 +253,12 @@ export declare class PairingService {
      */
     revoke(deviceId: string): boolean;
     /**
-     * The api/gate path: record activity for a device id and report whether
-     * the request may proceed. Unknown or revoked ids (including any device
-     * after stop() or idle expiry) are refused.
+     * The pairing-recognition path: record activity for a device id and report
+     * whether the request carries a live session. Unknown or revoked ids
+     * (including any device after stop() or idle expiry) are refused.
      *
-     * Presence refreshes are throttled on purpose: every gated request (and
-     * the remote-channel keepalives) lands here, so a broadcast per call would
+     * Presence refreshes are throttled on purpose: every paired request (and
+     * the phone heartbeats) lands here, so a broadcast per call would
      * fan a full snapshot out to every status stream on the hot path. The refresh
      * only updates lastSeenAt and marks the store dirty; the snapshot reaches
      * listeners at the next sweep() (structural changes notify immediately).

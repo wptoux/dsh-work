@@ -7,7 +7,7 @@
  * each plugin's client bundle; mirrors the official ui-plugin-config
  * card-store pattern.
  */
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store';
 /** A whole- or decimal-number field. An empty draft clears the field; any other draft that is not a finite number within the constraints blocks the save. */
 export function numberField(field, constraints = {}) {
     const { integer = false, min } = constraints;
@@ -168,13 +168,8 @@ export class CardForm {
         };
     }
     /**
-     * Write every staged edit, then re-seed from what the Host accepted.
-     *
-     * When the scope carries the optional batch surface (the dsh-web-ui
-     * bridge scope), every planned write rides one mutation so cross-field
-     * validate hooks (baseURL+model) judge the batch as a unit instead of
-     * deadlocking on per-field writes. Otherwise the per-field loop runs.
-     * A field lands only when the Host reports it held the staged value; a
+     * Write every staged edit, then re-seed from what the Host accepted. A
+     * field lands only when the Host reports it held the staged value; a
      * landed field's draft is dropped, a failed one stays staged for the user.
      * @returns settlement after every write and the read-back.
      */
@@ -183,7 +178,6 @@ export class CardForm {
         const valid = plan.filter(item => item.run !== undefined);
         if (plan.length === 0 || this.saving || valid.length !== plan.length)
             return;
-        const plannedWrites = valid.map(item => item.op);
         // Snapshot the staged entries this save writes, so an edit staged while it
         // is in flight (which replaces the same key) survives: only delete the key
         // when the entry is still the one this save started from.
@@ -195,24 +189,9 @@ export class CardForm {
         this.failedReason = undefined;
         this.publish();
         const landed = new Set();
-        const batch = this.batchedScope();
-        if (batch !== undefined) {
-            const result = await batch.mutate(plannedWrites);
-            if (result.ok) {
-                for (const field of result.fields) {
-                    if (field.landed)
-                        landed.add(field.field);
-                }
-            }
-            else {
-                this.failedReason = result.message;
-            }
-        }
-        else {
-            for (const item of valid) {
-                if (await item.run())
-                    landed.add(item.field);
-            }
+        for (const item of valid) {
+            if (await item.run())
+                landed.add(item.field);
         }
         for (const [field, before] of pending) {
             if (landed.has(field) && this.staged.get(field) === before)
@@ -221,11 +200,6 @@ export class CardForm {
         this.saving = false;
         this.failed = landed.size !== pending.size;
         this.publish();
-    }
-    /** The scope's batch surface when it supports one; undefined conservatively otherwise. */
-    batchedScope() {
-        const candidate = this.scope;
-        return typeof candidate?.mutate === 'function' ? candidate : undefined;
     }
     /**
      * Every staged edit a save would write. An entry whose draft is not a value
@@ -240,18 +214,18 @@ export class CardForm {
             const spec = this.specOf(field);
             if (staged.clear) {
                 if (this.stored(field))
-                    plan.push({ field, op: { field, op: 'unset' }, run: () => this.clear(field) });
+                    plan.push({ field, run: () => this.clear(field) });
                 continue;
             }
             if (staged.text === spec.format(this.sectionValue(field)))
                 continue;
             const write = spec.parse(staged.text);
             if (write === undefined)
-                plan.push({ field, op: { field, op: 'unset' }, run: undefined });
+                plan.push({ field, run: undefined });
             else if (write.kind === 'clear')
-                plan.push({ field, op: { field, op: 'unset' }, run: () => this.clear(field) });
+                plan.push({ field, run: () => this.clear(field) });
             else
-                plan.push({ field, op: { field, op: 'set', value: write.value }, run: () => this.store(field, write.value) });
+                plan.push({ field, run: () => this.store(field, write.value) });
         }
         return plan;
     }
@@ -262,9 +236,8 @@ export class CardForm {
     async store(field, value) {
         await this.scope.set(field, value);
         // A redacted secret never appears in the user layer read-back; judging it
-        // by value would misreport a successful secret save as failed. The bridge
-        // reports secret writes through its secret-set markers (batch path); on
-        // the per-field path the scope resolved, so the write is landed.
+        // by value would misreport a successful secret save as failed. The scope
+        // resolved the write, so the secret lands.
         if (this.specOf(field).secret)
             return true;
         return this.userLayer()?.[field] === value;

@@ -1,14 +1,11 @@
 import { dirname, isAbsolute, join } from "node:path";
-import { setInterval, setTimeout as setTimeout$1 } from "node:timers";
-import { installSettingsSection, settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { setInterval } from "node:timers";
 import z from "schemastery";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir, networkInterfaces } from "node:os";
 import { Service } from "@deepseek-ai/cordis";
 import { z as z$1 } from "zod";
-import http, { request } from "node:http";
-import { connect } from "node:net";
 import { Tunnel, bin, install } from "cloudflared";
 //#region src/pairing.ts
 /**
@@ -50,7 +47,7 @@ const defaultClock = {
 };
 /**
 * The pairing state machine. Structural mutations issue/accept/stop/revoke
-* and config updates (LAN bases, tunnel, posture) notify state listeners
+* and config updates (LAN bases, tunnel) notify state listeners
 * after the commit point that makes them true, and notification dedupes
 * against the last emitted snapshot. Presence-only updates (touchDevice /
 * heartbeat) just mark the store dirty and broadcast on the next sweep,
@@ -72,7 +69,6 @@ var PairingService = class {
 	publicBase;
 	/** Auto-tunnel status, while the auto-tunnel feature is active. */
 	tunnelStatus;
-	posture;
 	/** True when lastSeenAt changed since the last persist (flushed on sweep). */
 	dirty = false;
 	/**
@@ -187,11 +183,6 @@ var PairingService = class {
 		this.tunnelStatus = status;
 		this.notify();
 	}
-	/** Set the latest /api posture probe result (see posture.ts). */
-	setPosture(snapshot) {
-		this.posture = snapshot;
-		this.notify();
-	}
 	/**
 	* Issue a fresh token, replacing (invalidating) any previous one. A
 	* stopped service re-arms through this call (the panel's refresh button).
@@ -290,12 +281,12 @@ var PairingService = class {
 		return true;
 	}
 	/**
-	* The api/gate path: record activity for a device id and report whether
-	* the request may proceed. Unknown or revoked ids (including any device
-	* after stop() or idle expiry) are refused.
+	* The pairing-recognition path: record activity for a device id and report
+	* whether the request carries a live session. Unknown or revoked ids
+	* (including any device after stop() or idle expiry) are refused.
 	*
-	* Presence refreshes are throttled on purpose: every gated request (and
-	* the remote-channel keepalives) lands here, so a broadcast per call would
+	* Presence refreshes are throttled on purpose: every paired request (and
+	* the phone heartbeats) lands here, so a broadcast per call would
 	* fan a full snapshot out to every status stream on the hot path. The refresh
 	* only updates lastSeenAt and marks the store dirty; the snapshot reaches
 	* listeners at the next sweep() (structural changes notify immediately).
@@ -335,7 +326,6 @@ var PairingService = class {
 			lanAddresses: [...this.lanBases.keys()],
 			...this.publicBase !== void 0 ? { publicUrl: this.publicBase } : {},
 			...this.tunnelStatus !== void 0 ? { tunnel: this.tunnelStatus } : {},
-			...this.posture !== void 0 ? { posture: this.posture } : {},
 			...token !== void 0 ? {
 				tokenId: token.record.id,
 				tokenExpiresAt: token.record.expiresAt
@@ -494,14 +484,6 @@ function isLoopbackHostname(hostname) {
 //#endregion
 //#region src/gate.ts
 /**
-* Loopback classification for the desktop client. The predicates now live in
-* the shared synced copy (shared/host/loopback.ts, mirrored to ./loopback.ts
-* by scripts/sync-shared.mjs): localhost, IPv6 loopback, and any IPv4 address
-* in 127/8.
-* @param hostname - WHATWG URL hostname (IPv6 literals retain brackets).
-* @returns true for localhost, IPv6 loopback, or any IPv4 address in 127/8.
-*/
-/**
 * Read one cookie value from a Cookie header.
 * @param header - the raw Cookie header value (or undefined).
 * @param name - the cookie name.
@@ -537,31 +519,9 @@ function isLoopbackClient(request) {
 	return isLoopbackAddress(socket?.remoteAddress);
 }
 /**
-* Build the api/gate listener for one pairing service.
-* @param service - the pairing service.
-* @param requirePairingForLan - when false, non-loopback requests pass
-* without a device cookie (the feature then only manages tokens/status;
-* revocation of paired devices still holds). A function is re-read per
-* request, so a settings edit takes effect without a restart. Defaults to true.
-* @param enabled - when false, every non-loopback request is vetoed while
-* loopback stays available. A function is re-read per request so the fence
-* stays mounted for the plugin lifetime and disabling the plugin cannot open
-* a LAN-exposed /api. Defaults to true.
-* @returns the cordis waterfall listener: call `next()` to delegate,
-* return false (without calling it) to veto with 403.
-*/
-function makeGateListener(service, requirePairingForLan = true, enabled = true) {
-	return (request, _method, next) => {
-		if (isLoopbackClient(request)) return next();
-		if (!(typeof enabled === "function" ? enabled() : enabled)) return false;
-		if (!(typeof requirePairingForLan === "function" ? requirePairingForLan() : requirePairingForLan)) return next();
-		return isPairedDeviceRequest(service, request) ? next() : false;
-	};
-}
-/**
 * Whether a request carries a live, non-revoked paired-device cookie for
-* this service. Sibling host routes outside /api (aionui-panel, etc.) use
-* the same check via the remoteWebUiPairing service.
+* the given service. Sibling host routes and the RemoteWebUiPairing service
+* use this check to recognize a paired device on their own surfaces.
 * @param service - the pairing service that owns the device table.
 * @param request - the incoming HTTP request.
 * @returns true when the cookie names a live session (and lastSeenAt was refreshed).
@@ -607,23 +567,6 @@ const JSON_HEADERS = {
 	"content-type": "application/json; charset=utf-8",
 	"referrer-policy": "no-referrer"
 };
-/**
-* Strict bounded body reader: parse a request body of at most maxBytes as
-* JSON.
-* @throws 'body too large' past the cap, or the JSON.parse error for an
-*   invalid or empty payload.
-*/
-async function readBoundedJson(req, maxBytes) {
-	const chunks = [];
-	let size = 0;
-	for await (const chunk of req) {
-		const buffer = chunk;
-		size += buffer.length;
-		if (size > maxBytes) throw new Error("body too large");
-		chunks.push(buffer);
-	}
-	return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-}
 /**
 * Lenient bounded body reader: parse a request body as JSON, or null on an
 * empty body, invalid JSON, or a body past maxBytes (default 64 KiB).
@@ -712,7 +655,7 @@ function isTrustedApiRequest(request, trustedHosts) {
 	}
 }
 /** Cap on pairing request bodies (tokens and workspace ids are tiny). */
-const MAX_BODY_BYTES$1 = 4096;
+const MAX_BODY_BYTES = 4096;
 /**
 * The host authority of a configured public base URL, e.g. `foo.trycloudflare.com`
 * from `https://foo.trycloudflare.com`. Undefined when the URL does not parse —
@@ -822,8 +765,7 @@ var PairingEventsStream = class {
 * @returns the exact routes to register on webServer.
 */
 function makeRoutes(deps) {
-	const { service, lanAddresses, requirePairingForLan = true } = deps;
-	const pairingRequired = () => typeof requirePairingForLan === "function" ? requirePairingForLan() : requirePairingForLan;
+	const { service, lanAddresses } = deps;
 	const events = new PairingEventsStream(service);
 	/** Loopback-only fence: the desktop panel's control endpoints. */
 	const loopbackFence = (req) => isTrustedApiRequest(req, []);
@@ -871,7 +813,7 @@ function makeRoutes(deps) {
 			return;
 		}
 		const body = await readJsonBody(req, {
-			maxBytes: MAX_BODY_BYTES$1,
+			maxBytes: MAX_BODY_BYTES,
 			objectOnly: true
 		});
 		const payload = parsePairPayload(issuePayloadSchema, body);
@@ -920,7 +862,7 @@ function makeRoutes(deps) {
 			return;
 		}
 		const body = await readJsonBody(req, {
-			maxBytes: MAX_BODY_BYTES$1,
+			maxBytes: MAX_BODY_BYTES,
 			objectOnly: true
 		});
 		const payload = parsePairPayload(acceptPayloadSchema, body);
@@ -955,7 +897,7 @@ function makeRoutes(deps) {
 			return;
 		}
 		const body = await readJsonBody(req, {
-			maxBytes: MAX_BODY_BYTES$1,
+			maxBytes: MAX_BODY_BYTES,
 			objectOnly: true
 		});
 		if (parsePairPayload(pairActionPayloadSchema, body) === void 0) {
@@ -978,7 +920,7 @@ function makeRoutes(deps) {
 			return;
 		}
 		const body = await readJsonBody(req, {
-			maxBytes: MAX_BODY_BYTES$1,
+			maxBytes: MAX_BODY_BYTES,
 			objectOnly: true
 		});
 		const payload = parsePairPayload(revokePayloadSchema, body);
@@ -1008,7 +950,7 @@ function makeRoutes(deps) {
 			return;
 		}
 		const body = await readJsonBody(req, {
-			maxBytes: MAX_BODY_BYTES$1,
+			maxBytes: MAX_BODY_BYTES,
 			objectOnly: true
 		});
 		if (parsePairPayload(pairActionPayloadSchema, body) === void 0) {
@@ -1041,16 +983,14 @@ function makeRoutes(deps) {
 		const paired = deviceId !== void 0 && service.hasDevice(deviceId);
 		const snapshot = service.snapshot();
 		const { devices: _devices, ...rest } = snapshot;
-		const visible = paired ? rest : {
-			phase: snapshot.phase,
-			lanAvailable: snapshot.lanAvailable,
-			lanAddresses: snapshot.lanAddresses
-		};
 		writeJson(res, 200, {
 			ok: true,
 			paired,
-			requirePairingForLan: pairingRequired(),
-			...visible
+			...paired ? rest : {
+				phase: snapshot.phase,
+				lanAvailable: snapshot.lanAvailable,
+				lanAddresses: snapshot.lanAddresses
+			}
 		});
 	};
 	const handleEvents = (req, res) => {
@@ -1102,802 +1042,6 @@ function makeRoutes(deps) {
 			handler: handleEvents
 		}
 	];
-}
-//#endregion
-//#region src/paired-model-catalog.ts
-const MAX_BODY_BYTES = 16384;
-const MAX_IDENTIFIER_LENGTH = 160;
-const MAX_DISPLAY_NAME_LENGTH = 240;
-const MAX_TOKEN_LIMIT = 1e7;
-const REASONING_EFFORTS = [
-	"off",
-	"minimal",
-	"low",
-	"medium",
-	"high",
-	"xhigh",
-	"max"
-];
-const stringField = (max) => z$1.string().trim().min(1).max(max).refine((value) => !/[\r\n\0]/.test(value), "must not contain a newline or NUL");
-const providerSchema = z$1.object({ provider: stringField(MAX_IDENTIFIER_LENGTH) }).strict();
-const modelSchema = z$1.object({
-	id: stringField(MAX_IDENTIFIER_LENGTH),
-	name: stringField(MAX_DISPLAY_NAME_LENGTH).optional(),
-	contextWindow: z$1.number().int().safe().positive().max(MAX_TOKEN_LIMIT).optional(),
-	maxTokens: z$1.number().int().safe().positive().max(MAX_TOKEN_LIMIT).optional(),
-	reasoningEfforts: z$1.array(z$1.enum(REASONING_EFFORTS)).min(1).refine((efforts) => efforts.every((effort, index) => index === 0 || REASONING_EFFORTS.indexOf(efforts[index - 1]) < REASONING_EFFORTS.indexOf(effort)), "reasoning efforts must be unique and in canonical order").optional()
-}).strict();
-const upsertSchema = z$1.object({
-	provider: stringField(MAX_IDENTIFIER_LENGTH),
-	model: modelSchema
-}).strict();
-const PAIRED_MODEL_CATALOG_PATHS = {
-	catalog: "/api/pair/model-catalog",
-	discover: "/api/pair/model-catalog/discover",
-	upsert: "/api/pair/model-catalog/upsert"
-};
-let rpcSequence = 0;
-function request$1(payload) {
-	rpcSequence += 1;
-	return {
-		rpcId: `paired-model-catalog-${Date.now().toString(36)}-${rpcSequence.toString(36)}`,
-		payload
-	};
-}
-function isRecord(value) {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function valueOf(response) {
-	return response.result.ok ? response.result.value : void 0;
-}
-function errorCode(response) {
-	return response.result.ok ? void 0 : response.result.error.code;
-}
-function reject(res, status, error) {
-	writeJson(res, status, { error });
-}
-function publicProviderId(value) {
-	const normalized = value.replace(/[\r\n\0]/g, " ").trim().slice(0, MAX_IDENTIFIER_LENGTH);
-	return normalized === "" ? "unknown" : normalized;
-}
-function publicCatalog(value) {
-	return {
-		groups: value.groups.map((group) => ({
-			id: group.id,
-			name: group.name,
-			models: group.models.map((model) => ({
-				id: model.id,
-				name: model.name,
-				...model.description === void 0 ? {} : { description: model.description },
-				...model.reasoning === void 0 ? {} : { reasoning: model.reasoning }
-			}))
-		})),
-		failures: value.failures.map((failure) => ({
-			id: failure.id,
-			name: failure.name,
-			message: `model catalog unavailable for provider ${publicProviderId(failure.id)}`
-		}))
-	};
-}
-function publicCandidates(models) {
-	return models.map((model) => ({
-		id: model.id,
-		...model.name === void 0 ? {} : { name: model.name },
-		...model.contextWindow === void 0 ? {} : { contextWindow: model.contextWindow },
-		...model.maxTokens === void 0 ? {} : { maxTokens: model.maxTokens }
-	}));
-}
-function fieldsOf(model, includeId) {
-	const fields = {
-		...includeId ? { id: model.id } : {},
-		...model.name === void 0 ? {} : { name: model.name },
-		...model.contextWindow === void 0 ? {} : { contextWindow: model.contextWindow },
-		...model.maxTokens === void 0 ? {} : { maxTokens: model.maxTokens }
-	};
-	if (model.reasoningEfforts !== void 0) fields.reasoningEfforts = Object.fromEntries(model.reasoningEfforts.map((effort) => [effort, effort === "off" ? null : effort]));
-	return fields;
-}
-function groupFor(catalog, provider) {
-	if (catalog.failures.some((failure) => failure.id === provider)) return void 0;
-	return catalog.groups.find((group) => group.id === provider);
-}
-async function readCatalog(apiProxy) {
-	try {
-		return valueOf(await apiProxy.llm.models(request$1({})));
-	} catch {
-		return;
-	}
-}
-/** Resolve one exact active llm-pi-ai provider address, never an input-supplied path. */
-async function eligibleProvider(apiProxy, requested) {
-	let providersResponse;
-	let settingsResponse;
-	try {
-		providersResponse = await apiProxy.llm.providers(request$1({}));
-		settingsResponse = await apiProxy.settings.describe(request$1({}));
-	} catch {
-		return {
-			status: 502,
-			error: "model catalog capability is unavailable"
-		};
-	}
-	const providers = valueOf(providersResponse);
-	const settings = valueOf(settingsResponse);
-	if (providers === void 0 || settings === void 0) return {
-		status: 502,
-		error: "model catalog capability is unavailable"
-	};
-	const route = providers.providers.find((candidate) => candidate.provider === requested);
-	if (route === void 0) return {
-		status: 404,
-		error: `unknown provider ${requested}`
-	};
-	if (!settings.writable || !route.active || route.settingsNs !== "llm-pi-ai" || route.settingsPath.length !== 2 || route.settingsPath[0] !== "providers" || route.settingsPath[1] !== requested) return {
-		status: 403,
-		error: `provider ${requested} is not eligible for the paired model catalog`
-	};
-	const namespace = settings.namespaces.find((candidate) => candidate.ns === "llm-pi-ai");
-	const root = namespace !== void 0 && isRecord(namespace.value) ? namespace.value : void 0;
-	const providersValue = root !== void 0 && isRecord(root.providers) ? root.providers : void 0;
-	const profile = providersValue !== void 0 && isRecord(providersValue[requested]) ? providersValue[requested] : void 0;
-	if (namespace === void 0 || profile === void 0) return {
-		status: 403,
-		error: `provider ${requested} is not eligible for the paired model catalog`
-	};
-	return { provider: {
-		provider: requested,
-		displayName: route.displayName,
-		namespace,
-		profile
-	} };
-}
-function validIdentifier(value) {
-	const parsed = stringField(MAX_IDENTIFIER_LENGTH).safeParse(value);
-	return parsed.success && parsed.data === value;
-}
-function configuredModels(profile) {
-	if (!Object.hasOwn(profile, "models")) return { inherited: true };
-	if (!Array.isArray(profile.models)) return void 0;
-	if (profile.models.length === 0) return { inherited: true };
-	const values = [];
-	for (const entry of profile.models) {
-		if (!isRecord(entry) || !validIdentifier(entry.id)) return void 0;
-		values.push({ ...entry });
-	}
-	return {
-		inherited: false,
-		values
-	};
-}
-function configuredOverrides(profile) {
-	if (!Object.hasOwn(profile, "modelOverrides")) return {
-		present: false,
-		values: /* @__PURE__ */ new Map()
-	};
-	if (!isRecord(profile.modelOverrides)) return void 0;
-	const values = /* @__PURE__ */ new Map();
-	for (const [id, value] of Object.entries(profile.modelOverrides)) {
-		if (!validIdentifier(id) || !isRecord(value)) return void 0;
-		values.set(id, { ...value });
-	}
-	return {
-		present: true,
-		values
-	};
-}
-function updatedModels(existing, model) {
-	const next = existing.map((entry) => ({ ...entry }));
-	const index = next.findIndex((entry) => entry.id === model.id);
-	const patch = fieldsOf(model, true);
-	if (index >= 0) next[index] = {
-		...next[index],
-		...patch
-	};
-	else next.push(patch);
-	return next;
-}
-function mutationPlan(profile, provider, model, catalog) {
-	const configured = configuredModels(profile);
-	const overrides = configuredOverrides(profile);
-	if (configured === void 0 || overrides === void 0) return void 0;
-	const modelsPath = [
-		"providers",
-		provider,
-		"models"
-	];
-	const overridesPath = [
-		"providers",
-		provider,
-		"modelOverrides"
-	];
-	if (!configured.inherited) {
-		if (overrides.values.size > 0) return void 0;
-		const ops = [{
-			op: "set",
-			path: modelsPath,
-			value: updatedModels(configured.values, model)
-		}];
-		if (overrides.present) ops.push({
-			op: "unset",
-			path: overridesPath
-		});
-		return { ops };
-	}
-	const group = groupFor(catalog, provider);
-	if (group?.models.some((entry) => entry.id === model.id) === true) {
-		const existing = overrides.values.get(model.id) ?? {};
-		return { ops: [{
-			op: "set",
-			path: [...overridesPath, model.id],
-			value: {
-				...existing,
-				...fieldsOf(model, false)
-			}
-		}] };
-	}
-	if (group === void 0) return void 0;
-	const materialized = [];
-	const materializedIds = /* @__PURE__ */ new Set();
-	for (const installed of group.models) {
-		materialized.push({
-			...overrides.values.get(installed.id),
-			id: installed.id
-		});
-		materializedIds.add(installed.id);
-	}
-	for (const [id, override] of overrides.values) if (!materializedIds.has(id)) materialized.push({
-		...override,
-		id
-	});
-	const ops = [{
-		op: "set",
-		path: modelsPath,
-		value: updatedModels(materialized, model)
-	}];
-	if (overrides.present) ops.push({
-		op: "unset",
-		path: overridesPath
-	});
-	return { ops };
-}
-function paired(req, service) {
-	const deviceId = readCookie(req.headers.cookie, service.config.cookieName);
-	return deviceId !== void 0 && service.touchDevice(deviceId);
-}
-async function bodyOf(req, schema) {
-	try {
-		return schema.parse(await readBoundedJson(req, MAX_BODY_BYTES));
-	} catch {
-		return;
-	}
-}
-/** Build the narrow paired-device model catalog routes. */
-function makePairedModelCatalogRoutes(deps) {
-	const { service, apiProxy, lanAddresses } = deps;
-	/** Same fence as the /api/pair family: loopback, the advertised LAN literals, or the configured public host. */
-	const fence = (req) => {
-		const publicHost = publicHostOf(service.publicBaseUrl);
-		return isTrustedApiRequest(req, publicHost === void 0 ? lanAddresses : [...lanAddresses, publicHost]);
-	};
-	const gate = (req, res) => {
-		if (!fence(req)) {
-			req.resume();
-			reject(res, 403, "paired model catalog is not reachable for this origin");
-			return false;
-		}
-		if (!paired(req, service)) {
-			req.resume();
-			reject(res, 403, "paired model catalog requires a live paired device");
-			return false;
-		}
-		return true;
-	};
-	const catalog = async (req, res) => {
-		if (!gate(req, res)) return;
-		if (req.method !== "GET") return reject(res, 405, "method not allowed");
-		let providersResponse;
-		let settingsResponse;
-		try {
-			providersResponse = await apiProxy.llm.providers(request$1({}));
-			settingsResponse = await apiProxy.settings.describe(request$1({}));
-		} catch {
-			return reject(res, 502, "model catalog capability is unavailable");
-		}
-		const providers = valueOf(providersResponse);
-		const settings = valueOf(settingsResponse);
-		if (providers === void 0 || settings === void 0) return reject(res, 502, "model catalog capability is unavailable");
-		const namespace = settings.namespaces.find((candidate) => candidate.ns === "llm-pi-ai");
-		const providerMap = namespace !== void 0 && isRecord(namespace.value) && isRecord(namespace.value.providers) ? namespace.value.providers : void 0;
-		writeJson(res, 200, {
-			capability: "paired-model-catalog",
-			providers: settings.writable && providerMap !== void 0 ? providers.providers.filter((candidate) => candidate.active && candidate.settingsNs === "llm-pi-ai" && candidate.settingsPath.length === 2 && candidate.settingsPath[0] === "providers" && candidate.settingsPath[1] === candidate.provider && isRecord(providerMap[candidate.provider])).map((candidate) => ({
-				provider: candidate.provider,
-				displayName: candidate.displayName
-			})) : []
-		});
-	};
-	const discover = async (req, res) => {
-		if (!gate(req, res)) return;
-		if (req.method !== "POST") return reject(res, 405, "method not allowed");
-		const body = await bodyOf(req, providerSchema);
-		if (body === void 0) return reject(res, 400, "invalid model catalog request");
-		const eligible = await eligibleProvider(apiProxy, body.provider);
-		if (eligible.provider === void 0) return reject(res, eligible.status ?? 502, eligible.error ?? "model catalog capability is unavailable");
-		try {
-			const result = valueOf(await apiProxy.llm.discoverModels(request$1({
-				settingsNs: "llm-pi-ai",
-				provider: eligible.provider.provider
-			})));
-			if (result === void 0) return reject(res, 502, `model discovery failed for provider ${eligible.provider.provider}`);
-			writeJson(res, 200, { models: publicCandidates(result.models) });
-		} catch {
-			reject(res, 502, `model discovery failed for provider ${eligible.provider.provider}`);
-		}
-	};
-	const upsert = async (req, res) => {
-		if (!gate(req, res)) return;
-		if (req.method !== "POST") return reject(res, 405, "method not allowed");
-		const body = await bodyOf(req, upsertSchema);
-		if (body === void 0) return reject(res, 400, "invalid model catalog request");
-		const eligible = await eligibleProvider(apiProxy, body.provider);
-		if (eligible.provider === void 0) return reject(res, eligible.status ?? 502, eligible.error ?? "model catalog capability is unavailable");
-		const before = await readCatalog(apiProxy);
-		if (before === void 0) return reject(res, 502, `model catalog is unavailable for provider ${body.provider}`);
-		const plan = mutationPlan(eligible.provider.profile, body.provider, body.model, before);
-		if (plan === void 0) return reject(res, 502, `model catalog is unavailable for provider ${body.provider}`);
-		let mutation;
-		try {
-			mutation = await apiProxy.settings.mutate(request$1({
-				ns: "llm-pi-ai",
-				expectedRevision: eligible.provider.namespace.revision,
-				ops: plan.ops
-			}));
-		} catch {
-			return reject(res, 502, `model update failed for provider ${body.provider}`);
-		}
-		const code = errorCode(mutation);
-		if (code === "settings-conflict") return reject(res, 409, `model update conflicted for provider ${body.provider}`);
-		if (code === "settings-rejected") return reject(res, 422, `model update was rejected for provider ${body.provider}`);
-		if (code !== void 0) return reject(res, 502, `model update failed for provider ${body.provider}`);
-		const after = await readCatalog(apiProxy);
-		if (after === void 0) return reject(res, 502, `model catalog is unavailable for provider ${body.provider}`);
-		writeJson(res, 200, publicCatalog(after));
-	};
-	return [
-		{
-			kind: "exact",
-			path: PAIRED_MODEL_CATALOG_PATHS.catalog,
-			handler: catalog
-		},
-		{
-			kind: "exact",
-			path: PAIRED_MODEL_CATALOG_PATHS.discover,
-			handler: discover
-		},
-		{
-			kind: "exact",
-			path: PAIRED_MODEL_CATALOG_PATHS.upsert,
-			handler: upsert
-		}
-	];
-}
-//#endregion
-//#region src/loopback-proxy.ts
-/** WebSocket handshake headers forwarded to the loopback upstream. */
-const WS_FORWARD_HEADERS = [
-	"sec-websocket-key",
-	"sec-websocket-version",
-	"sec-websocket-extensions",
-	"sec-websocket-protocol"
-];
-/** Response headers copied from the loopback upstream (no hop-by-hop). */
-const HTTP_FORWARD_RESPONSE_HEADERS = [
-	"content-type",
-	"content-length",
-	"content-disposition",
-	"cache-control",
-	"etag",
-	"last-modified"
-];
-/**
-* Pipe one HTTP request to loopback and stream the response back.
-* @param req - the already-gated outer request.
-* @param res - the outer response.
-* @param port - local webServer port.
-* @param upstreamPath - path + query on 127.0.0.1 (must start with `/`).
-*/
-function proxyLoopbackHttp(req, res, port, upstreamPath) {
-	const headers = {
-		host: `127.0.0.1:${String(port)}`,
-		"sec-fetch-site": "same-origin"
-	};
-	const contentType = req.headers["content-type"];
-	if (typeof contentType === "string") headers["content-type"] = contentType;
-	const contentLength = req.headers["content-length"];
-	if (typeof contentLength === "string") headers["content-length"] = contentLength;
-	const accept = req.headers.accept;
-	if (typeof accept === "string") headers.accept = accept;
-	const upstream = request({
-		host: "127.0.0.1",
-		port,
-		path: upstreamPath,
-		method: req.method,
-		headers
-	}, (upstreamRes) => {
-		const out = {};
-		for (const name of HTTP_FORWARD_RESPONSE_HEADERS) {
-			const value = upstreamRes.headers[name];
-			if (value !== void 0) out[name] = value;
-		}
-		res.writeHead(upstreamRes.statusCode ?? 502, out);
-		upstreamRes.pipe(res);
-	});
-	upstream.on("error", () => {
-		if (!res.headersSent) {
-			writeJson(res, 502, {
-				ok: false,
-				error: {
-					code: "upstream-failure",
-					message: "upstream request failed"
-				}
-			});
-			return;
-		}
-		res.destroy();
-	});
-	req.pipe(upstream);
-}
-/**
-* Rebuild a WebSocket handshake as loopback-shaped and pipe both directions.
-* @param req - the already-gated upgrade request.
-* @param socket - the client duplex.
-* @param head - bytes already read past the handshake.
-* @param port - local webServer port.
-* @param upstreamPath - path + query on 127.0.0.1.
-*/
-function proxyLoopbackUpgrade(req, socket, head, port, upstreamPath) {
-	const lines = [
-		`GET ${upstreamPath} HTTP/1.1`,
-		`Host: 127.0.0.1:${String(port)}`,
-		"Upgrade: websocket",
-		"Connection: Upgrade"
-	];
-	for (const name of WS_FORWARD_HEADERS) {
-		const value = req.headers[name];
-		if (value === void 0) continue;
-		lines.push(`${name}: ${Array.isArray(value) ? value.join(", ") : value}`);
-	}
-	const handshake = `${lines.join("\r\n")}\r\n\r\n`;
-	const upstream = connect(port, "127.0.0.1");
-	const tearDown = () => {
-		upstream.destroy();
-		socket.destroy();
-	};
-	upstream.on("error", tearDown);
-	socket.on("error", tearDown);
-	upstream.on("close", () => {
-		socket.destroy();
-	});
-	socket.on("close", () => {
-		upstream.destroy();
-	});
-	upstream.on("connect", () => {
-		upstream.write(handshake);
-		if (head.length > 0) upstream.write(head);
-		socket.pipe(upstream);
-		upstream.pipe(socket);
-	});
-}
-//#endregion
-//#region src/remote-methods.ts
-/**
-* Remote desktop channel constants — SDK-independent so tests and the
-* client half can pin them without importing the host SDK graph.
-*/
-/** Gated mirror of same-origin fenced paths (`/remote` + original pathname). */
-const REMOTE_PREFIX$1 = "/remote";
-/** Connection-plugin method prefix under the gated channel. */
-const REMOTE_API_PREFIX$1 = `${REMOTE_PREFIX$1}/api`;
-/** WebSocket event-stream paths served by the channel (client rewrites to these). */
-const REMOTE_API_PATHS = {
-	mux: `${REMOTE_API_PREFIX$1}/events.mux`,
-	host: `${REMOTE_API_PREFIX$1}/events.host`
-};
-/**
-* Exact upgrade paths registered on webServer (the SDK matches upgrades by
-* exact path, not prefix). Query strings ride on the request URL.
-*/
-const REMOTE_UPGRADE_PATHS = [
-	REMOTE_API_PATHS.mux,
-	REMOTE_API_PATHS.host,
-	`${REMOTE_PREFIX$1}/sidebar/ws/terminal`,
-	`${REMOTE_PREFIX$1}/sidebar/ws/agent-terminals`,
-	`${REMOTE_API_PREFIX$1}/dsh-ssh/terminal`
-];
-/**
-* Loopback-only methods of the host API surface, mirrored from
-* client-connection's `PRIVILEGED_METHODS` (pinned by
-* tests/remote-contract.spec.ts against the installed SDK). They stay
-* unreachable from a paired remote desktop, matching the SDK's own stance
-* that the configuration plane is loopback-same-origin only.
-*/
-const LOOPBACK_ONLY_METHODS = /* @__PURE__ */ new Set([
-	"agentPreset.read",
-	"agentPreset.copy",
-	"agentPreset.openDocument",
-	"agentPreset.remove",
-	"host.pickDirectory",
-	"host.openPath",
-	"settings.describe",
-	"settings.openDocument",
-	"settings.update",
-	"settings.replace",
-	"settings.mutate",
-	"credentials.describe",
-	"credentials.set",
-	"credentials.unset",
-	"llm.discoverModels"
-]);
-//#endregion
-//#region src/remote-api.ts
-const ALLOWED_METHODS = /* @__PURE__ */ new Set([
-	"GET",
-	"HEAD",
-	"POST",
-	"PUT",
-	"PATCH",
-	"DELETE"
-]);
-/** Reject traversal and empty segments; allow plugin file-path characters. */
-function isSafeSegment(segment) {
-	if (segment === "") return false;
-	let decoded;
-	try {
-		decoded = decodeURIComponent(segment);
-	} catch {
-		return false;
-	}
-	return decoded !== "." && decoded !== ".." && !decoded.includes("/") && !decoded.includes("\\") && !decoded.includes("\0");
-}
-/** One SDK-shaped error envelope (keeps the desktop client's parse path intact). */
-function envelopeError(res, status, rpcId, code, message) {
-	writeJson(res, status, {
-		type: "server-response",
-		rpcId,
-		result: {
-			ok: false,
-			error: {
-				code,
-				message,
-				details: { issues: [] }
-			}
-		}
-	});
-}
-/**
-* Map `/remote/...` to the inner path, or undefined when the outer path is
-* not a safe rewrite target.
-*/
-function innerPathOf(pathname) {
-	if (pathname === "/remote" || pathname === `/remote/`) return void 0;
-	if (!pathname.startsWith(`/remote/`)) return void 0;
-	const rest = pathname.slice(7);
-	if (!rest.startsWith("/")) return void 0;
-	const segments = rest.slice(1).split("/");
-	if (segments.length === 0 || segments.some((segment) => !isSafeSegment(segment))) return;
-	return rest;
-}
-/**
-* Whether a paired inner path must stay physically local.
-* @returns a denial message, or undefined when the path may be proxied.
-*/
-function loopbackOnlyDenial(innerPath) {
-	if (innerPath === "/api/pair" || innerPath.startsWith("/api/pair/")) return "pairing endpoints stay loopback-only and stay unreachable from a paired remote desktop";
-	if (innerPath === "/api/plugin-manager" || innerPath.startsWith(`/api/plugin-manager/`)) return "plugin-manager stays loopback-only and stays unreachable from a paired remote desktop";
-	if (innerPath === "/api/dsh-desktop-launcher" || innerPath.startsWith(`/api/dsh-desktop-launcher/`)) return "desktop-launcher endpoints stay loopback-only and stay unreachable from a paired remote desktop";
-	if (innerPath === "/api/dsh-web-ui-settings" || innerPath.startsWith(`/api/dsh-web-ui-settings/`)) return "settings-bridge endpoints stay loopback-only and stay unreachable from a paired remote desktop";
-	if (!innerPath.startsWith("/api/")) return void 0;
-	const method = innerPath.slice(5);
-	if (method !== "" && !method.includes("/") && LOOPBACK_ONLY_METHODS.has(method)) return `${method} is loopback-only and stays unreachable from a paired remote desktop`;
-}
-/**
-* Build the remote desktop channel HTTP routes.
-* @param deps - pairing service + local port + live pairing policy.
-* @returns the routes to register on webServer.
-*/
-function makeRemoteApiRoutes(deps) {
-	const { service, port, requirePairingForLan = true } = deps;
-	const handler = (req, res) => {
-		if (typeof requirePairingForLan === "function" ? requirePairingForLan() : requirePairingForLan) {
-			const deviceId = readCookie(req.headers.cookie, service.config.cookieName);
-			if (!(deviceId !== void 0 && service.touchDevice(deviceId))) {
-				req.resume();
-				envelopeError(res, 403, "invalid-request", "unpaired", "this device is not paired with the desktop");
-				return;
-			}
-		}
-		const method = req.method ?? "GET";
-		if (!ALLOWED_METHODS.has(method)) {
-			req.resume();
-			res.writeHead(405).end();
-			return;
-		}
-		const url = new URL(req.url ?? "/", "http://127.0.0.1");
-		const inner = innerPathOf(url.pathname);
-		if (inner === void 0) {
-			req.resume();
-			res.writeHead(404).end();
-			return;
-		}
-		const denied = loopbackOnlyDenial(inner);
-		if (denied !== void 0) {
-			req.resume();
-			envelopeError(res, 403, "invalid-request", "forbidden", denied);
-			return;
-		}
-		proxyLoopbackHttp(req, res, port, `${inner}${url.search}`);
-	};
-	return [{
-		kind: "prefix",
-		path: REMOTE_PREFIX$1,
-		handler
-	}];
-}
-/**
-* Map one outer upgrade URL onto the loopback path (query string included).
-*/
-function upgradeInnerPath(reqUrl, fallbackPath) {
-	if (reqUrl === void 0 || reqUrl === "") return fallbackPath;
-	let url;
-	try {
-		url = new URL(reqUrl, "http://127.0.0.1");
-	} catch {
-		return fallbackPath;
-	}
-	const inner = innerPathOf(url.pathname);
-	if (inner === void 0) return fallbackPath;
-	return `${inner}${url.search}`;
-}
-/**
-* Build the WebSocket upgrade routes for the event streams and known plugin
-* sockets. webServer matches upgrades by exact path.
-* @param deps - pairing service + local port + live pairing policy.
-* @returns the upgrade routes to register on webServer.
-*/
-function makeRemoteApiUpgradeRoutes(deps) {
-	const { service, port, requirePairingForLan = true } = deps;
-	const handlerFor = (fallbackPath) => (req, socket, head) => {
-		if (typeof requirePairingForLan === "function" ? requirePairingForLan() : requirePairingForLan) {
-			const deviceId = readCookie(req.headers.cookie, service.config.cookieName);
-			if (deviceId === void 0 || !service.touchDevice(deviceId)) {
-				socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
-				socket.destroy();
-				return;
-			}
-		}
-		const inner = upgradeInnerPath(req.url, fallbackPath);
-		if (loopbackOnlyDenial(inner.split("?")[0] ?? inner) !== void 0) {
-			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
-			socket.destroy();
-			return;
-		}
-		proxyLoopbackUpgrade(req, socket, head, port, inner);
-	};
-	return REMOTE_UPGRADE_PATHS.map((path) => ({
-		path,
-		handler: handlerFor(path.slice(7))
-	}));
-}
-//#endregion
-//#region src/posture.ts
-/**
-* Build the forged Host values to probe: the public base authority (host or
-* host:port as written in the URL) plus every LAN base literal.
-* @param publicBaseUrl - the configured public base URL (or undefined).
-* @param lanAddresses - the LAN interface addresses the QR advertises.
-* @param port - the local webServer port (LAN hosts are probed as host:port).
-* @returns Host header values, de-duplicated.
-*/
-function postureTargets(publicBaseUrl, lanAddresses, port) {
-	const targets = [];
-	if (publicBaseUrl !== void 0) try {
-		const url = new URL(publicBaseUrl);
-		const authority = url.port === "" ? url.hostname : `${url.hostname}:${url.port}`;
-		if (authority !== "") targets.push(authority);
-	} catch {}
-	for (const address of lanAddresses) targets.push(`${address}:${String(port)}`);
-	return [...new Set(targets)];
-}
-const defaultRequest = (options, onStatus) => {
-	const request = http.request(options, (response) => {
-		onStatus(response.statusCode ?? 0);
-	});
-	request.on("error", () => {
-		onStatus(0);
-	});
-	return request;
-};
-/**
-* Probe one forged Host against the local `/api` fence.
-* @param port - the local webServer port.
-* @param hostHeader - the Host header to forge.
-* @param request - transport seam.
-* @param timeoutMs - give up after this long (counts as not exposed; the
-* fence being unreachable is not evidence it is open).
-* @returns true when the probe got past the fence.
-*/
-async function probeHost(port, hostHeader, request, timeoutMs) {
-	return await new Promise((resolve) => {
-		let settled = false;
-		const finish = (exposed) => {
-			if (settled) return;
-			settled = true;
-			clearTimeout(timer);
-			handle.destroy();
-			resolve(exposed);
-		};
-		const handle = request({
-			host: "127.0.0.1",
-			port,
-			method: "POST",
-			path: "/api/session.list",
-			headers: {
-				host: hostHeader,
-				"content-type": "application/json"
-			},
-			timeout: timeoutMs
-		}, (status) => {
-			finish(status !== 403);
-		});
-		const timer = setTimeout(() => {
-			finish(false);
-		}, timeoutMs + 1e3);
-		handle.on("error", () => {
-			finish(false);
-		});
-		handle.end("{}");
-	});
-}
-/**
-* Run one posture probe round.
-* @returns the snapshot for this round.
-*/
-async function probePosture(options) {
-	const { port, targets } = options;
-	const request = options.request ?? defaultRequest;
-	const timeoutMs = options.timeoutMs ?? 3e3;
-	const now = options.now ?? (() => Date.now());
-	const hosts = [];
-	for (const target of targets) hosts.push({
-		host: target,
-		exposed: await probeHost(port, target, request, timeoutMs)
-	});
-	return {
-		checkedAt: now(),
-		hosts
-	};
-}
-/**
-* Reserve an advertised-target key so a second trigger with the same set
-* does not overlap an in-flight round. Pair with {@link releasePostureKey}
-* on failure — otherwise that key never retries.
-*/
-function claimPostureKey(current, key) {
-	if (current === key) return {
-		run: false,
-		next: current
-	};
-	return {
-		run: true,
-		next: key
-	};
-}
-/**
-* Drop a failed in-flight key so the next trigger re-probes the same targets.
-* A newer key that started meanwhile is left alone.
-*/
-function releasePostureKey(current, attempted) {
-	return current === attempted ? void 0 : current;
 }
 //#endregion
 //#region src/lan.ts
@@ -2164,56 +1308,6 @@ function mountOnce(packageName, fn) {
 		return fn(...args);
 	});
 }
-/** The live rule set. */
-const REMOTE_CHANNEL_RULES = {
-	remotePrefix: "/remote",
-	apiPrefix: "/api/",
-	pairPrefix: "/api/pair/",
-	desktopLauncherPrefix: "/api/dsh-desktop-launcher",
-	settingsBridgePrefix: "/api/dsh-web-ui-settings",
-	sidebarPrefix: "/sidebar/",
-	gitPrefix: "/git/",
-	petPrefix: "/pet/",
-	wsPaths: [
-		"/api/events.mux",
-		"/api/events.host",
-		"/sidebar/ws/terminal",
-		"/sidebar/ws/agent-terminals",
-		"/api/dsh-ssh/terminal"
-	]
-};
-/** The window global the boot patch publishes its seat under. */
-const REMOTE_CHANNEL_BOOT_GLOBAL = "__DSH_REMOTE_CHANNEL_BOOT__";
-//#endregion
-//#region src/remote-channel-boot.ts
-/**
-* Parse-time remote-channel boot patch (issue #987): the browser-half patch
-* (client/remote-channel.ts) installs when this plugin's boot entry runs,
-* but `dsh-client-connection` boots earlier and opens its event streams
-* unrewritten — on a non-loopback origin the SDK fence rejects them and the
-* workspace list never loads. The host therefore inlines this classic script
-* right after the opening <head> tag (webserver/index-inject), so the
-* fetch/WebSocket/EventSource/src rewrite is active before ANY boot entry
-* executes. The plugin's client apply later adopts the installed seat
-* (hooks + pending unpaired signal) instead of patching twice.
-*
-* The rewrite decisions are generated from REMOTE_CHANNEL_RULES, the same
-* data the browser patch consumes — the two cannot drift apart. The script
-* self-skips on loopback origins and never throws.
-* @module dsh-remote-web-ui/remote-channel-boot
-*/
-/**
-* Build the inline boot script. The result contains no `<\/script` sequence
-* (the injection contract) and installs a {@link RemoteChannelBootSeat} on
-* the window global.
-*/
-function buildRemoteChannelBootScript(rules = REMOTE_CHANNEL_RULES) {
-	const json = JSON.stringify(rules);
-	const seat = JSON.stringify(REMOTE_CHANNEL_BOOT_GLOBAL);
-	return "(function(){try{var w=window,loc=w.location,h=loc.hostname;if(h==='localhost'||h==='::1'||/^127(\\.\\d{1,3}){3}$/.test(h))return;var R=" + json + ";function sf(p){if(p.indexOf(R.pairPrefix)===0)return false;if(p===R.desktopLauncherPrefix||p.indexOf(R.desktopLauncherPrefix+\"/\")===0)return false;if(p===R.settingsBridgePrefix||p.indexOf(R.settingsBridgePrefix+\"/\")===0)return false;if(p.indexOf(R.apiPrefix)===0)return true;if(p.indexOf(R.sidebarPrefix)===0||p===\"/sidebar\")return true;if(p.indexOf(R.gitPrefix)===0||p===\"/git\")return true;if(p.indexOf(R.petPrefix)===0||p===\"/pet\")return true;return false}function sw(p){return R.wsPaths.indexOf(p)!==-1}function rp(p){return R.remotePrefix+p}function so(u){return u.origin===loc.origin}function rr(raw){var u;try{u=new URL(raw,loc.href)}catch(e){return raw}if(u.origin!==loc.origin)return raw;if(!sf(u.pathname))return raw;u.pathname=rp(u.pathname);if(raw.charAt(0)===\"/\"&&raw.charAt(1)!==\"/\")return u.pathname+u.search+u.hash;return u.href}function uc(v){if(typeof v!==\"object\"||v===null)return undefined;var n=v.result;if(typeof n===\"object\"&&n!==null){var e=n.error;if(typeof e===\"object\"&&e!==null&&typeof e.code===\"string\")return e.code}var t=v.error;if(typeof t===\"object\"&&t!==null&&typeof t.code===\"string\")return t.code;return undefined}var seat={onUnpaired:null,onPaired:null,pendingUnpaired:false,restore:function(){}};function denied(res){if(res.status!==403)return false;return res.clone().json().then(function(b){return uc(b)===\"unpaired\"}).catch(function(){return false})}function signal(unpaired){if(unpaired){if(seat.onUnpaired)seat.onUnpaired();else seat.pendingUnpaired=true}else{seat.pendingUnpaired=false;if(seat.onPaired)seat.onPaired()}}var of=w.fetch;w.fetch=function(input,init){var raw=typeof input===\"string\"||input instanceof URL?input.toString():input.url;var url=new URL(raw,loc.href);if(so(url)&&sf(url.pathname)){var next=new URL(url);next.pathname=rp(url.pathname);var target=typeof input===\"string\"||input instanceof URL?next.toString():new Request(next,input);return Promise.resolve(of.call(w,target,init)).then(function(res){void Promise.resolve(denied(res)).then(signal);return res})}return of.call(w,input,init)};var OW=w.WebSocket;w.WebSocket=function(url,protocols){var p=new URL(url.toString(),loc.href);var o=p.protocol===\"wss:\"?\"https://\"+p.host:p.protocol===\"ws:\"?\"http://\"+p.host:\"\";if(o!==\"\"&&o===loc.origin&&sw(p.pathname)){var nx=new URL(p);nx.pathname=rp(p.pathname);return protocols!==undefined?new OW(nx,protocols):new OW(nx)}return protocols!==undefined?new OW(url,protocols):new OW(url)};w.WebSocket.prototype=OW.prototype;w.WebSocket.CONNECTING=OW.CONNECTING;w.WebSocket.OPEN=OW.OPEN;w.WebSocket.CLOSING=OW.CLOSING;w.WebSocket.CLOSED=OW.CLOSED;var OE=w.EventSource;if(OE!==undefined){w.EventSource=function(url,cfg){var p=new URL(url.toString(),loc.href);if(so(p)&&sf(p.pathname)){var nx=new URL(p);nx.pathname=rp(p.pathname);return new OE(nx,cfg)}return new OE(url,cfg)};w.EventSource.prototype=OE.prototype}var restores=[];function patchSrc(C){if(C===undefined)return;var d=Object.getOwnPropertyDescriptor(C.prototype,\"src\");if(d===undefined||d.configurable===false||d.set===undefined)return;var os=d.set;Object.defineProperty(C.prototype,\"src\",{configurable:true,enumerable:d.enumerable!==false,get:d.get,set:function(v){os.call(this,rr(String(v)))}});restores.push(function(){Object.defineProperty(C.prototype,\"src\",d)})}patchSrc(w.HTMLImageElement);patchSrc(w.HTMLScriptElement);patchSrc(w.HTMLIFrameElement);seat.restore=function(){w.fetch=of;w.WebSocket=OW;if(OE!==undefined)w.EventSource=OE;for(var i=0;i<restores.length;i++)restores[i]();try{delete w[" + seat + "]}catch(e){w[" + seat + "]=undefined}};w[" + seat + "]=seat}catch(e){}})();";
-}
-/** The script this plugin contributes; built once from the live rules. */
-const REMOTE_CHANNEL_BOOT_SCRIPT = buildRemoteChannelBootScript();
 //#endregion
 //#region src/uuid-polyfill.ts
 /**
@@ -2245,23 +1339,38 @@ const UUID_POLYFILL_SCRIPT = [
 ].join("");
 //#endregion
 //#region src/index.ts
+/**
+* Phone and desktop remote control for the dsh web GUI — host half. Mounts
+* the pairing service (one-time tokens, device sessions, revocation), the
+* /api/pair route family (issue/accept/stop/heartbeat/status/events), the
+* presence sweep, and the optional public-tunnel QR base. The browser half
+* (the `./client` entry) renders the sidebar entry, the pairing panel, and
+* the pair/accept + deep-link flow.
+*
+* DSH 0.1.5 adaptation: the harness's /api trust fence is declarative
+* (`Connection` config trustedHosts + LAN literals auto-trusted from an
+* all-interface bind) and the 0.1.1 `api/gate` per-request veto seam no
+* longer exists. Pairing is therefore identity/recognition: this plugin owns
+* its /api/pair surfaces and exposes the live paired-cookie predicate to
+* sibling plugins (RemoteWebUiPairing), but it does not veto the harness's
+* own /api dispatch.
+*/
 /** Stable cordis plugin name. */
 const name = "remote-web-ui";
 /** Services required before the pairing surfaces can mount. */
-const inject = ["webServer", "apiProxy"];
+const inject = ["webServer", "settings"];
 /**
 * Settings namespace of the remote-control capability — the section the web
 * settings surface edits. Spelled here rather than imported: the browser
 * half spells the same value and must not depend on a Host package.
 */
-const REMOTE_WEB_UI_SETTINGS_NAMESPACE = settingsNamespace("remote-web-ui");
+const REMOTE_WEB_UI_SETTINGS_NAMESPACE = "remote-web-ui";
 const Config = z.object({
 	tokenTtlMs: z.number().step(1).min(6e4).default(6e5),
 	offlineAfterMs: z.number().step(1).min(5e3).default(25e3),
 	maxDevices: z.number().step(1).min(1).max(64).default(4),
 	idleExpireMs: z.number().step(1).min(6e4).default(DEFAULT_IDLE_EXPIRE_MS),
 	cookieName: z.string().min(1).default("dsh_pair"),
-	requirePairingForLan: z.boolean().default(true),
 	publicBaseUrl: z.string(),
 	devicesFile: z.string(),
 	autoTunnel: z.boolean().default(false),
@@ -2296,15 +1405,14 @@ const DEFAULTS = {
 	maxDevices: 4,
 	idleExpireMs: DEFAULT_IDLE_EXPIRE_MS,
 	cookieName: "dsh_pair",
-	requirePairingForLan: true,
 	publicBaseUrl: void 0,
 	devicesFile: defaultDevicesFile(),
 	autoTunnel: false,
 	enabled: true
 };
 /**
-* Mount the pairing service, routes, gate listener, and presence sweep.
-* @param ctx - host plugin context carrying webServer.
+* Mount the pairing service, routes, and presence sweep.
+* @param ctx - host plugin context carrying webServer and settings.
 * @param config - resolved plugin config (schema defaults applied by the loader).
 */
 const apply = mountOnce("dsh-remote-web-ui", applyImpl);
@@ -2315,7 +1423,6 @@ function applyImpl(ctx, config) {
 		maxDevices: config?.maxDevices ?? DEFAULTS.maxDevices,
 		idleExpireMs: config?.idleExpireMs ?? DEFAULTS.idleExpireMs,
 		cookieName: config?.cookieName ?? DEFAULTS.cookieName,
-		requirePairingForLan: config?.requirePairingForLan ?? DEFAULTS.requirePairingForLan,
 		publicBaseUrl: config?.publicBaseUrl,
 		devicesFile: config?.devicesFile ?? DEFAULTS.devicesFile,
 		autoTunnel: config?.autoTunnel ?? DEFAULTS.autoTunnel,
@@ -2330,7 +1437,6 @@ function applyImpl(ctx, config) {
 			maxDevices: value.maxDevices ?? DEFAULTS.maxDevices,
 			idleExpireMs: value.idleExpireMs ?? DEFAULTS.idleExpireMs,
 			cookieName: value.cookieName ?? DEFAULTS.cookieName,
-			requirePairingForLan: value.requirePairingForLan ?? DEFAULTS.requirePairingForLan,
 			publicBaseUrl: value.publicBaseUrl,
 			devicesFile: value.devicesFile ?? DEFAULTS.devicesFile,
 			autoTunnel: value.autoTunnel ?? DEFAULTS.autoTunnel,
@@ -2348,7 +1454,6 @@ function applyImpl(ctx, config) {
 				state: "running",
 				url: info.url
 			});
-			runPostureProbe();
 		} else if (info.phase === "starting") {
 			service.setPublicBaseUrl(void 0);
 			service.setTunnelStatus({ state: "starting" });
@@ -2371,67 +1476,17 @@ function applyImpl(ctx, config) {
 	const lanAddresses = lanBases.map((entry) => entry.address);
 	let disposeRoutes;
 	let disposeSweep;
-	const apiProxy = ctx.get("apiProxy");
-	if (apiProxy === void 0) console.warn("remote-web-ui: apiProxy service unavailable — the paired model catalog is disabled");
-	const routes = [
-		...makeRoutes({
-			service,
-			lanAddresses,
-			requirePairingForLan: () => resolve().requirePairingForLan
-		}),
-		...apiProxy !== void 0 ? makePairedModelCatalogRoutes({
-			service,
-			apiProxy,
-			lanAddresses
-		}) : [],
-		...makeRemoteApiRoutes({
-			service,
-			port: ctx.webServer.port,
-			requirePairingForLan: () => resolve().requirePairingForLan
-		})
-	];
-	const upgrades = makeRemoteApiUpgradeRoutes({
+	const routes = makeRoutes({
 		service,
-		port: ctx.webServer.port,
-		requirePairingForLan: () => resolve().requirePairingForLan
+		lanAddresses
 	});
-	const gate = makeGateListener(service, () => resolve().requirePairingForLan, () => resolve().enabled);
-	ctx.effect(() => ctx.on("api/gate", gate), "remote-web-ui: api gate");
-	let postureKey;
-	let postureWasExposed = false;
-	const runPostureProbe = () => {
-		if (!resolve().enabled) return;
-		const targets = postureTargets(service.publicBaseUrl, service.lanAddresses, ctx.webServer.port);
-		if (targets.length === 0) {
-			postureKey = void 0;
-			service.setPosture(void 0);
-			return;
-		}
-		const key = targets.join("|");
-		const claim = claimPostureKey(postureKey, key);
-		if (!claim.run) return;
-		postureKey = claim.next;
-		probePosture({
-			port: ctx.webServer.port,
-			targets
-		}).then((snapshot) => {
-			service.setPosture(snapshot);
-			const exposedHosts = snapshot.hosts.filter((host) => host.exposed).map((host) => host.host);
-			const exposed = exposedHosts.length > 0;
-			if (exposed && !postureWasExposed) console.error(`remote-web-ui: CRITICAL — the /api fence is OPEN for [${exposedHosts.join(", ")}]: unpaired clients reach the full host API. Remove --trusted-host for these hosts (pairing covers them) or bind loopback.`);
-			else if (!exposed && postureWasExposed) console.log("remote-web-ui: the /api posture probe is clean again (every advertised origin refused with 403).");
-			postureWasExposed = exposed;
-		}).catch(() => {
-			postureKey = releasePostureKey(postureKey, key);
+	ctx.effect(() => ctx.on("webserver/index-inject", (table) => {
+		table.push({
+			kind: "script",
+			placement: "head",
+			text: UUID_POLYFILL_SCRIPT
 		});
-	};
-	const initialPostureTimer = setTimeout$1(() => {
-		runPostureProbe();
-	}, 5e3);
-	initialPostureTimer.unref();
-	ctx.effect(() => () => {
-		clearTimeout(initialPostureTimer);
-	}, "remote-web-ui: posture probe boot");
+	}), "remote-web-ui: uuid polyfill");
 	new RemoteWebUiPairing(ctx, (request) => {
 		if (!resolve().enabled) return false;
 		return isPairedDeviceRequest(service, request);
@@ -2453,7 +1508,7 @@ function applyImpl(ctx, config) {
 		const enabled = value.enabled;
 		if (!enabled) service.stop();
 		if (disposeRoutes === void 0 && enabled) disposeRoutes = ctx.effect(() => {
-			const disposers = [...routes.map((route) => ctx.webServer.register(route)), ...upgrades.map((route) => ctx.webServer.registerUpgrade(route))];
+			const disposers = routes.map((route) => ctx.webServer.register(route));
 			return () => {
 				for (const dispose of disposers) dispose();
 			};
@@ -2475,32 +1530,15 @@ function applyImpl(ctx, config) {
 			disposeSweep();
 			disposeSweep = void 0;
 		}
-		runPostureProbe();
 	};
-	ctx.effect(() => ctx.on("webserver/index-inject", (table) => {
-		table.push({
-			kind: "script",
-			placement: "head",
-			text: UUID_POLYFILL_SCRIPT
-		});
-	}), "remote-web-ui: uuid polyfill");
-	ctx.effect(() => ctx.on("webserver/index-inject", (table) => {
-		const value = resolve();
-		if (!value.enabled || !value.requirePairingForLan) return;
-		table.push({
-			kind: "script",
-			placement: "head",
-			text: REMOTE_CHANNEL_BOOT_SCRIPT
-		});
-	}), "remote-web-ui: remote channel boot patch");
-	installSettingsSection(ctx, REMOTE_WEB_UI_SETTINGS_NAMESPACE, Config, config ?? {}, {
+	sync();
+	ctx.settings.installSection(ctx, REMOTE_WEB_UI_SETTINGS_NAMESPACE, Config, config ?? {}, {
 		setSource: (source) => {
 			current = source;
 			sync();
 		},
 		onChange: sync
 	});
-	sync();
 }
 /** Whether a configured public base is a parseable http(s) URL with a host. */
 function isHttpUrl(value) {

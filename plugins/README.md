@@ -255,6 +255,26 @@ profile dir + reconcile 安装态）。
     `mobileEnterToSend` 配置。二维码/配对链接统一为 `/?pair=...`（单一链接，手机与电脑
     共用），面板「手机链接 / 电脑链接」两行合并为「配对链接」一行；手机配对后运行完整
     Web GUI（非 loopback 走 `/remote` 门控通道），小屏布局由 `dsh-ui-tweaks` 适配。
+  - **DSH 0.1.5 适配**（本地大改）：host settings 迁移到 `ctx.settings.installSection`
+    （`installSettingsSection`/`settingsNamespace` 已删，命名空间改裸字符串）；`inject`
+    收窄为 `['webServer','settings']`。**按用户决策退役三组 0.1.1 时代的控制面**：
+    ① 全局配对门禁（`api/gate` 环缝在 0.1.5 全树消失，0.1.5 的 /api 信任是声明式的
+    `Connection.trustedHosts` + LAN 字面量自动信任）——`gate.ts` 仅剩 cookie/回环工具，
+    `posture.ts`、`remote-api.ts`、`loopback-proxy.ts`、`remote-methods.ts`、
+    `remote-channel-boot.ts`、`remote-channel-rules.ts`、client `remote-channel.ts`、
+    `FenceNotice` 与其测试全部删除；配对回归"令牌+设备识别"（`remoteWebUiPairing`
+    服务与 `/api/pair` 面保留），`requirePairingForLan` 字段/文案/卡片项删除；
+    ② **配对模型目录**（`paired-model-catalog.ts` 及其测试）删除——apiProxy 无 1:1
+    替代物，本期移除；③ QR 铸造去掉 workspace 目标（0.1.5 无 recentWorkspaceId），
+    `deep-link` 改走 `sessions.create({workspaceId})+open`。client 半边：`ClientContext`
+    → cordis `Context`，`SettingsScope*` → `dsh-client-ui-settings/client`，
+    `createSnapshotStore/SnapshotStore` → 种子表新成员 `dsh-client-store`（web-platform
+    同步加、tsdown 的 runtime 豁免删除），`WorkspaceId` → `dsh-api-workspace-controller/client`；
+    侧边栏座位 `sidebar.remote` 已删 → 仅注册 `sidebar.footer.action`；设置卡 `settings.plugin.item`
+    → 0.1.5 的 `settings.plugins.tab`（list 槽，id/order/label）；settings-form 的 batch
+    bridge 删除（0.1.5 `SettingsScope.mutate` 签名不同，fork 从不装 bridge）。devDeps 全量
+    `^0.1.5-rc.1`，`dsh.client.inject` 换掉 runtime 条目，`dsh.engines.dsh` 改
+    `>=0.1.1-rc.1 <0.2.0-0`。**激活前提：内核 ≥0.1.5**。
 - `dsh-ui-tweaks`（本仓库自研）：
   - **窄屏侧边栏抽屉**（本 fork 定制，保留）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`

@@ -1,4 +1,4 @@
-import type { ClientContext, SettingsScope, SettingsScopeSpec } from '@deepseek-ai/dsh-client-runtime/client';
+import type { Context } from '@deepseek-ai/cordis';
 import { type RemoteKey } from './locales.ts';
 export type { RemoteEntryProps } from './RemoteEntry.tsx';
 export type { PanelState, RemotePanelProps } from './RemotePanel.tsx';
@@ -10,51 +10,39 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
         /** Mobile remote-control surface copy. */
         remote: RemoteKey;
     }
-    interface SlotMap {
-        /**
-         * The sidebar foot seat beside the settings trigger, declared by the
-         * sidebar shell on deployments that carry the feature seat; the shell
-         * passes only its column display state.
-         */
-        'sidebar.remote': {
-            kind: 'single';
-            scope: 'root';
-            owner: SidebarRemoteOwnerProps;
-        };
-        /**
-         * One plugin card inside the official Plugins settings section's
-         * configurable tab, keyed by the settings namespace the card edits. The
-         * tab (ui-settings-plugins, part of the stock web app) declares this
-         * slot; spelled here with the same shape so this package can register
-         * without depending on the sibling UI package.
-         */
-        'settings.plugin.item': {
-            kind: 'keyed';
-            scope: 'root';
-            owner: SettingsPluginItemOwnerProps;
-        };
-    }
 }
-/** Owner share of the sidebar remote-control seat: the column display state the trigger renders against. */
-export interface SidebarRemoteOwnerProps {
-    /** Whether the sidebar renders wide content (false = 56px rail). */
-    wide: boolean;
+/**
+ * Structural client slots-service face. DSH 0.1.5's UI packages do not
+ * declare `ctx.slots` on the cordis Context (better-sidebar vendors the same
+ * structural mirror); the runtime service is provided by the renderer and
+ * registered through the SlotMap-typed `register` overloads — here restated
+ * as the narrow subset this plugin uses.
+ */
+interface SlotsRegisterOptions {
+    /** Slot key (a declared `SlotMap` member at runtime). */
+    name: string;
+    /** Keyed-slot dispatch key. */
+    key?: string;
+    /** List-slot entry id (also the tab/action identity). */
+    id?: string;
+    /** List-slot ordering position. */
+    order?: number;
+    /** List-slot display label; a thunk re-evaluates it per read (locale-following). */
+    label?: string | (() => string);
+    /** Locale namespace the entry's component copy binds. */
+    locale?: string;
+    /** Business face the renderer injects into the component props. */
+    inject?: () => object;
 }
-/** Owner share of a plugin card (the section supplies nothing). */
-export interface SettingsPluginItemOwnerProps {
-    /** Marker field: card owner props are intentionally empty. */
-    children?: never;
+interface SlotsService {
+    /** Run a callback for each declaration lifetime of a slot; no-op while undeclared. */
+    inject(name: string, factory?: () => () => void): () => void;
+    /** Register one entry; returns the disposer. */
+    register(options: SlotsRegisterOptions, component: unknown): () => void;
 }
 declare module '@deepseek-ai/cordis' {
     interface Context {
-        /**
-         * Optional rc.6 compatibility binder provided by dsh-web-ui-settings;
-         * absent when that group plugin is not installed, so callers fall back to
-         * the official settings scope.
-         */
-        webUiSettings?: {
-            bind<S>(spec: SettingsScopeSpec<S>): SettingsScope<S>;
-        };
+        slots: SlotsService;
     }
 }
 /** Services required by this plugin. */
@@ -63,5 +51,5 @@ export declare const inject: string[];
  * Register the remote-control surface.
  * @param ctx - client root context.
  */
-export declare function apply(ctx: ClientContext): void;
+export declare function apply(ctx: Context): void;
 //# sourceMappingURL=index.d.ts.map

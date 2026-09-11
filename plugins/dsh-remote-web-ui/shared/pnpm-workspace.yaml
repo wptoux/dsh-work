@@ -1,0 +1,6 @@
+# The shared build/test package is its own pnpm workspace root: nested under
+# the plugin package, whose pnpm-workspace.yaml lists only `.` — without this
+# file `pnpm install` inside shared/ would bind to the plugin workspace and
+# never materialize shared/node_modules.
+packages:
+  - .

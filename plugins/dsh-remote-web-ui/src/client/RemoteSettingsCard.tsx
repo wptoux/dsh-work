@@ -1,12 +1,14 @@
 /**
  * The remote-control settings card: pairing security and device limits.
- * Registers into the official Plugins settings section's configurable tab
- * (`settings.plugin.item`, keyed by the `remote-web-ui` settings namespace)
+ * Registers into the Plugins settings section's tab list
+ * (`settings.plugins.tab`, keyed by the `remote-web-ui` settings namespace)
  * that the stock web app's ui-settings-plugins section renders.
  */
 
+import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { PluginSettingsCard, ValueField, BooleanField } from './PluginSettingsCard.tsx'
 import { CardForm, booleanField, numberField, textField, type CardActions, type CardShell, type FieldState as CardFieldState } from './settings-form.ts'
 
@@ -24,8 +26,6 @@ export interface RemoteSettings {
   idleExpireMs?: number
   /** Cookie name carrying the paired device id. */
   cookieName?: string
-  /** Fence flag: whether non-loopback /api requests must carry a live paired-device cookie. */
-  requirePairingForLan?: boolean
   /** Public (tunneled) base URL the QR link is built from when set. */
   publicBaseUrl?: string
   /** When on, the plugin runs its own Cloudflare quick tunnel automatically. */
@@ -46,8 +46,6 @@ export interface RemoteSettingsCardState extends CardShell {
   idleExpireMs: CardFieldState
   /** Device cookie name. */
   cookieName: CardFieldState
-  /** LAN fence flag. */
-  requirePairingForLan: CardFieldState
   /** Public (tunneled) base URL. */
   publicBaseUrl: CardFieldState
   /** Auto public tunnel switch. */
@@ -56,10 +54,8 @@ export interface RemoteSettingsCardState extends CardShell {
 
 /** The registration-side face the card's slot entry injects. */
 export interface RemoteSettingsCardFace extends CardActions {
-  hooks: {
-    /** Card snapshot bound by the renderer as useRemoteSettingsCard. */
-    remoteSettingsCard: SnapshotStore<RemoteSettingsCardState>
-  }
+  /** Card snapshot bound by the renderer as a reactive source. */
+  store: SnapshotStore<RemoteSettingsCardState>
 }
 
 /** Bridges the `remote-web-ui` scope onto the card's staged form. */
@@ -76,7 +72,6 @@ export class RemoteSettingsCardController {
       numberField('maxDevices'),
       numberField('idleExpireMs'),
       textField('cookieName'),
-      booleanField('requirePairingForLan'),
       textField('publicBaseUrl'),
       booleanField('autoTunnel'),
     ])
@@ -92,7 +87,6 @@ export class RemoteSettingsCardController {
       maxDevices: this.form.field('maxDevices'),
       idleExpireMs: this.form.field('idleExpireMs'),
       cookieName: this.form.field('cookieName'),
-      requirePairingForLan: this.form.field('requirePairingForLan'),
       publicBaseUrl: this.form.field('publicBaseUrl'),
       autoTunnel: this.form.field('autoTunnel'),
     }
@@ -103,7 +97,7 @@ export class RemoteSettingsCardController {
    * @returns the card's snapshot and its form actions.
    */
   inject(): RemoteSettingsCardFace {
-    return { hooks: { remoteSettingsCard: this.store }, ...this.form.actions() }
+    return { store: this.store, ...this.form.actions() }
   }
 
   /**
@@ -117,7 +111,7 @@ export class RemoteSettingsCardController {
 
 /** Props the renderer binds for the remote-control card. */
 export type RemoteSettingsCardProps =
-  PropsRuntime<'settings.plugin.item'>
+  PropsRuntime<'settings.plugins.tab'>
   & PropsLocale<'remote'>
   & InjectFace<RemoteSettingsCardFace>
 
@@ -128,7 +122,8 @@ export type RemoteSettingsCardProps =
  */
 export function RemoteSettingsCard(props: RemoteSettingsCardProps) {
   const { t } = props
-  const state = props.useRemoteSettingsCard(snapshot => snapshot)
+  const [state, setState] = useState<RemoteSettingsCardState>(() => props.store.getSnapshot())
+  useEffect(() => props.store.subscribe(() => setState(props.store.getSnapshot())), [props.store])
   const disabled = !state.writable
   const fieldProps = {
     overriddenLabel: t('settings.overridden'),
@@ -206,18 +201,6 @@ export function RemoteSettingsCard(props: RemoteSettingsCardProps) {
         {...state.cookieName}
         onEdit={(text) => { props.edit('cookieName', text) }}
         onReset={() => { props.resetField('cookieName') }}
-      />
-      <BooleanField
-        id="settings-remote-fence"
-        label={t('settings.requirePairingForLan')}
-        hint={t('settings.requirePairingForLanHint')}
-        inheritLabel={t('settings.inherit')}
-        onLabel={t('settings.on')}
-        offLabel={t('settings.off')}
-        {...fieldProps}
-        {...state.requirePairingForLan}
-        onEdit={(text) => { props.edit('requirePairingForLan', text) }}
-        onReset={() => { props.resetField('requirePairingForLan') }}
       />
       <ValueField
         id="settings-remote-public-base"

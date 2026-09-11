@@ -2,64 +2,49 @@
  * Phone and desktop remote control for the dsh web GUI — host half. Mounts
  * the pairing service (one-time tokens, device sessions, revocation), the
  * /api/pair route family (issue/accept/stop/heartbeat/status/events), the
- * api/gate listener that enforces pairing on every other /api request from
- * non-loopback hosts, and the presence sweep. The browser half (the
- * `./client` entry) renders the sidebar entry, the pairing panel, and the
- * pair/accept + deep-link flow. A paired phone opens the full Web GUI like
- * a paired computer, riding the gated /remote channel.
+ * presence sweep, and the optional public-tunnel QR base. The browser half
+ * (the `./client` entry) renders the sidebar entry, the pairing panel, and
+ * the pair/accept + deep-link flow.
+ *
+ * DSH 0.1.5 adaptation: the harness's /api trust fence is declarative
+ * (`Connection` config trustedHosts + LAN literals auto-trusted from an
+ * all-interface bind) and the 0.1.1 `api/gate` per-request veto seam no
+ * longer exists. Pairing is therefore identity/recognition: this plugin owns
+ * its /api/pair surfaces and exposes the live paired-cookie predicate to
+ * sibling plugins (RemoteWebUiPairing), but it does not veto the harness's
+ * own /api dispatch.
  */
 
-import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { setInterval as nodeSetInterval, setTimeout as nodeSetTimeout } from 'node:timers'
-import type { IncomingMessage } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+// Type-only: pulls the dsh-settings Context merge (ctx.settings) so the
+// installSection surface resolves.
+import type {} from '@deepseek-ai/dsh-settings'
 import z from 'schemastery'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { DEFAULT_IDLE_EXPIRE_MS, PairingService, type PairingConfig } from './pairing.ts'
 import { dshHome } from './dsh-home.ts'
-import { isPairedDeviceRequest, makeGateListener } from './gate.ts'
+import { isPairedDeviceRequest } from './gate.ts'
 import { RemoteWebUiPairing } from './pairing-access.ts'
 import { makeRoutes } from './routes.ts'
-import { makePairedModelCatalogRoutes } from './paired-model-catalog.ts'
-import { makeRemoteApiRoutes, makeRemoteApiUpgradeRoutes } from './remote-api.ts'
-import { claimPostureKey, postureTargets, probePosture, releasePostureKey } from './posture.ts'
 import { lanIPv4Addresses } from './lan.ts'
 import { TunnelManager, type TunnelInfo } from './tunnel.ts'
 import { mountOnce } from './mount-once.ts'
-import { REMOTE_CHANNEL_BOOT_SCRIPT } from './remote-channel-boot.ts'
 import { UUID_POLYFILL_SCRIPT } from './uuid-polyfill.ts'
-
-declare module '@deepseek-ai/cordis' {
-  interface Events {
-    /**
-     * Waterfall seam on the /api transport fence: the connection plugin
-     * fires this per /api request before bridging to the API proxy on
-     * deployments that carry the pairing/revocation seam; call `next()` to
-     * delegate, return false (without calling it) to veto with 403.
-     */
-    'api/gate'(
-      this: Context,
-      request: IncomingMessage,
-      method: string | undefined,
-      next: () => boolean | Promise<boolean>,
-    ): boolean | Promise<boolean>
-  }
-}
 
 /** Stable cordis plugin name. */
 export const name = 'remote-web-ui'
 
 /** Services required before the pairing surfaces can mount. */
-export const inject = ['webServer', 'apiProxy']
+export const inject = ['webServer', 'settings']
 
 /**
  * Settings namespace of the remote-control capability — the section the web
  * settings surface edits. Spelled here rather than imported: the browser
  * half spells the same value and must not depend on a Host package.
  */
-export const REMOTE_WEB_UI_SETTINGS_NAMESPACE = settingsNamespace('remote-web-ui')
+export const REMOTE_WEB_UI_SETTINGS_NAMESPACE = 'remote-web-ui'
 
 /** Plugin config, validated by the same-named schemastery schema. */
 export interface Config {
@@ -76,14 +61,6 @@ export interface Config {
   idleExpireMs?: number
   /** Cookie name carrying the paired device id. */
   cookieName?: string
-  /**
-   * When true (default), a desktop Web GUI opened at a non-loopback origin
-   * rides the gated `/remote/api` channel and must carry a live paired-device
-   * cookie — the QR is the only way into remote desktop, and stop() cuts
-   * paired devices off. Set false to keep the desktop on plain `/api`
-   * (only useful when that origin is already trusted for `/api`).
-   */
-  requirePairingForLan?: boolean
   /**
    * Public base URL of a tunnel in front of this server (e.g. a Cloudflare
    * Tunnel quick URL `https://xxx.trycloudflare.com` or a named-tunnel
@@ -118,7 +95,6 @@ export const Config: z<Config> = z.object({
   maxDevices: z.number().step(1).min(1).max(64).default(4),
   idleExpireMs: z.number().step(1).min(60_000).default(DEFAULT_IDLE_EXPIRE_MS),
   cookieName: z.string().min(1).default('dsh_pair'),
-  requirePairingForLan: z.boolean().default(true),
   publicBaseUrl: z.string(),
   devicesFile: z.string(),
   autoTunnel: z.boolean().default(false),
@@ -170,7 +146,6 @@ const DEFAULTS: ResolvedConfig = {
   maxDevices: 4,
   idleExpireMs: DEFAULT_IDLE_EXPIRE_MS,
   cookieName: 'dsh_pair',
-  requirePairingForLan: true,
   publicBaseUrl: undefined,
   devicesFile: defaultDevicesFile(),
   autoTunnel: false,
@@ -178,8 +153,8 @@ const DEFAULTS: ResolvedConfig = {
 }
 
 /**
- * Mount the pairing service, routes, gate listener, and presence sweep.
- * @param ctx - host plugin context carrying webServer.
+ * Mount the pairing service, routes, and presence sweep.
+ * @param ctx - host plugin context carrying webServer and settings.
  * @param config - resolved plugin config (schema defaults applied by the loader).
  */
 export const apply = mountOnce('dsh-remote-web-ui', applyImpl)
@@ -191,15 +166,14 @@ function applyImpl(ctx: Context, config?: Config): void {
     maxDevices: config?.maxDevices ?? DEFAULTS.maxDevices,
     idleExpireMs: config?.idleExpireMs ?? DEFAULTS.idleExpireMs,
     cookieName: config?.cookieName ?? DEFAULTS.cookieName,
-    requirePairingForLan: config?.requirePairingForLan ?? DEFAULTS.requirePairingForLan,
     publicBaseUrl: config?.publicBaseUrl,
     devicesFile: config?.devicesFile ?? DEFAULTS.devicesFile,
     autoTunnel: config?.autoTunnel ?? DEFAULTS.autoTunnel,
     enabled: config?.enabled ?? DEFAULTS.enabled,
   }
-  // The live source the pairing service and the gate read: the settings
-  // section once the web settings surface is served, the composition entry
-  // otherwise (installSettingsSection swaps it when the namespace registers).
+  // The live source the pairing service reads: the settings section once the
+  // web settings surface is served, the composition entry otherwise
+  // (settings.installSection swaps it when the namespace registers).
   let current: () => Config = () => config ?? {}
   const resolve = (): ResolvedConfig => {
     const value = current()
@@ -209,7 +183,6 @@ function applyImpl(ctx: Context, config?: Config): void {
       maxDevices: value.maxDevices ?? DEFAULTS.maxDevices,
       idleExpireMs: value.idleExpireMs ?? DEFAULTS.idleExpireMs,
       cookieName: value.cookieName ?? DEFAULTS.cookieName,
-      requirePairingForLan: value.requirePairingForLan ?? DEFAULTS.requirePairingForLan,
       publicBaseUrl: value.publicBaseUrl,
       devicesFile: value.devicesFile ?? DEFAULTS.devicesFile,
       autoTunnel: value.autoTunnel ?? DEFAULTS.autoTunnel,
@@ -219,11 +192,8 @@ function applyImpl(ctx: Context, config?: Config): void {
   const service = new PairingService(pairingConfigOf(resolved))
 
   // ── auto tunnel ─────────────────────────────────────────────────────────
-  // The minted public URL becomes the QR base (and the pairing fence's
-  // trusted host). A phone (non-loopback) rides the gated /remote desktop
-  // channel like any paired computer — no connection trust fence mutation is
-  // needed here (a distributable plugin must not change the harness's
-  // connection plugin).
+  // The minted public URL becomes the QR base (and the phone-facing pairing
+  // fence's trusted host).
   const tunnel = new TunnelManager()
   let autoTunnel = resolved.autoTunnel
   tunnel.onPhase((info: TunnelInfo) => {
@@ -231,7 +201,6 @@ function applyImpl(ctx: Context, config?: Config): void {
     if (info.phase === 'running' && info.url !== undefined) {
       service.setPublicBaseUrl(info.url)
       service.setTunnelStatus({ state: 'running', url: info.url })
-      runPostureProbe()
     } else if (info.phase === 'starting') {
       // A restart mints a NEW hostname: the previous URL dies with the old
       // process, so clear it now rather than advertising a dead link.
@@ -256,88 +225,23 @@ function applyImpl(ctx: Context, config?: Config): void {
   service.setLanBases(lanBases)
   const lanAddresses = lanBases.map(entry => entry.address)
 
-  // Push a committed settings section into the service and gate. The service
-  // config object is read per operation (token mint, touch, sweep), and the
-  // gate re-reads its fence flag per request, so a live edit takes effect
-  // without a restart. When `enabled` turns off, the pairing routes and
-  // sweep timer are dropped and all device/token state is revoked, but the
-  // gate listener stays mounted so a LAN-exposed /api stays behind pairing
-  // (now vetoing every non-loopback request) instead of opening the fence.
+  // Push a committed settings section into the service. The service config
+  // object is read per operation (token mint, touch, sweep), so a live edit
+  // takes effect without a restart. When `enabled` turns off, the pairing
+  // routes and sweep timer are dropped and all device/token state is revoked.
   let disposeRoutes: (() => void) | undefined
   let disposeSweep: (() => void) | undefined
-  // The pairing surface: /api/pair routes, the paired model catalog (needs
-  // the host ApiProxy service; the plugin injects it), and the gated
-  // /remote desktop channel every non-loopback device (phone or computer)
-  // rides.
-  const apiProxy = ctx.get('apiProxy')
-  if (apiProxy === undefined) {
-    console.warn('remote-web-ui: apiProxy service unavailable — the paired model catalog is disabled')
-  }
-  const routes = [
-    ...makeRoutes({ service, lanAddresses, requirePairingForLan: () => resolve().requirePairingForLan }),
-    ...(apiProxy !== undefined ? makePairedModelCatalogRoutes({ service, apiProxy, lanAddresses }) : []),
-    // The remote desktop channel: policy-gated `/remote` prefix that
-    // re-issues fenced paths to loopback (see remote-api.ts). The live
-    // requirePairingForLan is re-read per request, same as the gate listener
-    // and routes above, so a stale client rewrite on an open-LAN deployment
-    // proxies instead of 403ing.
-    ...makeRemoteApiRoutes({
-      service,
-      port: ctx.webServer.port,
-      requirePairingForLan: () => resolve().requirePairingForLan,
-    }),
-  ]
-  const upgrades = makeRemoteApiUpgradeRoutes({
-    service,
-    port: ctx.webServer.port,
-    requirePairingForLan: () => resolve().requirePairingForLan,
-  })
-  const gate = makeGateListener(service, () => resolve().requirePairingForLan, () => resolve().enabled)
-  ctx.effect(() => ctx.on('api/gate', gate), 'remote-web-ui: api gate')
+  const routes = makeRoutes({ service, lanAddresses })
 
-  // ── posture probe ─────────────────────────────────────────────────────────
-  // Guardrail for the one seam this plugin cannot mount a gate into: the
-  // connection plugin's /api Host fence. Forged-Host probes against every
-  // advertised origin (public base + LAN bases) make a re-opened /api (a
-  // re-added --trusted-host, or the SDK's LAN auto-trust under 0.0.0.0)
-  // visible on the panel and the log instead of silently trusted.
-  let postureKey: string | undefined
-  let postureWasExposed = false
-  const runPostureProbe = (): void => {
-    if (!resolve().enabled) return
-    const targets = postureTargets(service.publicBaseUrl, service.lanAddresses, ctx.webServer.port)
-    if (targets.length === 0) {
-      postureKey = undefined
-      service.setPosture(undefined)
-      return
-    }
-    const key = targets.join('|')
-    const claim = claimPostureKey(postureKey, key)
-    if (!claim.run) return
-    postureKey = claim.next
-    void probePosture({ port: ctx.webServer.port, targets }).then((snapshot) => {
-      service.setPosture(snapshot)
-      const exposedHosts = snapshot.hosts.filter(host => host.exposed).map(host => host.host)
-      const exposed = exposedHosts.length > 0
-      if (exposed && !postureWasExposed) {
-        console.error(`remote-web-ui: CRITICAL — the /api fence is OPEN for [${exposedHosts.join(', ')}]: unpaired clients reach the full host API. Remove --trusted-host for these hosts (pairing covers them) or bind loopback.`)
-      } else if (!exposed && postureWasExposed) {
-        console.log('remote-web-ui: the /api posture probe is clean again (every advertised origin refused with 403).')
-      }
-      postureWasExposed = exposed
-    }).catch(() => {
-      // Keep the previous snapshot; drop the in-flight key so the same
-      // targets retry instead of sticking on a failed round.
-      postureKey = releasePostureKey(postureKey, key)
-    })
-  }
-  // The first round waits for the connection plugin's /api route: a probe
-  // before it mounts would read the SPA fallback and false-positive.
-  const initialPostureTimer = nodeSetTimeout(() => { runPostureProbe() }, 5_000)
-  initialPostureTimer.unref()
-  ctx.effect(() => () => { clearTimeout(initialPostureTimer) }, 'remote-web-ui: posture probe boot')
-  // Sibling plugins (aionui-panel, …) look this up by name. Absent when this
-  // plugin is not installed; stop() / enabled=false still refuse cookies.
+  // Inject the crypto.randomUUID polyfill before any other script runs, so that
+  // the main bundle doesn't crash on non-secure contexts (LAN HTTP)
+  ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
+    table.push({ kind: 'script', placement: 'head', text: UUID_POLYFILL_SCRIPT })
+  }), 'remote-web-ui: uuid polyfill')
+
+  // Sibling plugins look this service up by name to recognize a live paired
+  // device (the cookie) on their own surfaces. Absent when this plugin is
+  // not installed; stop() / enabled=false still refuse cookies.
   new RemoteWebUiPairing(ctx, (request) => {
     if (!resolve().enabled) return false
     return isPairedDeviceRequest(service, request)
@@ -370,10 +274,7 @@ function applyImpl(ctx: Context, config?: Config): void {
     if (disposeRoutes === undefined && enabled) {
       disposeRoutes = ctx.effect(
         () => {
-          const disposers = [
-            ...routes.map(route => ctx.webServer.register(route)),
-            ...upgrades.map(route => ctx.webServer.registerUpgrade(route)),
-          ]
+          const disposers = routes.map(route => ctx.webServer.register(route))
           return () => { for (const dispose of disposers) dispose() }
         },
         'remote-web-ui: pairing routes',
@@ -395,38 +296,20 @@ function applyImpl(ctx: Context, config?: Config): void {
       disposeSweep()
       disposeSweep = undefined
     }
-    // Settings changed the reachable posture (manual publicBaseUrl, bind):
-    // re-probe unless the target set is unchanged.
-    runPostureProbe()
   }
-  // Inject the crypto.randomUUID polyfill before any other script runs, so that
-  // the main bundle doesn't crash on non-secure contexts (LAN HTTP)
-  ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
-    table.push({ kind: 'script', placement: 'head', text: UUID_POLYFILL_SCRIPT })
-  }), 'remote-web-ui: uuid polyfill')
+  sync()
 
-  // Issue #987: the browser-half channel patch installs at this plugin's
-  // boot entry, but dsh-client-connection boots earlier and opens its event
-  // streams unrewritten — on a non-loopback origin the SDK fence rejects
-  // them and the workspace list never loads. Contribute the rewrite as a
-  // parse-time head script so it is active before ANY boot entry runs; the
-  // client apply adopts the installed seat instead of patching twice. The
-  // row follows the live steady-state decision (enabled + pairing gate); the
-  // script itself skips loopback origins.
-  ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
-    const value = resolve()
-    if (!value.enabled || !value.requirePairingForLan) return
-    table.push({ kind: 'script', placement: 'head', text: REMOTE_CHANNEL_BOOT_SCRIPT })
-  }), 'remote-web-ui: remote channel boot patch')
-
-  installSettingsSection(ctx, REMOTE_WEB_UI_SETTINGS_NAMESPACE, Config, config ?? {}, {
+  // Push a committed settings section into the service. The service config
+  // object is read per operation, so a live edit takes effect without a
+  // restart (see sync). The settings service is an inject edge; the section
+  // install rides this plugin's fiber and is removed with it.
+  ctx.settings.installSection(ctx, REMOTE_WEB_UI_SETTINGS_NAMESPACE, Config, config ?? {}, {
     setSource: (source) => {
       current = source
       sync()
     },
     onChange: sync,
   })
-  sync()
 }
 
 /** Whether a configured public base is a parseable http(s) URL with a host. */

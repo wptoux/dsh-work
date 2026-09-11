@@ -2,27 +2,21 @@
  * Phone and desktop remote control for the dsh web GUI — host half. Mounts
  * the pairing service (one-time tokens, device sessions, revocation), the
  * /api/pair route family (issue/accept/stop/heartbeat/status/events), the
- * api/gate listener that enforces pairing on every other /api request from
- * non-loopback hosts, and the presence sweep. The browser half (the
- * `./client` entry) renders the sidebar entry, the pairing panel, and the
- * pair/accept + deep-link flow. A paired phone opens the full Web GUI like
- * a paired computer, riding the gated /remote channel.
+ * presence sweep, and the optional public-tunnel QR base. The browser half
+ * (the `./client` entry) renders the sidebar entry, the pairing panel, and
+ * the pair/accept + deep-link flow.
+ *
+ * DSH 0.1.5 adaptation: the harness's /api trust fence is declarative
+ * (`Connection` config trustedHosts + LAN literals auto-trusted from an
+ * all-interface bind) and the 0.1.1 `api/gate` per-request veto seam no
+ * longer exists. Pairing is therefore identity/recognition: this plugin owns
+ * its /api/pair surfaces and exposes the live paired-cookie predicate to
+ * sibling plugins (RemoteWebUiPairing), but it does not veto the harness's
+ * own /api dispatch.
  */
-import type { IncomingMessage } from 'node:http';
 import type { Context } from '@deepseek-ai/cordis';
 import z from 'schemastery';
 import { type PairingConfig } from './pairing.ts';
-declare module '@deepseek-ai/cordis' {
-    interface Events {
-        /**
-         * Waterfall seam on the /api transport fence: the connection plugin
-         * fires this per /api request before bridging to the API proxy on
-         * deployments that carry the pairing/revocation seam; call `next()` to
-         * delegate, return false (without calling it) to veto with 403.
-         */
-        'api/gate'(this: Context, request: IncomingMessage, method: string | undefined, next: () => boolean | Promise<boolean>): boolean | Promise<boolean>;
-    }
-}
 /** Stable cordis plugin name. */
 export declare const name = "remote-web-ui";
 /** Services required before the pairing surfaces can mount. */
@@ -32,7 +26,7 @@ export declare const inject: string[];
  * settings surface edits. Spelled here rather than imported: the browser
  * half spells the same value and must not depend on a Host package.
  */
-export declare const REMOTE_WEB_UI_SETTINGS_NAMESPACE: import("@deepseek-ai/dsh-settings").SettingsNamespace;
+export declare const REMOTE_WEB_UI_SETTINGS_NAMESPACE = "remote-web-ui";
 /** Plugin config, validated by the same-named schemastery schema. */
 export interface Config {
     /** Token lifetime in ms; the QR link dies after this. */
@@ -48,14 +42,6 @@ export interface Config {
     idleExpireMs?: number;
     /** Cookie name carrying the paired device id. */
     cookieName?: string;
-    /**
-     * When true (default), a desktop Web GUI opened at a non-loopback origin
-     * rides the gated `/remote/api` channel and must carry a live paired-device
-     * cookie — the QR is the only way into remote desktop, and stop() cuts
-     * paired devices off. Set false to keep the desktop on plain `/api`
-     * (only useful when that origin is already trusted for `/api`).
-     */
-    requirePairingForLan?: boolean;
     /**
      * Public base URL of a tunnel in front of this server (e.g. a Cloudflare
      * Tunnel quick URL `https://xxx.trycloudflare.com` or a named-tunnel
@@ -103,8 +89,8 @@ export declare function pairingConfigOf(resolved: Pick<ResolvedConfig, 'tokenTtl
 /** Default paired-session store: `$DSH_HOME/remote-web-ui-devices.json`. */
 export declare function defaultDevicesFile(home?: string): string;
 /**
- * Mount the pairing service, routes, gate listener, and presence sweep.
- * @param ctx - host plugin context carrying webServer.
+ * Mount the pairing service, routes, and presence sweep.
+ * @param ctx - host plugin context carrying webServer and settings.
  * @param config - resolved plugin config (schema defaults applied by the loader).
  */
 export declare const apply: typeof applyImpl;

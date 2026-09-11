@@ -6,5 +6,5 @@ import { RemoteEntry } from "./RemoteEntry.js";
  * @returns the entry element tree.
  */
 export function FooterRemoteEntry(props) {
-    return (_jsx(RemoteEntry, { wide: props.wide, useWorkspaces: () => undefined, useSessions: () => undefined, t: props.t }));
+    return (_jsx(RemoteEntry, { wide: props.wide, t: props.t }));
 }

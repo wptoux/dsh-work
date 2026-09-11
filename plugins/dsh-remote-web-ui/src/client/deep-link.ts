@@ -12,7 +12,9 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { IWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import { acceptPair, readPairParams } from './pair-api.ts'
 
 /** sessionStorage key for the failed-pair notice. */
@@ -92,11 +94,12 @@ async function runAccept(token: string, page: PageSurface): Promise<void> {
 }
 
 /**
- * Connect the deep-linked workspace and open its session. Waits for the
+ * Deep-link the target workspace and open its session. Waits for the
  * runtime services AND for the target workspace to appear in the workspace
- * list (both are asynchronous after boot), then connects and opens; gives
- * up silently within the budget — the workspace param is stripped either
- * way, so a late failure cannot loop.
+ * list (both are asynchronous after boot), then creates-or-adopts the
+ * workspace's blank session and selects it; gives up silently within the
+ * budget — the workspace param is stripped either way, so a late failure
+ * cannot loop.
  * @param ctx - client root context.
  * @param workspaceId - the target workspace.
  * @param page - the page surface.
@@ -105,16 +108,15 @@ async function runDeepLink(ctx: Context, workspaceId: string, page: PageSurface)
   const target = workspaceId as WorkspaceId
   const deadline = Date.now() + SERVICE_WAIT_MS
   while (Date.now() < deadline) {
-    const workspaces = ctx.get('workspaces')
-    const sessions = ctx.get('sessions') as { open(id: string): void } | undefined
+    const workspaces = ctx.get('workspaces') as IWorkspaces | undefined
+    const sessions = ctx.get('sessions') as ISessions | undefined
     if (workspaces !== undefined && sessions !== undefined) {
       const items = workspaces.list.getSnapshot().items
       if (items.some(item => item.workspaceId === target)) {
         try {
-          // Open unconditionally: a host-side "current" session may already
-          // exist (multi-client mirroring), but the QR's workspace target is
-          // explicit user intent and must win.
-          const sessionId = await workspaces.connectWorkspace(target)
+          // Create-or-adopt the workspace's blank session, then select it.
+          // The QR's workspace target is explicit user intent and must win.
+          const sessionId = await sessions.create({ workspaceId: target })
           sessions.open(sessionId)
         } catch {
           // Unknown workspace or a failed connect: fall through to the

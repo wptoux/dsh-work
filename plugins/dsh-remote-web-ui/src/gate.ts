@@ -1,28 +1,15 @@
 /**
- * The `api/gate` listener: application-level access control layered on top
- * of the transport fence (the fence is Host/Origin based and explicitly not
- * an authentication layer — packages/client/connection documents this
- * event as the sanctioned seam for pairing/revocation).
- *
- * Policy: loopback requests (the desktop) pass without a device identity;
- * every non-loopback /api request must carry a live, non-revoked device
- * cookie. This makes the QR the only way into a LAN-exposed dsh web and
- * gives "停止" real teeth: revoked devices 403 on their next request,
- * including the mux/SSE stream (which then dies on reconnect).
+ * Request-gating helpers for the pairing surfaces: loopback classification,
+ * cookie reads, and the live paired-device predicate. The 0.1.1 `api/gate`
+ * waterfall (a per-request veto inside the connection plugin's /api bridge)
+ * does not exist in DSH 0.1.5 — the harness /api trust fence is declarative
+ * (Connection trustedHosts + LAN literals) — so these helpers now serve the
+ * plugin's own /api/pair surfaces and the RemoteWebUiPairing service only.
  */
 
 import type { IncomingMessage } from 'node:http'
 import type { PairingService } from './pairing.ts'
 import { isLoopbackAddress, isLoopbackHostname } from './loopback.ts'
-
-/**
- * Loopback classification for the desktop client. The predicates now live in
- * the shared synced copy (shared/host/loopback.ts, mirrored to ./loopback.ts
- * by scripts/sync-shared.mjs): localhost, IPv6 loopback, and any IPv4 address
- * in 127/8.
- * @param hostname - WHATWG URL hostname (IPv6 literals retain brackets).
- * @returns true for localhost, IPv6 loopback, or any IPv4 address in 127/8.
- */
 
 /**
  * Read one cookie value from a Cookie header.
@@ -65,43 +52,9 @@ export function isLoopbackClient(request: IncomingMessage): boolean {
 }
 
 /**
- * Build the api/gate listener for one pairing service.
- * @param service - the pairing service.
- * @param requirePairingForLan - when false, non-loopback requests pass
- * without a device cookie (the feature then only manages tokens/status;
- * revocation of paired devices still holds). A function is re-read per
- * request, so a settings edit takes effect without a restart. Defaults to true.
- * @param enabled - when false, every non-loopback request is vetoed while
- * loopback stays available. A function is re-read per request so the fence
- * stays mounted for the plugin lifetime and disabling the plugin cannot open
- * a LAN-exposed /api. Defaults to true.
- * @returns the cordis waterfall listener: call `next()` to delegate,
- * return false (without calling it) to veto with 403.
- */
-export function makeGateListener(
-  service: PairingService,
-  requirePairingForLan: boolean | (() => boolean) = true,
-  enabled: boolean | (() => boolean) = true,
-): (request: IncomingMessage, method: string | undefined, next: () => boolean | Promise<boolean>) => boolean | Promise<boolean> {
-  return (request, _method, next) => {
-    // Loopback clients (desktop at 127.0.0.1) always pass without cookie check.
-    if (isLoopbackClient(request)) return next()
-    const active = typeof enabled === 'function' ? enabled() : enabled
-    if (!active) return false
-    const require = typeof requirePairingForLan === 'function' ? requirePairingForLan() : requirePairingForLan
-    // When pairing is not required for LAN, non-loopback requests pass too.
-    if (!require) return next()
-    // Non-loopback origin: verify paired-device cookie. Sibling plugins that
-    // own their own prefixes (/pet, /git, /sidebar, …) consult the same cookie
-    // through the remoteWebUiPairing service — this listener only covers /api.
-    return isPairedDeviceRequest(service, request) ? next() : false
-  }
-}
-
-/**
  * Whether a request carries a live, non-revoked paired-device cookie for
- * this service. Sibling host routes outside /api (aionui-panel, etc.) use
- * the same check via the remoteWebUiPairing service.
+ * the given service. Sibling host routes and the RemoteWebUiPairing service
+ * use this check to recognize a paired device on their own surfaces.
  * @param service - the pairing service that owns the device table.
  * @param request - the incoming HTTP request.
  * @returns true when the cookie names a live session (and lastSeenAt was refreshed).

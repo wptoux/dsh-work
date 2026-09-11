@@ -98,11 +98,13 @@ describe('runPairBootFlow', () => {
         if (name === 'workspaces') {
           return {
             list: { getSnapshot: () => ({ items: [{ workspaceId: 'ws-7' }] }) },
-            connectWorkspace: async (id: string) => { opened.push(id); return 'session-9' },
           }
         }
         if (name === 'sessions') {
-          return { list: { getSnapshot: () => ({ current: undefined }) }, open: (id: string) => { opened.push(id) } }
+          return {
+            create: async ({ workspaceId }: { workspaceId: string }) => { opened.push(workspaceId); return 'session-9' },
+            open: (id: string) => { opened.push(id) },
+          }
         }
         return undefined
       },
@@ -112,7 +114,7 @@ describe('runPairBootFlow', () => {
     await vi.waitFor(() => expect(replaceState).toHaveBeenCalledWith('/'))
   })
 
-  it('waits for the target workspace to appear in the list before connecting', async () => {
+  it('waits for the target workspace to appear in the list before creating', async () => {
     const { page, replaceState } = fakePage('?workspace=ws-7')
     const opened: string[] = []
     let items: Array<{ workspaceId: string }> = []
@@ -121,11 +123,13 @@ describe('runPairBootFlow', () => {
         if (name === 'workspaces') {
           return {
             list: { getSnapshot: () => ({ items }) },
-            connectWorkspace: async (id: string) => { opened.push(id); return 'session-9' },
           }
         }
         if (name === 'sessions') {
-          return { list: { getSnapshot: () => ({ current: undefined }) }, open: (id: string) => { opened.push(id) } }
+          return {
+            create: async ({ workspaceId }: { workspaceId: string }) => { opened.push(workspaceId); return 'session-9' },
+            open: (id: string) => { opened.push(id) },
+          }
         }
         return undefined
       },

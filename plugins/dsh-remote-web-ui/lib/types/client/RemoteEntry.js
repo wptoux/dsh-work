@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 /**
- * The sidebar remote-control seat: the phone-icon trigger beside the
+ * The sidebar remote-control entry: the phone-icon trigger beside the
  * settings button, and the pairing panel modal. Owns the panel behavior —
  * token minting on open, the status SSE subscription, stop/refresh/copy —
  * and renders the pure {@link RemotePanel} body. Component-local state per
@@ -33,7 +33,6 @@ function mergeFrame(state, frame) {
         onlineCount: frame.onlineCount,
         devices: frame.devices ?? [],
         ...(frame.tunnel !== undefined ? { tunnel: frame.tunnel } : {}),
-        ...(frame.posture !== undefined ? { posture: frame.posture } : {}),
     };
 }
 /**
@@ -41,7 +40,7 @@ function mergeFrame(state, frame) {
  * @param props - composed slot props (contract in this package).
  * @returns the entry element tree.
  */
-export function RemoteEntry({ wide, useWorkspaces, t }) {
+export function RemoteEntry({ wide, t }) {
     const [open, setOpen] = useState(false);
     const [state, setState] = useState({ kind: 'lan-required' });
     // Latest-state mirror for the EventSource callback: transition detection
@@ -55,9 +54,6 @@ export function RemoteEntry({ wide, useWorkspaces, t }) {
     // bumps it, so an in-flight issue() that resolves after a close does not
     // spawn a stray EventSource.
     const openSeq = useRef(0);
-    // The current workspace (the recent-workspace projection the shell's New
-    // Session flow targets) — the deep-link target for the phone.
-    const workspaceId = useWorkspaces(s => s.recentWorkspaceId);
     const closeEventSource = useCallback(() => {
         eventSource.current?.close();
         eventSource.current = undefined;
@@ -65,7 +61,7 @@ export function RemoteEntry({ wide, useWorkspaces, t }) {
     const mint = useCallback(async (address) => {
         let result;
         try {
-            result = await issuePair(workspaceId, address);
+            result = await issuePair(address);
         }
         catch {
             // Fetch/network failure: show an explicit state instead of silently
@@ -100,7 +96,7 @@ export function RemoteEntry({ wide, useWorkspaces, t }) {
             address: address ?? result.lanAddresses[0] ?? '',
             lanAddresses: result.lanAddresses,
         };
-    }, [workspaceId]);
+    }, []);
     const openPanel = useCallback(async () => {
         const seq = ++openSeq.current;
         setOpen(true);

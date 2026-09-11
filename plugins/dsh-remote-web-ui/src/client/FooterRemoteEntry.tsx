@@ -1,12 +1,11 @@
 /**
  * Sidebar footer-seat wrapper for the remote-control entry.
  *
- * Current dsh web shells declare `sidebar.footer.action` (the seat beside the
- * settings trigger) instead of the legacy `sidebar.remote` seat this plugin
- * was written against. The footer seat supplies `{ wide }` but not the
- * `useWorkspaces` projection hook, so this wrapper substitutes a
- * workspace-agnostic selector: pairing without a deep-linked workspace is
- * fully supported by the host `/api/pair` routes.
+ * The dsh web shell's `sidebar.footer.action` seat (beside the settings
+ * trigger) supplies only the column state `{ wide }` plus the standard locale
+ * seat. Pairing is workspace-agnostic: the minted QR carries no workspace
+ * target (DSH 0.1.5 removed the recent-workspace projection), and the host
+ * `/api/pair` routes fully support that.
  */
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { RemoteEntry } from './RemoteEntry.tsx'
@@ -23,8 +22,6 @@ export function FooterRemoteEntry(props: FooterRemoteEntryProps) {
   return (
     <RemoteEntry
       wide={props.wide}
-      useWorkspaces={() => undefined as never}
-      useSessions={() => undefined as never}
       t={props.t}
     />
   )

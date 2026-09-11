@@ -30,12 +30,6 @@ export interface IssueLoopbackRequired {
     code: 'forbidden';
 }
 export type IssueResponse = IssueResult | IssueLanRequired | IssueUnknownAddress | IssueLoopbackRequired;
-/** Public policy fields returned by the pairing status endpoint. */
-export interface PairGatePolicy {
-    requirePairingForLan: boolean;
-}
-/** Read the host-authoritative desktop pairing policy. */
-export declare function readPairGatePolicy(): Promise<PairGatePolicy>;
 /** accept() refusal codes. */
 export type AcceptFailure = {
     ok: false;
@@ -46,14 +40,6 @@ export interface TunnelStatusFrame {
     state: 'starting' | 'running' | 'failed';
     url?: string;
     error?: string;
-}
-/** One /api posture frame (host half probe; see src/posture.ts). */
-export interface PostureFrame {
-    checkedAt: number;
-    hosts: {
-        host: string;
-        exposed: boolean;
-    }[];
 }
 /** One /api/pair/events frame. */
 export interface PairStateFrame {
@@ -68,8 +54,6 @@ export interface PairStateFrame {
     devices?: DeviceFrame[];
     /** Auto-tunnel status, while the auto-tunnel feature is active. */
     tunnel?: TunnelStatusFrame;
-    /** Latest /api fence posture probe, once a round has completed. */
-    posture?: PostureFrame;
 }
 /** One authorized-device row from the loopback status stream. */
 export interface DeviceFrame {
@@ -82,7 +66,6 @@ export interface DeviceFrame {
 /**
  * Mint a fresh pairing token (one active token at a time — this invalidates
  * any previous link).
- * @param workspaceId - optional current workspace to deep-link the phone into.
  * @param address - optional LAN IP literal the QR must be built from (the
  * default is the first interface); unknown literals refuse with
  * 'unknown-address'.
@@ -90,7 +73,7 @@ export interface DeviceFrame {
  * 0.0.0.0), or the forbidden refusal (the loopback-only fence rejected this
  * origin — the panel is a desktop control endpoint).
  */
-export declare function issuePair(workspaceId?: string, address?: string): Promise<IssueResponse>;
+export declare function issuePair(address?: string): Promise<IssueResponse>;
 /**
  * Accept a pairing token (the phone's first open of the QR link). Success
  * sets the device cookie; the page then reloads to boot with it.

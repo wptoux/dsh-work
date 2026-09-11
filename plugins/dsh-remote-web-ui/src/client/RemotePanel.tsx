@@ -15,7 +15,6 @@ import {
   formatClock,
   formatLastSeen,
   type DeviceFrame,
-  type PostureFrame,
   type TunnelStatusFrame,
 } from './pair-api.ts'
 import { deviceNameFromUserAgent } from './device-name.ts'
@@ -46,8 +45,6 @@ export type PanelState =
       publicBaseUrl?: string
       /** Auto-tunnel status, while the auto-tunnel feature is active. */
       tunnel?: TunnelStatusFrame
-      /** Latest /api posture probe, once a round has completed. */
-      posture?: PostureFrame
     }
 
 /** Full panel props: copy + view state + actions. */
@@ -116,14 +113,6 @@ export function RemotePanel({ t, state, copied, onClose, onStop, onRefresh, onCo
         </div>
       ) : (
         <>
-          {state.posture !== undefined && state.posture.hosts.some(host => host.exposed) && (
-            <div className={css.banner} role="alert">
-              <p className={css.bannerTitle}>{t('posture.exposed')}</p>
-              <p className={css.bannerHint}>
-                {t('posture.exposedHint', { hosts: state.posture.hosts.filter(host => host.exposed).map(host => host.host).join(', ') })}
-              </p>
-            </div>
-          )}
           <div className={css.card}>
             <div className={css.cardHeader}>
               <span className={css.cardTitle}>{t('card.title')}</span>

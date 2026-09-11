@@ -70,11 +70,12 @@ async function runAccept(token, page) {
     }
 }
 /**
- * Connect the deep-linked workspace and open its session. Waits for the
+ * Deep-link the target workspace and open its session. Waits for the
  * runtime services AND for the target workspace to appear in the workspace
- * list (both are asynchronous after boot), then connects and opens; gives
- * up silently within the budget — the workspace param is stripped either
- * way, so a late failure cannot loop.
+ * list (both are asynchronous after boot), then creates-or-adopts the
+ * workspace's blank session and selects it; gives up silently within the
+ * budget — the workspace param is stripped either way, so a late failure
+ * cannot loop.
  * @param ctx - client root context.
  * @param workspaceId - the target workspace.
  * @param page - the page surface.
@@ -89,10 +90,9 @@ async function runDeepLink(ctx, workspaceId, page) {
             const items = workspaces.list.getSnapshot().items;
             if (items.some(item => item.workspaceId === target)) {
                 try {
-                    // Open unconditionally: a host-side "current" session may already
-                    // exist (multi-client mirroring), but the QR's workspace target is
-                    // explicit user intent and must win.
-                    const sessionId = await workspaces.connectWorkspace(target);
+                    // Create-or-adopt the workspace's blank session, then select it.
+                    // The QR's workspace target is explicit user intent and must win.
+                    const sessionId = await sessions.create({ workspaceId: target });
                     sessions.open(sessionId);
                 }
                 catch {

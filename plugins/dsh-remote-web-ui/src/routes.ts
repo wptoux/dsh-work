@@ -186,8 +186,6 @@ export interface PairRoutesDeps {
   service: PairingService
   /** The LAN IP literals the fence accepts (derived from the bind host). */
   lanAddresses: readonly string[]
-  /** Current desktop gate policy, re-read for every status response. */
-  requirePairingForLan?: boolean | (() => boolean)
 }
 
 /**
@@ -196,10 +194,7 @@ export interface PairRoutesDeps {
  * @returns the exact routes to register on webServer.
  */
 export function makeRoutes(deps: PairRoutesDeps): WebRoute[] {
-  const { service, lanAddresses, requirePairingForLan = true } = deps
-  const pairingRequired = (): boolean => typeof requirePairingForLan === 'function'
-    ? requirePairingForLan()
-    : requirePairingForLan
+  const { service, lanAddresses } = deps
   const events = new PairingEventsStream(service)
 
   /** Loopback-only fence: the desktop panel's control endpoints. */
@@ -401,7 +396,7 @@ export function makeRoutes(deps: PairRoutesDeps): WebRoute[] {
     const visible = paired
       ? rest
       : { phase: snapshot.phase, lanAvailable: snapshot.lanAvailable, lanAddresses: snapshot.lanAddresses }
-    writeJson(res, 200, { ok: true, paired, requirePairingForLan: pairingRequired(), ...visible })
+    writeJson(res, 200, { ok: true, paired, ...visible })
   }
 
   const handleEvents = (req: IncomingMessage, res: ServerResponse): void => {

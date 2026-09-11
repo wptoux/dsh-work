@@ -174,10 +174,7 @@ export class PairingEventsStream {
  * @returns the exact routes to register on webServer.
  */
 export function makeRoutes(deps) {
-    const { service, lanAddresses, requirePairingForLan = true } = deps;
-    const pairingRequired = () => typeof requirePairingForLan === 'function'
-        ? requirePairingForLan()
-        : requirePairingForLan;
+    const { service, lanAddresses } = deps;
     const events = new PairingEventsStream(service);
     /** Loopback-only fence: the desktop panel's control endpoints. */
     const loopbackFence = (req) => isTrustedApiRequest(req, []);
@@ -380,7 +377,7 @@ export function makeRoutes(deps) {
         const visible = paired
             ? rest
             : { phase: snapshot.phase, lanAvailable: snapshot.lanAvailable, lanAddresses: snapshot.lanAddresses };
-        writeJson(res, 200, { ok: true, paired, requirePairingForLan: pairingRequired(), ...visible });
+        writeJson(res, 200, { ok: true, paired, ...visible });
     };
     const handleEvents = (req, res) => {
         if (!requireMethod(req, res, 'GET'))

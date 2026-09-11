@@ -36,22 +36,6 @@ export interface IssueLoopbackRequired {
 
 export type IssueResponse = IssueResult | IssueLanRequired | IssueUnknownAddress | IssueLoopbackRequired
 
-/** Public policy fields returned by the pairing status endpoint. */
-export interface PairGatePolicy {
-  requirePairingForLan: boolean
-}
-
-/** Read the host-authoritative desktop pairing policy. */
-export async function readPairGatePolicy(): Promise<PairGatePolicy> {
-  const response = await fetch('/api/pair/status')
-  if (!response.ok) throw new Error(`remote-web-ui: status failed with ${String(response.status)}`)
-  const value = await response.json() as { requirePairingForLan?: unknown }
-  if (typeof value.requirePairingForLan !== 'boolean') {
-    throw new Error('remote-web-ui: status omitted requirePairingForLan')
-  }
-  return { requirePairingForLan: value.requirePairingForLan }
-}
-
 /** accept() refusal codes. */
 export type AcceptFailure = { ok: false; code: 'invalid' | 'used' | 'forbidden' }
 
@@ -60,12 +44,6 @@ export interface TunnelStatusFrame {
   state: 'starting' | 'running' | 'failed'
   url?: string
   error?: string
-}
-
-/** One /api posture frame (host half probe; see src/posture.ts). */
-export interface PostureFrame {
-  checkedAt: number
-  hosts: { host: string; exposed: boolean }[]
 }
 
 /** One /api/pair/events frame. */
@@ -81,8 +59,6 @@ export interface PairStateFrame {
   devices?: DeviceFrame[]
   /** Auto-tunnel status, while the auto-tunnel feature is active. */
   tunnel?: TunnelStatusFrame
-  /** Latest /api fence posture probe, once a round has completed. */
-  posture?: PostureFrame
 }
 
 /** One authorized-device row from the loopback status stream. */
@@ -97,7 +73,6 @@ export interface DeviceFrame {
 /**
  * Mint a fresh pairing token (one active token at a time — this invalidates
  * any previous link).
- * @param workspaceId - optional current workspace to deep-link the phone into.
  * @param address - optional LAN IP literal the QR must be built from (the
  * default is the first interface); unknown literals refuse with
  * 'unknown-address'.
@@ -105,12 +80,11 @@ export interface DeviceFrame {
  * 0.0.0.0), or the forbidden refusal (the loopback-only fence rejected this
  * origin — the panel is a desktop control endpoint).
  */
-export async function issuePair(workspaceId?: string, address?: string): Promise<IssueResponse> {
+export async function issuePair(address?: string): Promise<IssueResponse> {
   const response = await fetch('/api/pair/issue', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      ...(workspaceId !== undefined ? { workspaceId } : {}),
       ...(address !== undefined ? { address } : {}),
     }),
   })

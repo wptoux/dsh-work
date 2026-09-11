@@ -32,7 +32,7 @@ window.__ModuleLoader__.load({
 		let react_dom = require("react-dom");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_jsx_runtime = require("react/jsx-runtime");
-		let _deepseek_ai_dsh_client_runtime_client = require("@deepseek-ai/dsh-client-runtime/client");
+		let _deepseek_ai_dsh_client_store = require("@deepseek-ai/dsh-client-store");
 		//#region node_modules/.pnpm/clsx@2.1.1/node_modules/clsx/dist/clsx.mjs
 		function r(e) {
 			var t, f, n = "";
@@ -834,8 +834,8 @@ window.__ModuleLoader__.load({
 				static makeAlphanumeric(text) {
 					if (!_QrSegment.isAlphanumeric(text)) throw new RangeError("String contains unencodable characters in alphanumeric mode");
 					let bb = [];
-					let i;
-					for (i = 0; i + 2 <= text.length; i += 2) {
+					let i = 0;
+					for (; i + 2 <= text.length; i += 2) {
 						let temp = _QrSegment.ALPHANUMERIC_CHARSET.indexOf(text.charAt(i)) * 45;
 						temp += _QrSegment.ALPHANUMERIC_CHARSET.indexOf(text.charAt(i + 1));
 						appendBits(temp, 11, bb);
@@ -1230,18 +1230,9 @@ window.__ModuleLoader__.load({
 		QRCodeSVG.displayName = "QRCodeSVG";
 		//#endregion
 		//#region src/client/pair-api.ts
-		/** Read the host-authoritative desktop pairing policy. */
-		async function readPairGatePolicy() {
-			const response = await fetch("/api/pair/status");
-			if (!response.ok) throw new Error(`remote-web-ui: status failed with ${String(response.status)}`);
-			const value = await response.json();
-			if (typeof value.requirePairingForLan !== "boolean") throw new Error("remote-web-ui: status omitted requirePairingForLan");
-			return { requirePairingForLan: value.requirePairingForLan };
-		}
 		/**
 		* Mint a fresh pairing token (one active token at a time — this invalidates
 		* any previous link).
-		* @param workspaceId - optional current workspace to deep-link the phone into.
 		* @param address - optional LAN IP literal the QR must be built from (the
 		* default is the first interface); unknown literals refuse with
 		* 'unknown-address'.
@@ -1249,14 +1240,11 @@ window.__ModuleLoader__.load({
 		* 0.0.0.0), or the forbidden refusal (the loopback-only fence rejected this
 		* origin — the panel is a desktop control endpoint).
 		*/
-		async function issuePair(workspaceId, address) {
+		async function issuePair(address) {
 			const response = await fetch("/api/pair/issue", {
 				method: "POST",
 				headers: { "content-type": "application/json" },
-				body: JSON.stringify({
-					...workspaceId !== void 0 ? { workspaceId } : {},
-					...address !== void 0 ? { address } : {}
-				})
+				body: JSON.stringify({ ...address !== void 0 ? { address } : {} })
 			});
 			if (!response.ok) {
 				if (response.status === 409) return {
@@ -1380,7 +1368,7 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/remote.module.css.mjs
-		const css$1 = ".XaorOW_overlay{z-index:1000;justify-content:center;align-items:center;display:flex;position:fixed;inset:0}.XaorOW_mask{background:var(--dsw-alias-bg-mask-1);backdrop-filter:var(--dsw-mask-blur);position:absolute;inset:0}.XaorOW_trigger{width:36px;height:36px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;transition:background-color .12s,color .12s,box-shadow .12s;display:inline-flex;position:relative}.XaorOW_trigger[data-update-available]:after{box-sizing:border-box;border:2px solid var(--dsw-alias-bg-layer-1);background:var(--dsw-alias-brand-primary);content:\"\";pointer-events:none;border-radius:50%;width:8px;height:8px;position:absolute;top:4px;right:4px}.XaorOW_trigger[data-wide=wide]{border-radius:8px;flex:auto;justify-content:flex-start;gap:8px;width:auto;min-width:0;padding:0 10px}.XaorOW_trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.XaorOW_trigger:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.XaorOW_trigger:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}.XaorOW_trigger:disabled{opacity:.5;cursor:default}.XaorOW_panel{z-index:1;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);width:560px;max-width:calc(100vw - 48px);max-height:calc(100vh - 48px);box-shadow:var(--dsw-shadow-lv3);color:var(--dsw-alias-label-primary);border-radius:24px;flex-direction:column;gap:14px;padding:24px;font-size:14px;line-height:22px;display:flex;position:relative;overflow:auto}.XaorOW_header{align-items:flex-start;gap:12px;display:flex}.XaorOW_heading{flex:1;min-width:0}.XaorOW_title{margin:0;font-size:18px;font-weight:600;line-height:26px}.XaorOW_subtitle{color:var(--dsw-alias-label-secondary);margin:4px 0 0;font-size:13px}.XaorOW_close{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;transition:background-color .12s,color .12s,box-shadow .12s;display:inline-flex}.XaorOW_close:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_close:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.XaorOW_close:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}.XaorOW_close:disabled{opacity:.5;cursor:default}.XaorOW_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:16px;flex-direction:column;align-items:center;gap:12px;padding:16px;display:flex}.XaorOW_cardHeader{justify-content:space-between;align-items:center;gap:12px;width:100%;display:flex}.XaorOW_cardTitle{font-weight:500}.XaorOW_badge{white-space:nowrap;border-radius:999px;flex:none;align-items:center;gap:6px;min-width:0;padding:2px 10px;font-size:12px;line-height:18px;display:inline-flex}.XaorOW_badge:before{content:\"\";background:currentColor;border-radius:50%;width:8px;height:8px}.XaorOW_badge-waiting{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badge-connected{color:var(--dsw-alias-state-success-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badge-disconnected{color:var(--dsw-alias-state-warn-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badge-stopped{color:var(--dsw-alias-state-error-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badgePublic{color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badges{flex:none;align-items:center;gap:6px;display:inline-flex}.XaorOW_qrWrap{background:var(--dsw-alias-bg-base);border-radius:12px;justify-content:center;align-items:center;padding:12px;display:flex}.XaorOW_qr{display:block}.XaorOW_expired{color:var(--dsw-alias-state-error-primary);margin:0;font-size:13px}.XaorOW_expiry{color:var(--dsw-alias-label-secondary);margin:0;font-size:12px}.XaorOW_hint{color:var(--dsw-alias-label-secondary);margin:0;font-size:13px}.XaorOW_link{text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-caption);font-family:var(--dsw-font-mono,ui-monospace, monospace);margin:0;font-size:12px;display:block;overflow:hidden}.XaorOW_pairLinks{flex-direction:column;gap:8px;display:flex}.XaorOW_pairLinkRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;align-items:center;gap:10px;min-width:0;padding:10px 12px;display:flex}.XaorOW_pairLinkText{flex:1;min-width:0}.XaorOW_pairLinkLabel{color:var(--dsw-alias-label-secondary);margin-bottom:3px;font-size:12px;display:block}.XaorOW_copyLink{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-button-elevated-fill);min-height:30px;color:var(--dsw-alias-label-primary);cursor:pointer;border-radius:8px;flex:none;align-items:center;gap:5px;padding:0 10px;display:inline-flex}.XaorOW_oneTimeHint{color:var(--dsw-alias-label-caption);margin:0;font-size:12px}.XaorOW_stoppedHint{color:var(--dsw-alias-state-error-primary);margin:0;font-size:13px}.XaorOW_tunnelNote{color:var(--dsw-alias-label-secondary);margin:0;font-size:13px}.XaorOW_tunnelFailed{color:var(--dsw-alias-state-error-primary);margin:0;font-size:13px}.XaorOW_actions{gap:8px;display:flex}.XaorOW_action{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-button-elevated-fill);height:34px;color:var(--dsw-alias-label-primary);cursor:pointer;white-space:nowrap;border-radius:10px;justify-content:center;align-items:center;gap:6px;padding:0 14px;font-size:13px;transition:background-color .12s,border-color .12s,box-shadow .12s;display:inline-flex}.XaorOW_action:hover:not(:disabled){background:var(--dsw-alias-button-floating-hover)}.XaorOW_action:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.XaorOW_action:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}.XaorOW_action:disabled{opacity:.5;cursor:default}.XaorOW_banner{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:16px;padding:16px}.XaorOW_bannerTitle{color:var(--dsw-alias-state-warn-primary);margin:0;font-weight:500}.XaorOW_bannerHint{color:var(--dsw-alias-label-secondary);margin:6px 0 0;font-size:13px}.XaorOW_fencePage{z-index:2000;box-sizing:border-box;background:var(--dsw-alias-bg-base);text-align:center;flex-direction:column;justify-content:center;align-items:center;padding:40px 24px;display:flex;position:fixed;inset:0;overflow:auto}.XaorOW_fenceCard{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);width:min(520px,100%);box-shadow:var(--dsw-shadow-lv3);text-align:center;border-radius:20px;margin-inline:auto;padding:36px 40px}.XaorOW_fenceMark{background:var(--dsw-alias-state-error-secondary);width:44px;height:44px;color:var(--dsw-alias-state-error-primary);border-radius:50%;place-items:center;margin-inline:auto;font-size:24px;line-height:1;display:grid}.XaorOW_fenceEyebrow{color:var(--dsw-alias-state-error-primary);margin:22px 0 8px;font-size:13px;font-weight:600}.XaorOW_fenceTitle{color:var(--dsw-alias-label-primary);margin:0;font-size:24px;line-height:1.35}.XaorOW_fenceDetail{color:var(--dsw-alias-label-secondary);margin:12px 0 0;font-size:14px;line-height:1.65}.XaorOW_fenceSteps{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);text-align:left;border-radius:12px;margin:24px auto 0;padding:20px 20px 20px 42px;font-size:14px;line-height:1.65}.XaorOW_fenceSteps li+li{margin-top:8px}.XaorOW_fenceRetry{border:1px solid var(--dsw-alias-brand-primary);background:var(--dsw-alias-brand-primary);color:#fff;width:100%;font:inherit;cursor:pointer;border-radius:10px;margin-top:24px;padding:11px 16px;font-weight:500}.XaorOW_fenceRetry:hover{filter:brightness(.96)}.XaorOW_fenceRetry:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:3px}.XaorOW_fenceFootnote{color:var(--dsw-alias-label-tertiary);margin:14px 0 0;font-size:12px;line-height:1.55}.XaorOW_addresses{border:none;margin:12px 0 0;padding:0}.XaorOW_addresses legend{color:var(--dsw-alias-label-secondary);padding:0;font-size:13px}.XaorOW_address{color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;cursor:pointer;border-radius:6px;align-items:center;gap:8px;margin-top:6px;padding:4px 6px;font-size:13px;transition:background-color .12s;display:flex}.XaorOW_address:hover{background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_address input:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);border-radius:50%;outline:none}.XaorOW_addressValue{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--dsw-alias-label-secondary);flex:1;font-size:12px;overflow:hidden}.XaorOW_addressHint{color:var(--dsw-alias-label-tertiary);margin:6px 0 0;font-size:12px}.XaorOW_devices{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:16px;flex-direction:column;gap:8px;padding:12px 16px 14px;display:flex}.XaorOW_devicesTitle{margin:0;font-size:13px;font-weight:500;line-height:20px}.XaorOW_devicesEmpty{color:var(--dsw-alias-label-secondary);margin:0;font-size:13px}.XaorOW_deviceList{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.XaorOW_deviceRow{justify-content:space-between;align-items:flex-start;gap:12px;display:flex}.XaorOW_deviceMeta{flex-direction:column;gap:2px;min-width:0;display:flex}.XaorOW_deviceName{text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500;overflow:hidden}.XaorOW_devicePresence{font-size:12px;line-height:18px}.XaorOW_deviceOnline{color:var(--dsw-alias-state-success-primary)}.XaorOW_deviceOffline{color:var(--dsw-alias-label-secondary)}.XaorOW_deviceSeen{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;font-size:12px}.XaorOW_deviceRevoke{color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:8px;flex:none;padding:6px 10px;font-size:12px;transition:background-color .12s,color .12s}.XaorOW_deviceRevoke:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.XaorOW_deviceRevoke:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}@media (prefers-reduced-motion:reduce){.XaorOW_trigger,.XaorOW_close,.XaorOW_action,.XaorOW_address,.XaorOW_deviceRevoke{transition:none}}.XaorOW_entryRow{flex:none;align-items:center;gap:6px;min-width:0;display:flex}.XaorOW_entryRow[data-rail=rail]{flex-direction:column-reverse;gap:4px}.XaorOW_updateStatus{margin:0;font-weight:600}.XaorOW_updateDetail{color:var(--dsw-alias-label-secondary);margin:6px 0 0;font-size:13px}.XaorOW_updateError{color:var(--dsw-alias-text-danger,var(--dsw-alias-label-primary));margin:0;font-weight:600}.XaorOW_updateOutput{background:var(--dsw-alias-bg-layer-1);max-height:180px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;word-break:break-all;border-radius:10px;margin:10px 0 0;padding:10px 12px;font-size:12px;line-height:18px;overflow:auto}.XaorOW_updateList{flex-direction:column;gap:6px;margin:12px 0 0;padding:0;list-style:none;display:flex}.XaorOW_updateListItem{justify-content:space-between;align-items:baseline;gap:12px;font-size:13px;display:flex}.XaorOW_updateListName{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--dsw-alias-label-primary);overflow:hidden}.XaorOW_updateListVersions{color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;flex:none}.XaorOW_updateActions{justify-content:flex-end;margin-top:16px;display:flex}.XaorOW_updateRetry{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);cursor:pointer;border:none;border-radius:10px;align-items:center;gap:6px;padding:8px 14px;font-size:13px;transition:background-color .12s,color .12s;display:inline-flex}.XaorOW_updateRetry:hover{background:var(--dsw-alias-interactive-bg-active)}@media (prefers-reduced-motion:reduce){.XaorOW_updateRetry{transition:none}}";
+		const css$1 = ".XaorOW_overlay{z-index:1000;justify-content:center;align-items:center;display:flex;position:fixed;inset:0}.XaorOW_mask{background:var(--dsw-alias-bg-mask-1);backdrop-filter:var(--dsw-mask-blur);position:absolute;inset:0}.XaorOW_trigger{width:36px;height:36px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;transition:background-color .12s,color .12s,box-shadow .12s;display:inline-flex;position:relative}.XaorOW_trigger[data-update-available]:after{box-sizing:border-box;border:2px solid var(--dsw-alias-bg-layer-1);background:var(--dsw-alias-brand-primary);content:\"\";pointer-events:none;border-radius:50%;width:8px;height:8px;position:absolute;top:4px;right:4px}.XaorOW_trigger[data-wide=wide]{border-radius:8px;flex:auto;justify-content:flex-start;gap:8px;width:auto;min-width:0;padding:0 10px}.XaorOW_trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.XaorOW_trigger:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.XaorOW_trigger:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}.XaorOW_trigger:disabled{opacity:.5;cursor:default}.XaorOW_panel{z-index:1;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);width:560px;max-width:calc(100vw - 48px);max-height:calc(100vh - 48px);box-shadow:var(--dsw-shadow-lv3);color:var(--dsw-alias-label-primary);border-radius:24px;flex-direction:column;gap:14px;padding:24px;font-size:14px;line-height:22px;display:flex;position:relative;overflow:auto}.XaorOW_header{align-items:flex-start;gap:12px;display:flex}.XaorOW_heading{flex:1;min-width:0}.XaorOW_title{margin:0;font-size:18px;font-weight:600;line-height:26px}.XaorOW_subtitle{color:var(--dsw-alias-label-secondary);margin:4px 0 0;font-size:13px}.XaorOW_close{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:50%;flex:none;justify-content:center;align-items:center;padding:0;transition:background-color .12s,color .12s,box-shadow .12s;display:inline-flex}.XaorOW_close:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_close:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.XaorOW_close:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}.XaorOW_close:disabled{opacity:.5;cursor:default}.XaorOW_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:16px;flex-direction:column;align-items:center;gap:12px;padding:16px;display:flex}.XaorOW_cardHeader{justify-content:space-between;align-items:center;gap:12px;width:100%;display:flex}.XaorOW_cardTitle{font-weight:500}.XaorOW_badge{white-space:nowrap;border-radius:999px;flex:none;align-items:center;gap:6px;min-width:0;padding:2px 10px;font-size:12px;line-height:18px;display:inline-flex}.XaorOW_badge:before{content:\"\";background:currentColor;border-radius:50%;width:8px;height:8px}.XaorOW_badge-waiting{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badge-connected{color:var(--dsw-alias-state-success-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badge-disconnected{color:var(--dsw-alias-state-warn-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badge-stopped{color:var(--dsw-alias-state-error-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badgePublic{color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_badges{flex:none;align-items:center;gap:6px;display:inline-flex}.XaorOW_qrWrap{background:var(--dsw-alias-bg-base);border-radius:12px;justify-content:center;align-items:center;padding:12px;display:flex}.XaorOW_qr{display:block}.XaorOW_expired{color:var(--dsw-alias-state-error-primary);margin:0;font-size:13px}.XaorOW_expiry{color:var(--dsw-alias-label-secondary);margin:0;font-size:12px}.XaorOW_hint{color:var(--dsw-alias-label-secondary);margin:0;font-size:13px}.XaorOW_link{text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-caption);font-family:var(--dsw-font-mono,ui-monospace, monospace);margin:0;font-size:12px;display:block;overflow:hidden}.XaorOW_pairLinks{flex-direction:column;gap:8px;display:flex}.XaorOW_pairLinkRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;align-items:center;gap:10px;min-width:0;padding:10px 12px;display:flex}.XaorOW_pairLinkText{flex:1;min-width:0}.XaorOW_pairLinkLabel{color:var(--dsw-alias-label-secondary);margin-bottom:3px;font-size:12px;display:block}.XaorOW_copyLink{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-button-elevated-fill);min-height:30px;color:var(--dsw-alias-label-primary);cursor:pointer;border-radius:8px;flex:none;align-items:center;gap:5px;padding:0 10px;display:inline-flex}.XaorOW_oneTimeHint{color:var(--dsw-alias-label-caption);margin:0;font-size:12px}.XaorOW_stoppedHint{color:var(--dsw-alias-state-error-primary);margin:0;font-size:13px}.XaorOW_tunnelNote{color:var(--dsw-alias-label-secondary);margin:0;font-size:13px}.XaorOW_tunnelFailed{color:var(--dsw-alias-state-error-primary);margin:0;font-size:13px}.XaorOW_actions{gap:8px;display:flex}.XaorOW_action{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-button-elevated-fill);height:34px;color:var(--dsw-alias-label-primary);cursor:pointer;white-space:nowrap;border-radius:10px;justify-content:center;align-items:center;gap:6px;padding:0 14px;font-size:13px;transition:background-color .12s,border-color .12s,box-shadow .12s;display:inline-flex}.XaorOW_action:hover:not(:disabled){background:var(--dsw-alias-button-floating-hover)}.XaorOW_action:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.XaorOW_action:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}.XaorOW_action:disabled{opacity:.5;cursor:default}.XaorOW_banner{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:16px;padding:16px}.XaorOW_bannerTitle{color:var(--dsw-alias-state-warn-primary);margin:0;font-weight:500}.XaorOW_bannerHint{color:var(--dsw-alias-label-secondary);margin:6px 0 0;font-size:13px}.XaorOW_addresses{border:none;margin:12px 0 0;padding:0}.XaorOW_addresses legend{color:var(--dsw-alias-label-secondary);padding:0;font-size:13px}.XaorOW_address{color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;cursor:pointer;border-radius:6px;align-items:center;gap:8px;margin-top:6px;padding:4px 6px;font-size:13px;transition:background-color .12s;display:flex}.XaorOW_address:hover{background:var(--dsw-alias-interactive-bg-hover)}.XaorOW_address input:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);border-radius:50%;outline:none}.XaorOW_addressValue{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--dsw-alias-label-secondary);flex:1;font-size:12px;overflow:hidden}.XaorOW_addressHint{color:var(--dsw-alias-label-tertiary);margin:6px 0 0;font-size:12px}.XaorOW_devices{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:16px;flex-direction:column;gap:8px;padding:12px 16px 14px;display:flex}.XaorOW_devicesTitle{margin:0;font-size:13px;font-weight:500;line-height:20px}.XaorOW_devicesEmpty{color:var(--dsw-alias-label-secondary);margin:0;font-size:13px}.XaorOW_deviceList{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.XaorOW_deviceRow{justify-content:space-between;align-items:flex-start;gap:12px;display:flex}.XaorOW_deviceMeta{flex-direction:column;gap:2px;min-width:0;display:flex}.XaorOW_deviceName{text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500;overflow:hidden}.XaorOW_devicePresence{font-size:12px;line-height:18px}.XaorOW_deviceOnline{color:var(--dsw-alias-state-success-primary)}.XaorOW_deviceOffline{color:var(--dsw-alias-label-secondary)}.XaorOW_deviceSeen{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;font-size:12px}.XaorOW_deviceRevoke{color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:8px;flex:none;padding:6px 10px;font-size:12px;transition:background-color .12s,color .12s}.XaorOW_deviceRevoke:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.XaorOW_deviceRevoke:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2), 0 0 0 4px var(--dsw-alias-brand-primary);outline:none}@media (prefers-reduced-motion:reduce){.XaorOW_trigger,.XaorOW_close,.XaorOW_action,.XaorOW_address,.XaorOW_deviceRevoke{transition:none}}.XaorOW_entryRow{flex:none;align-items:center;gap:6px;min-width:0;display:flex}.XaorOW_entryRow[data-rail=rail]{flex-direction:column-reverse;gap:4px}.XaorOW_updateStatus{margin:0;font-weight:600}.XaorOW_updateDetail{color:var(--dsw-alias-label-secondary);margin:6px 0 0;font-size:13px}.XaorOW_updateError{color:var(--dsw-alias-text-danger,var(--dsw-alias-label-primary));margin:0;font-weight:600}.XaorOW_updateOutput{background:var(--dsw-alias-bg-layer-1);max-height:180px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;word-break:break-all;border-radius:10px;margin:10px 0 0;padding:10px 12px;font-size:12px;line-height:18px;overflow:auto}.XaorOW_updateList{flex-direction:column;gap:6px;margin:12px 0 0;padding:0;list-style:none;display:flex}.XaorOW_updateListItem{justify-content:space-between;align-items:baseline;gap:12px;font-size:13px;display:flex}.XaorOW_updateListName{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--dsw-alias-label-primary);overflow:hidden}.XaorOW_updateListVersions{color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;flex:none}.XaorOW_updateActions{justify-content:flex-end;margin-top:16px;display:flex}.XaorOW_updateRetry{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);cursor:pointer;border:none;border-radius:10px;align-items:center;gap:6px;padding:8px 14px;font-size:13px;transition:background-color .12s,color .12s;display:inline-flex}.XaorOW_updateRetry:hover{background:var(--dsw-alias-interactive-bg-active)}@media (prefers-reduced-motion:reduce){.XaorOW_updateRetry{transition:none}}";
 		const tagId$1 = "dsh-remote-web-ui/remote.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$1) + "]") === null) {
 			const tag = document.createElement("style");
@@ -1426,15 +1414,6 @@ window.__ModuleLoader__.load({
 			"entryRow": "XaorOW_entryRow",
 			"expired": "XaorOW_expired",
 			"expiry": "XaorOW_expiry",
-			"fenceCard": "XaorOW_fenceCard",
-			"fenceDetail": "XaorOW_fenceDetail",
-			"fenceEyebrow": "XaorOW_fenceEyebrow",
-			"fenceFootnote": "XaorOW_fenceFootnote",
-			"fenceMark": "XaorOW_fenceMark",
-			"fencePage": "XaorOW_fencePage",
-			"fenceRetry": "XaorOW_fenceRetry",
-			"fenceSteps": "XaorOW_fenceSteps",
-			"fenceTitle": "XaorOW_fenceTitle",
 			"header": "XaorOW_header",
 			"heading": "XaorOW_heading",
 			"hint": "XaorOW_hint",
@@ -1559,17 +1538,6 @@ window.__ModuleLoader__.load({
 						children: t("status.unreachableHint")
 					})]
 				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-					state.posture !== void 0 && state.posture.hosts.some((host) => host.exposed) && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-						className: remote_module_css_default.banner,
-						role: "alert",
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-							className: remote_module_css_default.bannerTitle,
-							children: t("posture.exposed")
-						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-							className: remote_module_css_default.bannerHint,
-							children: t("posture.exposedHint", { hosts: state.posture.hosts.filter((host) => host.exposed).map((host) => host.host).join(", ") })
-						})]
-					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: remote_module_css_default.card,
 						children: [
@@ -1777,7 +1745,7 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region src/client/RemoteEntry.tsx
 		/**
-		* The sidebar remote-control seat: the phone-icon trigger beside the
+		* The sidebar remote-control entry: the phone-icon trigger beside the
 		* settings button, and the pairing panel modal. Owns the panel behavior —
 		* token minting on open, the status SSE subscription, stop/refresh/copy —
 		* and renders the pure {@link RemotePanel} body. Component-local state per
@@ -1800,8 +1768,7 @@ window.__ModuleLoader__.load({
 				deviceCount: frame.deviceCount,
 				onlineCount: frame.onlineCount,
 				devices: frame.devices ?? [],
-				...frame.tunnel !== void 0 ? { tunnel: frame.tunnel } : {},
-				...frame.posture !== void 0 ? { posture: frame.posture } : {}
+				...frame.tunnel !== void 0 ? { tunnel: frame.tunnel } : {}
 			};
 		}
 		/**
@@ -1809,7 +1776,7 @@ window.__ModuleLoader__.load({
 		* @param props - composed slot props (contract in this package).
 		* @returns the entry element tree.
 		*/
-		function RemoteEntry({ wide, useWorkspaces, t }) {
+		function RemoteEntry({ wide, t }) {
 			const [open, setOpen] = (0, react.useState)(false);
 			const [state, setState] = (0, react.useState)({ kind: "lan-required" });
 			const stateRef = (0, react.useRef)(state);
@@ -1819,7 +1786,6 @@ window.__ModuleLoader__.load({
 			const [copied, setCopied] = (0, react.useState)(false);
 			const eventSource = (0, react.useRef)(void 0);
 			const openSeq = (0, react.useRef)(0);
-			const workspaceId = useWorkspaces((s) => s.recentWorkspaceId);
 			const closeEventSource = (0, react.useCallback)(() => {
 				eventSource.current?.close();
 				eventSource.current = void 0;
@@ -1827,7 +1793,7 @@ window.__ModuleLoader__.load({
 			const mint = (0, react.useCallback)(async (address) => {
 				let result;
 				try {
-					result = await issuePair(workspaceId, address);
+					result = await issuePair(address);
 				} catch {
 					return { kind: "unreachable" };
 				}
@@ -1851,7 +1817,7 @@ window.__ModuleLoader__.load({
 					address: address ?? result.lanAddresses[0] ?? "",
 					lanAddresses: result.lanAddresses
 				};
-			}, [workspaceId]);
+			}, []);
 			const openPanel = (0, react.useCallback)(async () => {
 				const seq = ++openSeq.current;
 				setOpen(true);
@@ -1989,8 +1955,6 @@ window.__ModuleLoader__.load({
 		function FooterRemoteEntry(props) {
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(RemoteEntry, {
 				wide: props.wide,
-				useWorkspaces: () => void 0,
-				useSessions: () => void 0,
 				t: props.t
 			});
 		}
@@ -2575,7 +2539,7 @@ window.__ModuleLoader__.load({
 			}
 			/** Publish a projection of this form, rebuilt whenever the scope or a draft changes. */
 			bind(project) {
-				const store = (0, _deepseek_ai_dsh_client_runtime_client.createSnapshotStore)(project());
+				const store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(project());
 				this.listeners.add(() => {
 					store.set(project());
 				});
@@ -2640,13 +2604,8 @@ window.__ModuleLoader__.load({
 				};
 			}
 			/**
-			* Write every staged edit, then re-seed from what the Host accepted.
-			*
-			* When the scope carries the optional batch surface (the dsh-web-ui
-			* bridge scope), every planned write rides one mutation so cross-field
-			* validate hooks (baseURL+model) judge the batch as a unit instead of
-			* deadlocking on per-field writes. Otherwise the per-field loop runs.
-			* A field lands only when the Host reports it held the staged value; a
+			* Write every staged edit, then re-seed from what the Host accepted. A
+			* field lands only when the Host reports it held the staged value; a
 			* landed field's draft is dropped, a failed one stays staged for the user.
 			* @returns settlement after every write and the read-back.
 			*/
@@ -2654,7 +2613,6 @@ window.__ModuleLoader__.load({
 				const plan = this.plan();
 				const valid = plan.filter((item) => item.run !== void 0);
 				if (plan.length === 0 || this.saving || valid.length !== plan.length) return;
-				const plannedWrites = valid.map((item) => item.op);
 				const pending = /* @__PURE__ */ new Map();
 				for (const item of plan) pending.set(item.field, this.staged.get(item.field));
 				this.saving = true;
@@ -2662,22 +2620,11 @@ window.__ModuleLoader__.load({
 				this.failedReason = void 0;
 				this.publish();
 				const landed = /* @__PURE__ */ new Set();
-				const batch = this.batchedScope();
-				if (batch !== void 0) {
-					const result = await batch.mutate(plannedWrites);
-					if (result.ok) {
-						for (const field of result.fields) if (field.landed) landed.add(field.field);
-					} else this.failedReason = result.message;
-				} else for (const item of valid) if (await item.run()) landed.add(item.field);
+				for (const item of valid) if (await item.run()) landed.add(item.field);
 				for (const [field, before] of pending) if (landed.has(field) && this.staged.get(field) === before) this.staged.delete(field);
 				this.saving = false;
 				this.failed = landed.size !== pending.size;
 				this.publish();
-			}
-			/** The scope's batch surface when it supports one; undefined conservatively otherwise. */
-			batchedScope() {
-				const candidate = this.scope;
-				return typeof candidate?.mutate === "function" ? candidate : void 0;
 			}
 			/**
 			* Every staged edit a save would write. An entry whose draft is not a value
@@ -2693,10 +2640,6 @@ window.__ModuleLoader__.load({
 					if (staged.clear) {
 						if (this.stored(field)) plan.push({
 							field,
-							op: {
-								field,
-								op: "unset"
-							},
 							run: () => this.clear(field)
 						});
 						continue;
@@ -2705,27 +2648,14 @@ window.__ModuleLoader__.load({
 					const write = spec.parse(staged.text);
 					if (write === void 0) plan.push({
 						field,
-						op: {
-							field,
-							op: "unset"
-						},
 						run: void 0
 					});
 					else if (write.kind === "clear") plan.push({
 						field,
-						op: {
-							field,
-							op: "unset"
-						},
 						run: () => this.clear(field)
 					});
 					else plan.push({
 						field,
-						op: {
-							field,
-							op: "set",
-							value: write.value
-						},
 						run: () => this.store(field, write.value)
 					});
 				}
@@ -2773,6 +2703,12 @@ window.__ModuleLoader__.load({
 		};
 		//#endregion
 		//#region src/client/RemoteSettingsCard.tsx
+		/**
+		* The remote-control settings card: pairing security and device limits.
+		* Registers into the Plugins settings section's tab list
+		* (`settings.plugins.tab`, keyed by the `remote-web-ui` settings namespace)
+		* that the stock web app's ui-settings-plugins section renders.
+		*/
 		/** Bridges the `remote-web-ui` scope onto the card's staged form. */
 		var RemoteSettingsCardController = class {
 			form;
@@ -2786,7 +2722,6 @@ window.__ModuleLoader__.load({
 					numberField("maxDevices"),
 					numberField("idleExpireMs"),
 					textField("cookieName"),
-					booleanField("requirePairingForLan"),
 					textField("publicBaseUrl"),
 					booleanField("autoTunnel")
 				]);
@@ -2801,7 +2736,6 @@ window.__ModuleLoader__.load({
 					maxDevices: this.form.field("maxDevices"),
 					idleExpireMs: this.form.field("idleExpireMs"),
 					cookieName: this.form.field("cookieName"),
-					requirePairingForLan: this.form.field("requirePairingForLan"),
 					publicBaseUrl: this.form.field("publicBaseUrl"),
 					autoTunnel: this.form.field("autoTunnel")
 				};
@@ -2812,7 +2746,7 @@ window.__ModuleLoader__.load({
 			*/
 			inject() {
 				return {
-					hooks: { remoteSettingsCard: this.store },
+					store: this.store,
 					...this.form.actions()
 				};
 			}
@@ -2831,7 +2765,8 @@ window.__ModuleLoader__.load({
 		*/
 		function RemoteSettingsCard(props) {
 			const { t } = props;
-			const state = props.useRemoteSettingsCard((snapshot) => snapshot);
+			const [state, setState] = (0, react.useState)(() => props.store.getSnapshot());
+			(0, react.useEffect)(() => props.store.subscribe(() => setState(props.store.getSnapshot())), [props.store]);
 			const disabled = !state.writable;
 			const fieldProps = {
 				overriddenLabel: t("settings.overridden"),
@@ -2933,22 +2868,6 @@ window.__ModuleLoader__.load({
 							props.resetField("cookieName");
 						}
 					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BooleanField, {
-						id: "settings-remote-fence",
-						label: t("settings.requirePairingForLan"),
-						hint: t("settings.requirePairingForLanHint"),
-						inheritLabel: t("settings.inherit"),
-						onLabel: t("settings.on"),
-						offLabel: t("settings.off"),
-						...fieldProps,
-						...state.requirePairingForLan,
-						onEdit: (text) => {
-							props.edit("requirePairingForLan", text);
-						},
-						onReset: () => {
-							props.resetField("requirePairingForLan");
-						}
-					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
 						id: "settings-remote-public-base",
 						label: t("settings.publicBaseUrl"),
@@ -3014,16 +2933,6 @@ window.__ModuleLoader__.load({
 			"pair.oneTimeHint": "该链接可配对手机或电脑等任意一台设备；令牌一次性，设备配对成功后立即失效。",
 			"pair.failed.title": "配对失败",
 			"pair.failed.detail": "链接无效或已使用，请回到电脑端刷新二维码后重新扫码。",
-			"fence.unpaired.title": "此设备未配对，无法访问工作区数据",
-			"fence.unpaired.eyebrow": "需要设备配对",
-			"fence.unpaired.hint": "为保护工作区、会话与插件数据，远程电脑必须先通过主电脑授权。",
-			"fence.unpaired.stepDesktop": "在主电脑打开 http://127.0.0.1:3080，进入“远程访问”。",
-			"fence.unpaired.stepLink": "在“设备配对”中复制配对链接。",
-			"fence.unpaired.stepOpen": "在当前浏览器打开该链接，完成授权后即可进入。",
-			"fence.unpaired.retry": "重新检测",
-			"fence.unpaired.footnote": "请勿使用他人提供的配对链接；管理员可随时取消此设备的授权。",
-			"posture.exposed": "/api 通道对未配对设备敞开",
-			"posture.exposedHint": "以下来源的请求未经配对即可访问完整桌面 API：{hosts}。请移除对应来源的 --trusted-host（配对机制已覆盖远程访问），或改为仅绑定 127.0.0.1 并使用隧道。",
 			"action.stop": "停止",
 			"action.refresh": "刷新二维码",
 			"action.copy": "复制链接",
@@ -3041,10 +2950,11 @@ window.__ModuleLoader__.load({
 			"tunnel.failed": "公网隧道启动失败：{error}",
 			"tunnel.unknownError": "未知错误",
 			"close.label": "关闭远程访问面板",
+			"settings.pluginsTab": "远程控制",
 			"settings.title": "远程访问设置",
 			"settings.description": "配对安全与设备限额。",
 			"settings.enabled": "启用远程访问",
-			"settings.enabledHint": "关闭后移除侧边栏入口并停用配对路由与局域网栅栏。",
+			"settings.enabledHint": "关闭后移除侧边栏入口并停用配对路由。",
 			"settings.tokenTtlMs": "配对令牌有效期（毫秒）",
 			"settings.tokenTtlMsHint": "新生成的二维码链接在此时间后失效。",
 			"settings.offlineAfterMs": "设备离线判定（毫秒）",
@@ -3055,8 +2965,6 @@ window.__ModuleLoader__.load({
 			"settings.idleExpireMsHint": "超过该时长没有任何心跳或请求的已配对设备会被删除，必须重新扫码。默认 7 天。",
 			"settings.cookieName": "设备 Cookie 名",
 			"settings.cookieNameHint": "携带已配对设备标识的 Cookie 名称。",
-			"settings.requirePairingForLan": "局域网访问要求配对",
-			"settings.requirePairingForLanHint": "开启：非本机回环的桌面 Web GUI 改走门控的 /remote，必须携带有效配对 Cookie；关闭：桌面继续走普通路径（仅在该来源已被 SDK 信任时有意义），配对只管理令牌与状态。",
 			"settings.publicBaseUrl": "公网地址（可选）",
 			"settings.publicBaseUrlHint": "内网穿透的公网地址，如 Cloudflare Tunnel：https://xxx.trycloudflare.com。填写后二维码将生成公网链接，手机不在同一网络也能配对；留空则仅局域网可用。",
 			"settings.autoTunnel": "自动公网隧道",
@@ -3066,7 +2974,7 @@ window.__ModuleLoader__.load({
 			"settings.off": "关",
 			"settings.overridden": "已覆盖",
 			"settings.reset": "恢复默认",
-			"settings.notExposed": "当前 DSH 版本未向设置页暴露本插件的配置命名空间，表单不可用。可编辑 ~/.dsh/settings.yaml 直接配置，或为 dsh-host-apiproxy 的 WEB_SETTINGS_NAMESPACES 白名单补充本命名空间后重启。",
+			"settings.notExposed": "当前 DSH 版本未向设置页暴露本插件的配置命名空间，表单不可用。可编辑 ~/.dsh/settings.yaml 直接配置后重启。",
 			"settings.readOnly": "当前部署的设置只读。",
 			"settings.expand": "展开设置",
 			"settings.collapse": "收起设置",
@@ -3106,16 +3014,6 @@ window.__ModuleLoader__.load({
 			"pair.oneTimeHint": "This link pairs any one device — a phone or a computer. The token is single-use and dies as soon as a device pairs.",
 			"pair.failed.title": "Pairing failed",
 			"pair.failed.detail": "The link is invalid or was already used. Refresh the QR code on your computer and scan again.",
-			"fence.unpaired.title": "This device is not paired and cannot reach workspace data",
-			"fence.unpaired.eyebrow": "Device pairing required",
-			"fence.unpaired.hint": "To protect workspace, session, and plugin data, a remote computer must first be authorized by the primary computer.",
-			"fence.unpaired.stepDesktop": "On the primary computer, open http://127.0.0.1:3080 and go to Remote access.",
-			"fence.unpaired.stepLink": "Copy the pairing link under Pair a device.",
-			"fence.unpaired.stepOpen": "Open that link in this browser. After authorization, the workspace will become available.",
-			"fence.unpaired.retry": "Check again",
-			"fence.unpaired.footnote": "Do not use pairing links from people you do not trust. An administrator can revoke this device at any time.",
-			"posture.exposed": "The /api channel is open to unpaired devices",
-			"posture.exposedHint": "Requests from {hosts} reach the full desktop API without pairing. Remove --trusted-host for them (pairing already covers remote access), or bind loopback only and use the tunnel.",
 			"action.stop": "Stop",
 			"action.refresh": "Refresh QR",
 			"action.copy": "Copy link",
@@ -3133,10 +3031,11 @@ window.__ModuleLoader__.load({
 			"tunnel.failed": "The public tunnel failed to start: {error}",
 			"tunnel.unknownError": "unknown error",
 			"close.label": "Close remote access panel",
+			"settings.pluginsTab": "Remote control",
 			"settings.title": "Remote access settings",
 			"settings.description": "Pairing security and device limits.",
 			"settings.enabled": "Enable remote access",
-			"settings.enabledHint": "When off, the sidebar entry is removed and pairing routes plus the LAN fence stop.",
+			"settings.enabledHint": "When off, the sidebar entry is removed and the pairing routes stop.",
 			"settings.tokenTtlMs": "Pairing token lifetime (ms)",
 			"settings.tokenTtlMsHint": "How long a minted QR link stays valid before it dies.",
 			"settings.offlineAfterMs": "Device offline threshold (ms)",
@@ -3147,8 +3046,6 @@ window.__ModuleLoader__.load({
 			"settings.idleExpireMsHint": "A paired device with no heartbeat or request for this long is deleted and must scan again. Default is 7 days.",
 			"settings.cookieName": "Device cookie name",
 			"settings.cookieNameHint": "Cookie that carries the paired device id.",
-			"settings.requirePairingForLan": "Require pairing for LAN access",
-			"settings.requirePairingForLanHint": "On: a desktop Web GUI at a non-loopback origin rides the gated /remote channel and must carry a live paired-device cookie. Off: the desktop stays on its original paths (only useful when that origin is already trusted) and pairing only manages tokens/status.",
 			"settings.publicBaseUrl": "Public address (optional)",
 			"settings.publicBaseUrlHint": "The public URL of a tunnel in front of this server, e.g. a Cloudflare Tunnel: https://xxx.trycloudflare.com. When set, the QR link is built from it so a phone anywhere can pair; leave blank for LAN-only usage.",
 			"settings.autoTunnel": "Auto public tunnel",
@@ -3158,7 +3055,7 @@ window.__ModuleLoader__.load({
 			"settings.off": "Off",
 			"settings.overridden": "Overridden",
 			"settings.reset": "Reset to default",
-			"settings.notExposed": "This DSH version does not expose this plugin's settings namespace to the configuration page, so the form is unavailable. Edit ~/.dsh/settings.yaml directly, or add the namespace to dsh-host-apiproxy's WEB_SETTINGS_NAMESPACES allowlist and restart.",
+			"settings.notExposed": "This DSH version does not expose this plugin's settings namespace to the configuration page, so the form is unavailable. Edit ~/.dsh/settings.yaml directly and restart.",
 			"settings.readOnly": "This deployment stores settings read-only.",
 			"settings.expand": "Show settings",
 			"settings.collapse": "Hide settings",
@@ -3219,11 +3116,12 @@ window.__ModuleLoader__.load({
 			if (ok) page.reload();
 		}
 		/**
-		* Connect the deep-linked workspace and open its session. Waits for the
+		* Deep-link the target workspace and open its session. Waits for the
 		* runtime services AND for the target workspace to appear in the workspace
-		* list (both are asynchronous after boot), then connects and opens; gives
-		* up silently within the budget — the workspace param is stripped either
-		* way, so a late failure cannot loop.
+		* list (both are asynchronous after boot), then creates-or-adopts the
+		* workspace's blank session and selects it; gives up silently within the
+		* budget — the workspace param is stripped either way, so a late failure
+		* cannot loop.
 		* @param ctx - client root context.
 		* @param workspaceId - the target workspace.
 		* @param page - the page surface.
@@ -3237,7 +3135,7 @@ window.__ModuleLoader__.load({
 				if (workspaces !== void 0 && sessions !== void 0) {
 					if (workspaces.list.getSnapshot().items.some((item) => item.workspaceId === target)) {
 						try {
-							const sessionId = await workspaces.connectWorkspace(target);
+							const sessionId = await sessions.create({ workspaceId: target });
 							sessions.open(sessionId);
 						} catch {}
 						break;
@@ -3250,317 +3148,16 @@ window.__ModuleLoader__.load({
 			page.replaceState(`${url.pathname}${url.search}${url.hash}`);
 		}
 		//#endregion
-		//#region src/remote-channel-rules.ts
-		/**
-		* The remote-channel rewrite contract as pure data (issue #987): both the
-		* browser patch (client/remote-channel.ts) and the parse-time boot patch
-		* (remote-channel-boot.ts, inlined into index.html by the host) decide from
-		* these tables, so the two can never drift apart.
-		* @module dsh-remote-web-ui/remote-channel-rules
-		*/
-		/** The gated mirror prefix (must match src/remote-methods.ts). */
-		const REMOTE_PREFIX = "/remote";
-		/** The live rule set. */
-		const REMOTE_CHANNEL_RULES = {
-			remotePrefix: REMOTE_PREFIX,
-			apiPrefix: "/api/",
-			pairPrefix: "/api/pair/",
-			desktopLauncherPrefix: "/api/dsh-desktop-launcher",
-			settingsBridgePrefix: "/api/dsh-web-ui-settings",
-			sidebarPrefix: "/sidebar/",
-			gitPrefix: "/git/",
-			petPrefix: "/pet/",
-			wsPaths: [
-				"/api/events.mux",
-				"/api/events.host",
-				"/sidebar/ws/terminal",
-				"/sidebar/ws/agent-terminals",
-				"/api/dsh-ssh/terminal"
-			]
-		};
-		/** The window global the boot patch publishes its seat under. */
-		const REMOTE_CHANNEL_BOOT_GLOBAL = "__DSH_REMOTE_CHANNEL_BOOT__";
-		//#endregion
-		//#region src/client/remote-channel.ts
-		/**
-		* The remote desktop channel — browser half. On a non-loopback origin (LAN
-		* address or public tunnel) fenced host routes refuse the request, and
-		* pairing is the real access control — so same-origin traffic the desktop
-		* issues is rewritten onto this plugin's gated `/remote` prefix (host half
-		* in src/remote-api.ts). The host then re-issues the call to 127.0.0.1 so
-		* plugin loopback fences pass.
-		*
-		* The rewrite is deliberately narrow:
-		* - loopback origins are untouched (the desktop at 127.0.0.1 keeps original paths);
-		* - the pairing routes (`/api/pair/*`) stay where they are — accept must
-		*   work BEFORE a device is paired;
-		* - desktop-launcher create/shutdown (`/api/dsh-desktop-launcher/*`) stay
-		*   loopback-only (host-local files and process exit);
-		* - the family settings bridge (`/api/dsh-web-ui-settings/*`) stays
-		*   loopback-only (same plane as SDK settings.*);
-		* - `/api/*` (SDK methods and `/api/<plugin>/...` plugin namespaces),
-		*   `/sidebar/*`, `/git/*`, and `/pet/*` ride the channel;
-		* - fetch, EventSource, WebSocket, and img/script/iframe `src` are patched;
-		*   everything else calls the original unchanged.
-		*
-		* Pure helpers are exported for unit tests; `installRemoteChannel` patches
-		* the given window and returns their restore.
-		*/
-		const RULES = REMOTE_CHANNEL_RULES;
-		/** Decide whether a remote desktop channel is required from local or host policy. */
-		function remoteChannelRequired(hostname, snapshot, hostPairingPolicy) {
-			if (isLoopbackHostname(hostname)) return false;
-			if (snapshot.status === "ready") return (snapshot.value?.enabled ?? true) && (snapshot.value?.requirePairingForLan ?? true);
-			return hostPairingPolicy !== false;
-		}
-		/**
-		* Browser-safe loopback classification for the page origin (the SDK client
-		* exports its own; this copy keeps the module dependency-free).
-		* @param hostname - a location hostname (IPv6 without brackets).
-		* @returns true for localhost, IPv6 loopback, or any 127/8 literal.
-		*/
-		function isLoopbackHostname(hostname) {
-			if (hostname === "localhost" || hostname === "::1") return true;
-			const parts = hostname.split(".");
-			return parts.length === 4 && parts[0] === "127" && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
-		}
-		/**
-		* Whether one same-origin path must ride the gated channel (fetch, EventSource,
-		* img/script/iframe src).
-		* @param pathname - the request URL pathname.
-		*/
-		function shouldRewriteFetchPath(pathname) {
-			if (pathname.startsWith(RULES.pairPrefix)) return false;
-			if (pathname === RULES.desktopLauncherPrefix || pathname.startsWith(`${RULES.desktopLauncherPrefix}/`)) return false;
-			if (pathname === RULES.settingsBridgePrefix || pathname.startsWith(`${RULES.settingsBridgePrefix}/`)) return false;
-			if (pathname.startsWith(RULES.apiPrefix)) return true;
-			if (pathname.startsWith(RULES.sidebarPrefix) || pathname === "/sidebar") return true;
-			if (pathname.startsWith(RULES.gitPrefix) || pathname === "/git") return true;
-			if (pathname.startsWith(RULES.petPrefix) || pathname === "/pet") return true;
-			return false;
-		}
-		/**
-		* Whether one WebSocket path must ride the gated channel.
-		* @param pathname - the WebSocket URL pathname.
-		*/
-		function shouldRewriteWsPath(pathname) {
-			return RULES.wsPaths.includes(pathname);
-		}
-		/** The gated twin of one fenced path (`/remote` + original pathname). */
-		function rewritePath(pathname) {
-			return `${REMOTE_PREFIX}${pathname}`;
-		}
-		/**
-		* Rewrite one raw URL string when it is same-origin and fenced. Relative
-		* inputs stay relative so resource loaders do not unexpectedly absolutize.
-		*/
-		function rewriteRawUrl(raw, baseHref, origin) {
-			let url;
-			try {
-				url = new URL(raw, baseHref);
-			} catch {
-				return raw;
-			}
-			if (url.origin !== origin) return raw;
-			if (!shouldRewriteFetchPath(url.pathname)) return raw;
-			url.pathname = rewritePath(url.pathname);
-			if (raw.startsWith("/") && !raw.startsWith("//")) return `${url.pathname}${url.search}${url.hash}`;
-			return url.href;
-		}
-		/** Read an unpaired code from either the SDK envelope or a plugin JSON body. */
-		function unpairedCodeOf(value) {
-			if (typeof value !== "object" || value === null) return void 0;
-			const record = value;
-			const nested = record.result;
-			if (typeof nested === "object" && nested !== null) {
-				const error = nested.error;
-				if (typeof error === "object" && error !== null && typeof error.code === "string") return error.code;
-			}
-			const error = record.error;
-			if (typeof error === "object" && error !== null && typeof error.code === "string") return error.code;
-		}
-		/**
-		* Whether a gated 403 is the unpaired-device fence (not a loopback-only
-		* method denial, which uses the same status with code `forbidden`).
-		*/
-		async function isUnpairedDenied(response) {
-			if (response.status !== 403) return false;
-			try {
-				return unpairedCodeOf(await response.json()) === "unpaired";
-			} catch {
-				return false;
-			}
-		}
-		/**
-		* Wrap a prototype `src` setter so fenced same-origin URLs ride `/remote`.
-		* No-ops when the constructor is missing or `src` is not configurable.
-		*/
-		function patchSrcAccessor(ctor, rewrite) {
-			if (ctor === void 0) return () => {};
-			const descriptor = Object.getOwnPropertyDescriptor(ctor.prototype, "src");
-			if (descriptor === void 0 || descriptor.configurable === false) return () => {};
-			if (descriptor.set === void 0) return () => {};
-			const originalSet = descriptor.set;
-			const originalGet = descriptor.get;
-			Object.defineProperty(ctor.prototype, "src", {
-				configurable: true,
-				enumerable: descriptor.enumerable ?? true,
-				get: originalGet,
-				set(value) {
-					originalSet.call(this, rewrite(String(value)));
-				}
-			});
-			return () => {
-				Object.defineProperty(ctor.prototype, "src", descriptor);
-			};
-		}
-		/**
-		* Patch `fetch`, `EventSource`, `WebSocket`, and resource `src` accessors on
-		* one window to route fenced traffic through the gated channel.
-		* @param window - the browser window (or a test double).
-		* @param options - the unpaired callback.
-		* @returns a function restoring the originals.
-		*/
-		function installRemoteChannel(window, options = {}) {
-			const originalFetch = window.fetch;
-			const OriginalWebSocket = window.WebSocket;
-			const OriginalEventSource = window.EventSource;
-			const sameOrigin = (url) => url.origin === window.location.origin;
-			const rewrite = (raw) => rewriteRawUrl(raw, window.location.href, window.location.origin);
-			const patchedFetch = (input, init) => {
-				const url = new URL(typeof input === "string" || input instanceof URL ? input.toString() : input.url, window.location.href);
-				if (sameOrigin(url) && shouldRewriteFetchPath(url.pathname)) {
-					const rewritten = new URL(url);
-					rewritten.pathname = rewritePath(url.pathname);
-					const next = typeof input === "string" || input instanceof URL ? rewritten.toString() : new Request(rewritten, input);
-					return Promise.resolve(originalFetch.call(window, next, init)).then(async (response) => {
-						if (await isUnpairedDenied(response.clone())) options.onUnpaired?.();
-						else options.onPaired?.();
-						return response;
-					});
-				}
-				return originalFetch.call(window, input, init);
-			};
-			class PatchedWebSocket extends OriginalWebSocket {
-				constructor(url, protocols) {
-					const parsed = new URL(url.toString(), window.location.href);
-					const wsOrigin = parsed.protocol === "wss:" ? `https://${parsed.host}` : parsed.protocol === "ws:" ? `http://${parsed.host}` : "";
-					if (wsOrigin !== "" && wsOrigin === window.location.origin && shouldRewriteWsPath(parsed.pathname)) {
-						const rewritten = new URL(parsed);
-						rewritten.pathname = rewritePath(parsed.pathname);
-						super(rewritten, protocols);
-						return;
-					}
-					super(url, protocols);
-				}
-			}
-			const restoreSrc = [
-				patchSrcAccessor(window.HTMLImageElement, rewrite),
-				patchSrcAccessor(window.HTMLScriptElement, rewrite),
-				patchSrcAccessor(window.HTMLIFrameElement, rewrite)
-			];
-			window.fetch = patchedFetch;
-			window.WebSocket = PatchedWebSocket;
-			if (OriginalEventSource !== void 0) {
-				class PatchedEventSource extends OriginalEventSource {
-					constructor(url, eventSourceInitDict) {
-						const parsed = new URL(url.toString(), window.location.href);
-						if (sameOrigin(parsed) && shouldRewriteFetchPath(parsed.pathname)) {
-							const rewritten = new URL(parsed);
-							rewritten.pathname = rewritePath(parsed.pathname);
-							super(rewritten, eventSourceInitDict);
-							return;
-						}
-						super(url, eventSourceInitDict);
-					}
-				}
-				window.EventSource = PatchedEventSource;
-			}
-			return () => {
-				window.fetch = originalFetch;
-				window.WebSocket = OriginalWebSocket;
-				if (OriginalEventSource !== void 0) window.EventSource = OriginalEventSource;
-				for (const restore of restoreSrc) restore();
-			};
-		}
-		/**
-		* Decide what the channel lifecycle must do next.
-		* @param active - whether the gated remote channel should be running now.
-		* @param installed - whether it currently is (disposer !== undefined).
-		* @returns the transition to apply.
-		*/
-		function channelTransition(active, installed) {
-			if (active && !installed) return "install";
-			if (!active && installed) return "retire";
-			return "none";
-		}
-		//#endregion
-		//#region src/client/FenceNotice.tsx
-		/**
-		* Render the unpaired blocking page.
-		* @param props - localized copy.
-		* @returns the notice element.
-		*/
-		function FenceNotice({ t, onRetry }) {
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-				className: remote_module_css_default.fencePage,
-				role: "dialog",
-				"aria-modal": "true",
-				"aria-labelledby": "remote-fence-title",
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("main", {
-					className: remote_module_css_default.fenceCard,
-					"data-dsh-plugin": "remote-web-ui",
-					children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-							className: remote_module_css_default.fenceMark,
-							"aria-hidden": "true",
-							children: "×"
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-							className: remote_module_css_default.fenceEyebrow,
-							children: t("fence.unpaired.eyebrow")
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h1", {
-							id: "remote-fence-title",
-							className: remote_module_css_default.fenceTitle,
-							children: t("fence.unpaired.title")
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-							className: remote_module_css_default.fenceDetail,
-							children: t("fence.unpaired.hint")
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("ol", {
-							className: remote_module_css_default.fenceSteps,
-							children: [
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("li", { children: t("fence.unpaired.stepDesktop") }),
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("li", { children: t("fence.unpaired.stepLink") }),
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("li", { children: t("fence.unpaired.stepOpen") })
-							]
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-							className: remote_module_css_default.fenceRetry,
-							type: "button",
-							onClick: onRetry,
-							children: t("fence.unpaired.retry")
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-							className: remote_module_css_default.fenceFootnote,
-							children: t("fence.unpaired.footnote")
-						})
-					]
-				})
-			});
-		}
-		//#endregion
 		//#region src/client/index.ts
 		/**
 		* Phone and desktop remote control — browser half. Registers the `remote`
 		* dictionaries, the sidebar-foot entry (phone trigger + pairing panel) into
-		* the ui-sidebar-declared `sidebar.remote` seat, and runs the pair-accept
-		* boot flow (token accept + workspace deep-link + presence heartbeats) plus
-		* the one-time failed-pair notice. Export discipline:
-		* packages/client/AGENTS.md — the /client surface carries only what cordis
-		* loading needs plus types.
+		* the ui-sidebar `sidebar.footer.action` list seat, the remote-control
+		* settings card into the settings shell's `settings.plugins.tab` seat, and
+		* runs the pair-accept boot flow (token accept + workspace deep-link +
+		* presence heartbeats) plus the one-time failed-pair notice. Export
+		* discipline: packages/client/AGENTS.md — the /client surface carries only
+		* what cordis loading needs plus types.
 		*/
 		/** Dictionary namespace owned by this plugin. */
 		const NS = "remote";
@@ -3592,32 +3189,11 @@ window.__ModuleLoader__.load({
 				}
 			}, "remote-web-ui: dictionaries");
 			const t = ctx.locale.bind(NS);
-			const settingsScope = (ctx.get("webUiSettings") ?? ctx.settingsScope).bind({ namespace: REMOTE_WEB_UI_NS });
+			const settingsScope = ctx.settingsScope.bind({ namespace: REMOTE_WEB_UI_NS });
 			const enabled = () => {
 				const snapshot = settingsScope.getSnapshot();
 				return snapshot.status === "ready" ? snapshot.value?.enabled ?? true : snapshot.status === "unavailable";
 			};
-			ctx.slots.inject("sidebar.remote", () => {
-				let disposeEntry;
-				const syncEntry = () => {
-					if (enabled() && disposeEntry === void 0) try {
-						disposeEntry = ctx.slots.register({
-							name: "sidebar.remote",
-							locale: NS
-						}, RemoteEntry);
-					} catch {}
-					else if (!enabled() && disposeEntry !== void 0) {
-						disposeEntry();
-						disposeEntry = void 0;
-					}
-				};
-				const unsubscribe = settingsScope.subscribe(syncEntry);
-				syncEntry();
-				return () => {
-					unsubscribe();
-					disposeEntry?.();
-				};
-			});
 			ctx.slots.inject("sidebar.footer.action", () => {
 				let disposeEntry;
 				const syncEntry = () => {
@@ -3641,11 +3217,13 @@ window.__ModuleLoader__.load({
 				};
 			});
 			const remoteSettings = new RemoteSettingsCardController(settingsScope);
-			ctx.slots.inject("settings.plugin.item", () => {
+			ctx.slots.inject("settings.plugins.tab", () => {
 				try {
 					const unregister = ctx.slots.register({
-						name: "settings.plugin.item",
-						key: REMOTE_WEB_UI_NS,
+						name: "settings.plugins.tab",
+						id: REMOTE_WEB_UI_NS,
+						order: 100,
+						label: () => t("settings.pluginsTab"),
 						locale: NS,
 						inject: () => remoteSettings.inject()
 					}, RemoteSettingsCard);
@@ -3677,83 +3255,6 @@ window.__ModuleLoader__.load({
 			};
 			settingsScope.subscribe(syncRuntime);
 			syncRuntime();
-			let disposeChannel;
-			let hostPairingPolicy;
-			let unpairedWhilePolicyPending = false;
-			let fenceNotice;
-			const showFenceNotice = () => {
-				if (fenceNotice !== void 0) return;
-				const node = document.createElement("div");
-				document.body.appendChild(node);
-				const root = (0, react_dom_client.createRoot)(node);
-				root.render((0, react.createElement)(FenceNotice, {
-					t,
-					onRetry: () => {
-						window.location.reload();
-					}
-				}));
-				fenceNotice = {
-					unmount: () => {
-						root.unmount();
-						node.remove();
-					},
-					node
-				};
-			};
-			const hideFenceNotice = () => {
-				fenceNotice?.unmount();
-				fenceNotice = void 0;
-			};
-			const handleUnpaired = () => {
-				if (settingsScope.getSnapshot().status !== "ready" && hostPairingPolicy === void 0) {
-					unpairedWhilePolicyPending = true;
-					return;
-				}
-				showFenceNotice();
-			};
-			const channelActive = () => remoteChannelRequired(window.location.hostname, settingsScope.getSnapshot(), hostPairingPolicy);
-			const bootSeat = () => window[REMOTE_CHANNEL_BOOT_GLOBAL];
-			const syncChannel = () => {
-				const transition = channelTransition(channelActive(), disposeChannel !== void 0);
-				if (transition === "install") {
-					const seat = bootSeat();
-					if (seat !== void 0) {
-						seat.onUnpaired = handleUnpaired;
-						seat.onPaired = hideFenceNotice;
-						if (seat.pendingUnpaired) {
-							seat.pendingUnpaired = false;
-							handleUnpaired();
-						}
-						disposeChannel = ctx.effect(() => () => {
-							seat.onUnpaired = null;
-							seat.onPaired = null;
-						}, "remote-web-ui: remote desktop channel (boot patch)");
-					} else disposeChannel = ctx.effect(() => {
-						return installRemoteChannel(window, {
-							onUnpaired: handleUnpaired,
-							onPaired: hideFenceNotice
-						});
-					}, "remote-web-ui: remote desktop channel");
-				} else if (transition === "retire" && disposeChannel !== void 0) {
-					disposeChannel();
-					disposeChannel = void 0;
-					bootSeat()?.restore();
-					hideFenceNotice();
-				} else if (transition === "none" && !channelActive()) bootSeat()?.restore();
-			};
-			settingsScope.subscribe(syncChannel);
-			syncChannel();
-			if (!isLoopbackHostname(window.location.hostname) && settingsScope.getSnapshot().status !== "ready") readPairGatePolicy().then((policy) => {
-				hostPairingPolicy = policy.requirePairingForLan;
-				syncChannel();
-				if (hostPairingPolicy && unpairedWhilePolicyPending) showFenceNotice();
-				unpairedWhilePolicyPending = false;
-			}).catch(() => {
-				hostPairingPolicy = true;
-				syncChannel();
-				if (unpairedWhilePolicyPending) showFenceNotice();
-				unpairedWhilePolicyPending = false;
-			});
 			ctx.effect(() => {
 				const timer = window.setTimeout(() => {
 					if (sessionStorage.getItem("dsh-remote-pair-failed") === null) return;

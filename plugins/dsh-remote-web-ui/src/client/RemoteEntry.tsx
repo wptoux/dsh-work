@@ -1,5 +1,5 @@
 /**
- * The sidebar remote-control seat: the phone-icon trigger beside the
+ * The sidebar remote-control entry: the phone-icon trigger beside the
  * settings button, and the pairing panel modal. Owns the panel behavior —
  * token minting on open, the status SSE subscription, stop/refresh/copy —
  * and renders the pure {@link RemotePanel} body. Component-local state per
@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PairingPhase } from '../pairing.ts'
 import { RemotePanel, type PanelState } from './RemotePanel.tsx'
 import { copyText, issuePair, revokePair, stopPair, type DeviceFrame, type IssueResponse, type PairStateFrame, type TunnelStatusFrame } from './pair-api.ts'
@@ -15,7 +15,7 @@ import { PhoneIcon } from './PhoneIcon.tsx'
 import css from './remote.module.css'
 
 /** Entry props: the sidebar column state + the standard locale seat. */
-export type RemoteEntryProps = PropsRuntime<'sidebar.remote'> & PropsLocale<'remote'>
+export type RemoteEntryProps = PropsLocale<'remote'> & { wide: boolean }
 
 /**
  * Apply one status frame onto the current state: the ready state mirrors
@@ -37,7 +37,6 @@ function mergeFrame(state: PanelState, frame: PairStateFrame): PanelState {
     onlineCount: frame.onlineCount,
     devices: frame.devices ?? [],
     ...(frame.tunnel !== undefined ? { tunnel: frame.tunnel as TunnelStatusFrame } : {}),
-    ...(frame.posture !== undefined ? { posture: frame.posture } : {}),
   }
 }
 
@@ -46,7 +45,7 @@ function mergeFrame(state: PanelState, frame: PairStateFrame): PanelState {
  * @param props - composed slot props (contract in this package).
  * @returns the entry element tree.
  */
-export function RemoteEntry({ wide, useWorkspaces, t }: RemoteEntryProps) {
+export function RemoteEntry({ wide, t }: RemoteEntryProps) {
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<PanelState>({ kind: 'lan-required' })
   // Latest-state mirror for the EventSource callback: transition detection
@@ -61,10 +60,6 @@ export function RemoteEntry({ wide, useWorkspaces, t }: RemoteEntryProps) {
   // spawn a stray EventSource.
   const openSeq = useRef(0)
 
-  // The current workspace (the recent-workspace projection the shell's New
-  // Session flow targets) — the deep-link target for the phone.
-  const workspaceId = useWorkspaces(s => s.recentWorkspaceId)
-
   const closeEventSource = useCallback(() => {
     eventSource.current?.close()
     eventSource.current = undefined
@@ -73,7 +68,7 @@ export function RemoteEntry({ wide, useWorkspaces, t }: RemoteEntryProps) {
   const mint = useCallback(async (address?: string): Promise<PanelState> => {
     let result: IssueResponse
     try {
-      result = await issuePair(workspaceId, address)
+      result = await issuePair(address)
     } catch {
       // Fetch/network failure: show an explicit state instead of silently
       // leaving the panel on its initial banner.
@@ -105,7 +100,7 @@ export function RemoteEntry({ wide, useWorkspaces, t }: RemoteEntryProps) {
       address: address ?? result.lanAddresses[0] ?? '',
       lanAddresses: result.lanAddresses,
     }
-  }, [workspaceId])
+  }, [])
 
   const openPanel = useCallback(async (): Promise<void> => {
     const seq = ++openSeq.current
