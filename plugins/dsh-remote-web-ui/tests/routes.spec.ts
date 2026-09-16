@@ -553,6 +553,35 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
       await close()
     }
   })
+
+  it('treats an opaque Origin (QR scanner / in-app webview) like an absent one, but still refuses cross-site', async () => {
+    const service = makeService()
+    const { port, close } = await serve(makeRoutes({
+      service,
+      lanAddresses: ['192.168.1.5'],
+      authenticatedUrl: base => `${base}/?token=test-launch`,
+    }))
+    try {
+      await call(port, 'POST', '/api/pair/issue', {})
+      // Camera scanners and in-app webviews navigate top-level from an opaque
+      // context, so the bootstrap request carries `Origin: null`. It must pass
+      // the phone-facing fence (the Host fence already bound it).
+      const opened = await openLink(port, '/api/pair/open?token=tok-1', {
+        host: '192.168.1.5:3080',
+        headers: { origin: 'null' },
+      })
+      expect(opened.status).toBe(303)
+      expect(opened.cookies[0]).toMatch(/^dsh_pair=tok-1; Path=\//)
+      // The same opaque origin with an explicit cross-site marker is refused.
+      const crossSite = await openLink(port, '/api/pair/open?token=nope', {
+        host: '192.168.1.5:3080',
+        headers: { origin: 'null', 'sec-fetch-site': 'cross-site' },
+      })
+      expect(crossSite.status).toBe(403)
+    } finally {
+      await close()
+    }
+  })
 })
 describe('/api/pair body failure contract (shared readJsonBody)', () => {
   /** Raw POST with no JSON encoding: malformed text, or no payload at all. */

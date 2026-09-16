@@ -703,7 +703,7 @@ function isTrustedApiRequest(request, trustedHosts) {
 	}))) return false;
 	if (request.headers["sec-fetch-site"] === "cross-site") return false;
 	const origin = request.headers.origin;
-	if (origin === void 0) return true;
+	if (origin === void 0 || origin === "null") return true;
 	try {
 		return new URL(origin).host === hostUrl.host;
 	} catch {

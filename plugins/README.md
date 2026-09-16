@@ -287,6 +287,11 @@ profile dir + reconcile 安装态）。
     使隧道手机的 GUI `/api` 请求过 Host 围栏而浏览器 cookie 仍门控。QR 不再携带
     `workspace`（原生 303 会清掉查询参数；已授权浏览器直开 `/?workspace=` 深链仍可用）。
     测试 91→98（open 路由 4 例 + connection-trust 3 例）。**需用户重启 dsh web 后生效**。
+  - **opaque Origin 修复**（`fix/remote-web-ui-opaque-origin`）：手机相机扫码器/应用内
+    浏览器从无 origin 上下文发起的顶层导航带 `Origin: null`，插件 `isTrustedApiRequest`
+    的 Origin 围栏解析不了直接 403（页面只剩 "forbidden"）。现把 `Origin: null` 视同
+    无 Origin（Host 围栏已绑定；`sec-fetch-site: cross-site` 仍拒绝；两枚 cookie 均
+    SameSite 受限，跨站请求带不上凭据）。测试 98→99。**需用户重启 dsh web 后生效**。
 - `dsh-ui-tweaks`（本仓库自研）：
   - **窄屏侧边栏抽屉**（本 fork 定制，保留）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`

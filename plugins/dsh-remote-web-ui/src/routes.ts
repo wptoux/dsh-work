@@ -49,10 +49,16 @@ export function isTrustedApiRequest(request: IncomingMessage, trustedHosts: read
   // Cross-site fence: an explicit cross-site marker is refused regardless of
   // Origin (modern browsers label the initiator on every fetch).
   if (request.headers['sec-fetch-site'] === 'cross-site') return false
-  // Origin fence: when a browser attaches an Origin it must be exactly this
-  // authority; absent Origin is fine — the Host fence already bound it.
+  // Origin fence: when a browser attaches a concrete Origin it must be
+  // exactly this authority; absent Origin is fine — the Host fence already
+  // bound it. An opaque origin (`Origin: null`, sent by camera QR scanners
+  // and in-app webviews when a top-level navigation leaves an origin-less
+  // context) is treated the same as absent: the explicit cross-site marker
+  // above already refuses subresource/iframe requests, and both the device
+  // cookie (SameSite=Lax) and the harness browser cookie (SameSite=Strict)
+  // are withheld from cross-site requests regardless.
   const origin = request.headers.origin
-  if (origin === undefined) return true
+  if (origin === undefined || origin === 'null') return true
   try {
     return new URL(origin).host === hostUrl.host
   } catch {

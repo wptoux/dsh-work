@@ -153,7 +153,7 @@ pnpm run build
 
 ## 安全模型
 
-- 插件的配对面按有效会话识别设备：`/api/pair` 的 stop/revoke 与 loopback 面板端点是 loopback-only 的，接受/打开/心跳/状态端点接受局域网字面量或配置的公网主机；`remoteWebUiPairing` 服务把"在线已配对 cookie"谓词交给兄弟插件。撤销是即时的：被撤销的设备不再被识别，必须重新扫码。harness 自身的 `/api` 信任（`trustedHosts` + 局域网自动信任）是 SDK 的接缝，本插件不否决它——它只把自身当前公网主机在运行时镜像进 SDK 信任列表（隧道主机启动时不可知），并驱动全新设备走原生 launch-token 交换，因此浏览器 cookie 始终门控 harness 自身的 `/api`。
+- 插件的配对面按有效会话识别设备：`/api/pair` 的 stop/revoke 与 loopback 面板端点是 loopback-only 的，接受/打开/心跳/状态端点接受局域网字面量或配置的公网主机（相机扫码器/应用内浏览器的 opaque `Origin: null` 视同缺失——显式 `sec-fetch-site: cross-site` 标记仍被拒绝）；`remoteWebUiPairing` 服务把"在线已配对 cookie"谓词交给兄弟插件。撤销是即时的：被撤销的设备不再被识别，必须重新扫码。harness 自身的 `/api` 信任（`trustedHosts` + 局域网自动信任）是 SDK 的接缝，本插件不否决它——它只把自身当前公网主机在运行时镜像进 SDK 信任列表（隧道主机启动时不可知），并驱动全新设备走原生 launch-token 交换，因此浏览器 cookie 始终门控 harness 自身的 `/api`。
 
 ## 已知限制与待办
 

@@ -349,15 +349,17 @@ opens at `http://127.0.0.1`.
 - The plugin's pairing surfaces recognize devices by a live session:
   `/api/pair` stop/revoke and the loopback panel endpoints are
   loopback-only, the accept/open/heartbeat/status endpoints accept the LAN
-  literals or the configured public host, and the `remoteWebUiPairing`
-  service hands the "live paired-device cookie" predicate to sibling
-  plugins. Revocation is immediate: a revoked device is no longer
-  recognized and must scan again. The harness's own `/api` trust
-  (`trustedHosts` + LAN auto-trust) is the SDK's seam; this plugin does not
-  veto it — it only mirrors its own active public host into the SDK's
-  trust list at runtime (the tunnel host is unknowable at boot) and drives
-  fresh devices through the native launch-token exchange, so the browser
-  cookie always gates the harness's own `/api`.
+  literals or the configured public host (an opaque `Origin: null` from a
+  camera QR scanner or in-app webview counts as absent — explicit
+  `sec-fetch-site: cross-site` markers are still refused), and the
+  `remoteWebUiPairing` service hands the "live paired-device cookie"
+  predicate to sibling plugins. Revocation is immediate: a revoked device
+  is no longer recognized and must scan again. The harness's own `/api`
+  trust (`trustedHosts` + LAN auto-trust) is the SDK's seam; this plugin
+  does not veto it — it only mirrors its own active public host into the
+  SDK's trust list at runtime (the tunnel host is unknowable at boot) and
+  drives fresh devices through the native launch-token exchange, so the
+  browser cookie always gates the harness's own `/api`.
 
 ## Known Limitations and Deferred Work
 
