@@ -8,14 +8,14 @@
 
 本仓库是 DeepSeek Harness（DSH）的外部插件包：为 dsh web GUI 提供基于配对的手机与电脑远程访问。它是单一双半区包——host 半区持有配对令牌、设备会话与 `/api/pair` 路由族（已配对设备凭 cookie 被*识别*）；浏览器半区渲染侧边栏底部入口（设置按钮旁的手机图标入口）、带二维码的配对面板、实时设备状态、已授权设备列表，以及停止/刷新/复制操作。
 
-> **本 fork 已移除 `/m/` 独立移动端界面**：手机与电脑使用同一条配对链接（`/?pair=...`），配对后都运行完整 Web GUI（小屏布局由 `dsh-ui-tweaks` 适配——左侧边栏收起为左上角鲸鱼 logo 抽屉）。
+> **本 fork 已移除 `/m/` 独立移动端界面**：手机与电脑使用同一条配对链接（`/api/pair/open?token=...` 引导链接），配对后都运行完整 Web GUI（小屏布局由 `dsh-ui-tweaks` 适配——左侧边栏收起为左上角鲸鱼 logo 抽屉）。
 
 ## 功能
 
 - **入口**：设置按钮旁始终显示手机图标；悬停时显示“远程访问”提示。
-- **面板**：「远程访问」标题、「通过手机或另一台电脑配对，远程访问当前工作区」副标题、「设备配对」卡片（含状态区「等待设备连接」+ 状态徽标）、大号二维码、一条**统一配对链接**（`/?pair=...`，带复制按钮）、停止 / 刷新二维码操作，以及已授权设备列表（根据 User-Agent 推断的设备名称、在线/离线、最近活动时间、单台取消配对）。界面不渲染作为会话凭据的设备 id 或原始 User-Agent。该链接携带一枚一次性令牌，任意一台设备配对成功后立即失效。
-- **设备侧（手机与电脑同一条路径）**：扫码或打开复制的链接，把设备（手机或另一台电脑）与一次性、限时令牌绑定；接受往返后，**完整 Web GUI** 在该设备上运行——工作区、会话、聊天、切模型。链接携带 `workspace` 参数，设备落地到桌面正在查看的同一工作区。手机小屏下的布局由 `dsh-ui-tweaks` 适配（左侧边栏自动隐藏，左上角只留一枚小鲸鱼 logo，点击展开为抽屉覆层）。
-- **安全**：一个有效的一次性令牌（刷新会使旧链接失效；已接受的令牌不可复用；令牌会过期）。停止会撤销每一台已配对设备与当前令牌——被撤销的设备不再被本插件的配对面识别，必须重新扫码。**DSH 0.1.5 适配**：harness 的 `/api` 信任围栏是声明式的（`Connection` 配置 `trustedHosts` + 全接口绑定下自动信任的局域网字面量），0.1.1 的 `api/gate` 逐请求 veto 环缝已不存在。配对因此是*身份/识别*而非对 harness 自身 `/api` 分发的访问控制：本插件拥有自己的 `/api/pair` 面，向兄弟插件暴露在线配对 cookie 谓词（`remoteWebUiPairing`），并管理令牌/会话生命周期——它不会否决 SDK 自身信任的 `/api` 流量。DSH ≥0.1.5 以 `0.0.0.0` 绑定时局域网 origin 默认被 SDK 信任；需要 `/api` 对局域网关闭时就绑定 loopback（或配置 `trustedHosts`）。
+- **面板**：「远程访问」标题、「通过手机或另一台电脑配对，远程访问当前工作区」副标题、「设备配对」卡片（含状态区「等待设备连接」+ 状态徽标）、大号二维码、一条**统一配对链接**（`/api/pair/open?token=...` 引导 URL，带复制按钮）、停止 / 刷新二维码操作，以及已授权设备列表（根据 User-Agent 推断的设备名称、在线/离线、最近活动时间、单台取消配对）。界面不渲染作为会话凭据的设备 id 或原始 User-Agent。该链接携带一枚一次性令牌，任意一台设备配对成功后立即失效。
+- **设备侧（手机与电脑同一条路径）**：扫码或打开复制的链接会跑一轮两跳引导——`/api/pair/open` 这跳消费一次性、限时令牌并种下 HttpOnly 设备 cookie，然后重定向到 harness 原生的 launch-token URL（`/?token=...`），由原生 index 鉴权换出浏览器会话 cookie，设备最终落在**完整 Web GUI**——工作区、会话、聊天、切模型。全新设备不再收到 `workspace` 查询参数（原生 index 交换会重定向到干净的根路径）；已授权浏览器直接打开 `/?workspace=<id>` 链接仍可深链到目标工作区。手机小屏下的布局由 `dsh-ui-tweaks` 适配（左侧边栏自动隐藏，左上角只留一枚小鲸鱼 logo，点击展开为抽屉覆层）。
+- **安全**：一个有效的一次性令牌（刷新会使旧链接失效；已接受的令牌不可复用；令牌会过期）。停止会撤销每一台已配对设备与当前令牌——被撤销的设备不再被本插件的配对面识别，必须重新扫码。**DSH 0.1.5 适配**：harness 的 `/api` 信任围栏是声明式的（`Connection` 配置 `trustedHosts` + 全接口绑定下自动信任的局域网字面量），其 index 还要求浏览器会话 cookie（由进程级 launch token 换出）；0.1.1 的 `api/gate` 逐请求 veto 环缝已不存在。配对因此是*身份/识别*而非对 harness 自身 `/api` 分发的访问控制：本插件拥有自己的 `/api/pair` 面，向兄弟插件暴露在线配对 cookie 谓词（`remoteWebUiPairing`），并管理令牌/会话生命周期——其引导跳会驱动设备走原生 launch-token 交换，并把当前公网主机在运行时镜像进 SDK 的 `/api` 信任列表（隧道主机在启动时不可知，无法经 `--trusted-host` 预先声明）；它不会否决 SDK 自身信任的 `/api` 流量。DSH ≥0.1.5 以 `0.0.0.0` 绑定时局域网 origin 默认被 SDK 信任；需要 `/api` 对局域网关闭时就绑定 loopback。
 - **实时状态**：桌面面板经 SSE 流实时镜像配对状态（等待 → 已连接 → 已断开），并展示已授权设备名单。
 - **远程更新**：本冻结 fork 已移除（侧边栏下载触发按钮、`/api/update` 端点与 npm registry 探测一并删除；本 fork 不从 npm 更新插件）。
 
@@ -50,12 +50,12 @@ dsh plugin --profile web add link:$(pwd)/packages/dsh-remote-web-ui
 
 1. `dsh web --host 0.0.0.0`（打印的局域网 URL 确认可达性）。
 2. 点击手机图标 → 面板铸一枚新的二维码。
-3. 用手机扫码（或打开复制的链接）：手机绑定、重载进**完整 Web GUI**。小屏下由 `dsh-ui-tweaks` 适配布局——左侧边栏自动隐藏，左上角只留一枚小鲸鱼 logo，点击展开为抽屉覆层；工作区、会话、聊天、模型切换与桌面完全一致。
+3. 用手机扫码（或打开复制的链接）：手机消费令牌、经原生 launch-token 交换一次跳转，落在**完整 Web GUI**。小屏下由 `dsh-ui-tweaks` 适配布局——左侧边栏自动隐藏，左上角只留一枚小鲸鱼 logo，点击展开为抽屉覆层；工作区、会话、聊天、模型切换与桌面完全一致。
 4. **配对另一台设备（电脑或手机都一样）**：复制同一份链接，在另一台设备的浏览器打开（局域网 URL 或隧道 URL 均可）。接受往返后，完整 Web GUI 在那台设备上运行。一枚有效令牌配对一台设备；给下一台设备配对请刷新出新的二维码。
 5. 桌面徽标实时翻到 已连接；设备离开时回落到离线/断开。
 6. 刷新二维码 使旧链接失效并铸一枚新的。停止 撤销远程访问：被撤销的设备不再被识别，必须重新扫码。
 
-配对链接直接指向完整 Web GUI。DSH ≥0.1.5 下 SDK 直接信任局域网字面量（以及任何配置的 `trustedHosts`）访问 `/api`，因此已配对的手机或电脑原生运行 GUI——**无需任何 harness 源码改动，也无需请求改写**。插件拥有 `/api/pair` 面（令牌 mint/accept/revoke/heartbeat/status/events）与 `remoteWebUiPairing` 服务：兄弟插件凭已配对设备的 cookie 识别它。
+配对链接跑一轮两跳引导直达完整 Web GUI：`/api/pair/open`（本插件）消费一次性令牌并种下设备 cookie，然后重定向到 harness 原生的 launch-token URL，由原生 index 鉴权换出浏览器会话 cookie 并落在 `/`。DSH ≥0.1.5 下 SDK 直接信任局域网字面量（以及任何配置的 `trustedHosts`）访问 `/api`，因此已配对的手机或电脑原生运行 GUI——**无需任何 harness 源码改动，也无需请求改写**。插件拥有 `/api/pair` 面（令牌 mint/accept/open/revoke/heartbeat/status/events）与 `remoteWebUiPairing` 服务：兄弟插件凭已配对设备的 cookie 识别它。
 
 ### 行为说明
 
@@ -79,7 +79,7 @@ dsh plugin --profile web add link:$(pwd)/packages/dsh-remote-web-ui
 二维码链接通常是局域网 URL，所以家外的手机无法使用。把隧道指向 dsh web 端口，并告知插件其公网地址——二维码随后由隧道 URL 构建。涉及一个钮；`--trusted-host` 是独立的 SDK flag，不属于这条配对流：
 
 - **`publicBaseUrl`**（插件配置，在 profile patch 或设置卡片里）：公网 origin，如 `https://foo.trycloudflare.com`。二维码链接由它构建，`accept`/`heartbeat`/`status` 接受它的主机。未配对调用方的 `status` 只看到配对相关字段（phase / 局域网地址）；token 过期时间、设备列表与隧道 URL 需要有效设备 cookie。accept 限速按客户端可见的 `X-Forwarded-For` 跳点分桶，避免隧道背后的单个来源耗尽共享桶。
-- **`--trusted-host <隧道域名>`**（可选的 dsh web flag，安全上不建议用于本插件）：该 flag 会让主机被 SDK 信任访问 `/api` 本身，因此未配对调用方可以到达无门控的 host API。SDK 没有给第三方插件留下逐请求 veto 的接缝（0.1.1 的 `api/gate` 已不存在），所以配对只覆盖插件自己的面；更收敛的姿态是把该域名排除在信任之外，让设备走配对。
+- **`--trusted-host <隧道域名>`**（可选的 dsh web flag，不建议用于本插件）：该 flag 会让主机被 SDK 信任访问 `/api`——但浏览器会话 cookie 仍会门控每个请求，因此对本插件自己的隧道并不增加任何东西。插件会把当前公网主机在运行时镜像进 SDK 的 `/api` 信任列表（quick tunnel 的 hostname 启动时不可知，无法预先声明），这正是已配对手机所需的信任，而配对面继续守住身份围栏。SDK 没有给第三方插件留下逐请求 veto 的接缝（0.1.1 的 `api/gate` 已不存在），所以配对只覆盖插件自己的面；更收敛的姿态是依赖插件的镜像 + 浏览器 cookie，让设备走配对。
 
 ### Cloudflare 隧道（quick tunnel——无账号、无域名）
 
@@ -90,19 +90,19 @@ dsh plugin --profile web add link:$(pwd)/packages/dsh-remote-web-ui
 cloudflared tunnel --url http://127.0.0.1:3080
 #    打印类似：https://xxxx-xxxx-xxxx.trycloudflare.com
 
-# 2. 照常启动 dsh web。不必为隧道域名加 --trusted-host，除非你有意让 SDK
-#    信任该主机访问 /api（SDK 对第三方插件没有逐请求 veto 接缝，配对只覆盖
-#    插件自己的面；信任该主机等于把 /api 完全敞开）。
+# 2. 照常启动 dsh web。不必为隧道域名加 --trusted-host：插件会把当前
+#    公网主机在运行时镜像进 SDK 的 /api 信任列表，浏览器会话 cookie 仍
+#    门控每个请求。
 #    仅需保留局域网访问时才加 --host 0.0.0.0：
 dsh web
 ```
 
-然后在 profile patch（或插件设置卡片——它会热重载）里设 `publicBaseUrl: https://xxxx-xxxx-xxxx.trycloudflare.com`。在 `http://127.0.0.1` 打开手机图标，从任意处扫码：手机绑定、重载进完整 Web GUI，心跳保持其在线。在另一台电脑浏览器打开同一隧道 URL 以同样方式配对，随后运行完整 Web GUI。
+然后在 profile patch（或插件设置卡片——它会热重载）里设 `publicBaseUrl: https://xxxx-xxxx-xxxx.trycloudflare.com`。在 `http://127.0.0.1` 打开手机图标，从任意处扫码：手机消费令牌、经 launch-token 交换一次跳转、落在完整 Web GUI，心跳保持其在线。在另一台电脑浏览器打开同一隧道 URL 以同样方式配对，随后运行完整 Web GUI。
 
 说明：
 
 - Quick tunnel 免费无需登录，但 hostname 每次运行随机：每次 `cloudflared` 重启都变，所以 `publicBaseUrl` 要随之更新。Cloudflare 不保证 uptime；在途请求并发受限（超过返回 HTTP 429）。**Quick Tunnels 不转发 Server-Sent Events 但可以转发 WebSocket upgrade**——完整 Web GUI 的实时事件流正好走 WebSocket（`/api/events.mux` 升级），所以手机与远程电脑经由 quick tunnel 都能实时收消息；普通 HTTP 请求任何时候都可转发。
-- Quick tunnel 是公网的：任何拿到 URL 的人都能加载静态页。插件的边界在配对面自己的围栏上；SDK 的 `/api` 信任由 `trustedHosts` + 局域网自动信任决定——不要在 `--trusted-host` 里加隧道域名，那会在配对之外把 SDK 的 `/api` 打开。
+- Quick tunnel 是公网的：任何拿到 URL 的人都能加载静态页。插件的边界在配对面自己的围栏上（`/api/pair` 控制端点仅限 loopback；手机面端点接受配置的公网主机）外加 harness 的浏览器会话 cookie。插件会把公网主机镜像进 SDK 的 `/api` 信任列表，让已配对手机的 GUI 原生 API 调用通过 Host 围栏——cookie 仍门控每个请求；你不用也不应自己把隧道域名加进 `--trusted-host`。
 - 稳定 hostname 可从 Cloudflare 控制台创建 named tunnel（Networking → Tunnels；域名必须托管在 Cloudflare），其 hostname 只用作 `publicBaseUrl`。Cloudflare 不保证中国大陆可达性；请本地验证。
 - Tailscale 是无需任何插件改动的个人替代：其虚拟接口地址（`100.x.y.z`）自动出现在二维码的地址选择器中，同一 tailnet 的手机像局域网主机一样到达它。
 
@@ -145,15 +145,15 @@ pnpm run build
 
 1. 用测试工作区根在所有接口上启动服务器：`dsh web --host 0.0.0.0 --port 3190 --workspace-root /tmp/remote-e2e`。
 2. 在浏览器打开 **loopback** URL（`http://127.0.0.1:3190`）：手机图标在侧边栏底部；面板立即铸一枚二维码。
-3. 在第二个 tab（或手机）打开带配对令牌的 **局域网** URL（如 `http://192.168.1.7:3190/?pair=<token>`）：页面接受、设置 HttpOnly `dsh_pair` cookie、重载并启动完整 UI——无 console 错误，并且完成一次 generation 往返。
+3. 在第二个 tab（或手机）打开带配对令牌的 **局域网** URL（如 `http://192.168.1.7:3190/api/pair/open?token=<token>`）：页面接受、设置 HttpOnly `dsh_pair` cookie、经原生 launch-token 交换一次跳转并启动完整 UI——无 console 错误，并且完成一次 generation 往返。
 4. 桌面徽标实时翻到 已连接；局域网 origin 的桌面页则显示 配对面板仅限本机使用 横幅且不打开状态流。
 5. 桌面 停止 切断手机：其下一个 `/api` 请求 403（重连循环重试直到新二维码重新配对）。
 
-公网路径是经隧道的同一往返（见「通过互联网远程访问」）：loopback mint → 手机或 PC 打开公网二维码 URL → accept → UI。只有 `publicBaseUrl`（插件配置）命名隧道主机；`--trusted-host` 不属于这条配对流。桌面面板仍在 `http://127.0.0.1` 打开。
+公网路径是经隧道的同一往返（见「通过互联网远程访问」）：loopback mint → 手机或 PC 打开公网二维码 URL → open 引导跳 + 原生 launch-token 交换 → UI。只有 `publicBaseUrl`（插件配置）命名隧道主机；`--trusted-host` 不属于这条配对流（插件的运行时信任镜像会处理公网主机）。桌面面板仍在 `http://127.0.0.1` 打开。
 
 ## 安全模型
 
-- 插件的配对面按有效会话识别设备：`/api/pair` 的 stop/revoke 与 loopback 面板端点是 loopback-only 的，接受/心跳/状态端点接受局域网字面量或配置的公网主机；`remoteWebUiPairing` 服务把"在线已配对 cookie"谓词交给兄弟插件。撤销是即时的：被撤销的设备不再被识别，必须重新扫码。harness 自身的 `/api` 信任（`trustedHosts` + 局域网自动信任）是 SDK 的接缝，本插件不否决它。
+- 插件的配对面按有效会话识别设备：`/api/pair` 的 stop/revoke 与 loopback 面板端点是 loopback-only 的，接受/打开/心跳/状态端点接受局域网字面量或配置的公网主机；`remoteWebUiPairing` 服务把"在线已配对 cookie"谓词交给兄弟插件。撤销是即时的：被撤销的设备不再被识别，必须重新扫码。harness 自身的 `/api` 信任（`trustedHosts` + 局域网自动信任）是 SDK 的接缝，本插件不否决它——它只把自身当前公网主机在运行时镜像进 SDK 信任列表（隧道主机启动时不可知），并驱动全新设备走原生 launch-token 交换，因此浏览器 cookie 始终门控 harness 自身的 `/api`。
 
 ## 已知限制与待办
 

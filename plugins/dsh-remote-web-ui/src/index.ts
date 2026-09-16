@@ -21,9 +21,14 @@ import type { Context } from '@deepseek-ai/cordis'
 // Type-only: pulls the dsh-settings Context merge (ctx.settings) so the
 // installSection surface resolves.
 import type {} from '@deepseek-ai/dsh-settings'
+// Type-only: pulls the dsh-client-connection Context merge (ctx.connection —
+// HostConnectionHandle) for the native launch-token exchange and the fence
+// trust mirror.
+import type {} from '@deepseek-ai/dsh-client-connection'
 import z from 'schemastery'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { DEFAULT_IDLE_EXPIRE_MS, PairingService, type PairingConfig } from './pairing.ts'
+import { asTrustedHostsOwner, ConnectionTrustSync } from './connection-trust.ts'
 import { dshHome } from './dsh-home.ts'
 import { isPairedDeviceRequest } from './gate.ts'
 import { RemoteWebUiPairing } from './pairing-access.ts'
@@ -37,7 +42,7 @@ import { UUID_POLYFILL_SCRIPT } from './uuid-polyfill.ts'
 export const name = 'remote-web-ui'
 
 /** Services required before the pairing surfaces can mount. */
-export const inject = ['webServer', 'settings']
+export const inject = ['webServer', 'settings', 'connection']
 
 /**
  * Settings namespace of the remote-control capability — the section the web
@@ -191,6 +196,15 @@ function applyImpl(ctx: Context, config?: Config): void {
   }
   const service = new PairingService(pairingConfigOf(resolved))
 
+  // ── native connection integration (DSH 0.1.5) ─────────────────────────────
+  // The QR bootstrap hop redirects to the connection plugin's launch-token
+  // URL (the phone lands on the Web GUI with the browser cookie), and the
+  // active public host — a tunnel host is unknowable at boot, so it cannot
+  // enter the fence via --trusted-host — is mirrored into the connection
+  // fence's trustedHosts so the tunneled phone's /api requests pass the Host
+  // check while the browser-session cookie still gates every request.
+  const trust = new ConnectionTrustSync(asTrustedHostsOwner(ctx.connection))
+
   // ── auto tunnel ─────────────────────────────────────────────────────────
   // The minted public URL becomes the QR base (and the phone-facing pairing
   // fence's trusted host).
@@ -210,9 +224,11 @@ function applyImpl(ctx: Context, config?: Config): void {
       service.setPublicBaseUrl(undefined)
       service.setTunnelStatus(info.error === undefined ? { state: 'failed' } : { state: 'failed', error: info.error })
     }
+    trust.reflect(service.publicBaseUrl)
   })
   ctx.effect(() => () => {
     tunnel.dispose()
+    trust.dispose()
   }, 'remote-web-ui: auto tunnel')
   // The bind facts are known by now (webServer is an inject edge): the LAN
   // bases are frozen per process, matching the CLI's once-per-invocation
@@ -231,7 +247,11 @@ function applyImpl(ctx: Context, config?: Config): void {
   // routes and sweep timer are dropped and all device/token state is revoked.
   let disposeRoutes: (() => void) | undefined
   let disposeSweep: (() => void) | undefined
-  const routes = makeRoutes({ service, lanAddresses })
+  const routes = makeRoutes({
+    service,
+    lanAddresses,
+    authenticatedUrl: base => ctx.connection.authenticatedUrl(base),
+  })
 
   // Inject the crypto.randomUUID polyfill before any other script runs, so that
   // the main bundle doesn't crash on non-secure contexts (LAN HTTP)
@@ -269,6 +289,9 @@ function applyImpl(ctx: Context, config?: Config): void {
         service.setPublicBaseUrl(value.publicBaseUrl)
       }
     }
+    // The tunnel phase listener mirrors the auto-tunnel URL; the manual base
+    // (and every live edit) lands here.
+    trust.reflect(service.publicBaseUrl)
     const enabled = value.enabled
     if (!enabled) service.stop()
     if (disposeRoutes === undefined && enabled) {

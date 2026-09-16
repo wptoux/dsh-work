@@ -275,6 +275,18 @@ profile dir + reconcile 安装态）。
     bridge 删除（0.1.5 `SettingsScope.mutate` 签名不同，fork 从不装 bridge）。devDeps 全量
     `^0.1.5-rc.1`，`dsh.client.inject` 换掉 runtime 条目，`dsh.engines.dsh` 改
     `>=0.1.1-rc.1 <0.2.0-0`。**激活前提：内核 ≥0.1.5**。
+  - **0.1.5 浏览器鉴权修复**（`fix/remote-web-ui-auth`，内核 index 鉴权 + /api 围栏的后续
+    适配）：0.1.5 的 connection 层对 index 要求浏览器会话 cookie（进程级 launch token 换出），
+    `/api` 还要 Host/Origin 信任围栏 —— 旧 QR 链接 `/?pair=...` 在全新设备上 401
+    （「dsh web authentication required」）。现配对链接改为两跳引导：`issue` 铸造
+    `/api/pair/open?token=<pair>`（新 GET 路由，消费一次性令牌 + 种设备 cookie + 303 到
+    原生 `?token=<launch>` 换浏览器 cookie；死链接带有效设备 cookie 时可幂等重入），
+    `inject` 加 `connection`（`authenticatedUrl` 透传）；隧道公网主机（启动时不可知，
+    无法经 `--trusted-host` 预声明）由 `ConnectionTrustSync` 在运行时镜像进 connection
+    的 `trustedHosts`（private 字段的结构化接缝，随 publicBaseUrl 变化增删，插件卸载清空），
+    使隧道手机的 GUI `/api` 请求过 Host 围栏而浏览器 cookie 仍门控。QR 不再携带
+    `workspace`（原生 303 会清掉查询参数；已授权浏览器直开 `/?workspace=` 深链仍可用）。
+    测试 91→98（open 路由 4 例 + connection-trust 3 例）。**需用户重启 dsh web 后生效**。
 - `dsh-ui-tweaks`（本仓库自研）：
   - **窄屏侧边栏抽屉**（本 fork 定制，保留）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`

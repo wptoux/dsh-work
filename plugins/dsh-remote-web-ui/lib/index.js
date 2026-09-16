@@ -431,6 +431,62 @@ function sanitizeUserAgent(raw) {
 	return cleaned.length <= MAX_USER_AGENT_CHARS ? cleaned : cleaned.slice(0, MAX_USER_AGENT_CHARS);
 }
 //#endregion
+//#region src/connection-trust.ts
+/**
+* Narrow an unknown Connection handle to its trust-list face, or undefined
+* when the runtime shape is absent (test contexts, non-web profiles). The
+* structural check mirrors what the kernel's fence actually reads.
+* @param connection - the `ctx.connection` service instance.
+* @returns the live trust-list owner, when present.
+*/
+function asTrustedHostsOwner(connection) {
+	if (connection === null || typeof connection !== "object") return void 0;
+	const candidate = connection;
+	return Array.isArray(candidate.trustedHosts) ? candidate : void 0;
+}
+/**
+* Track the last mirrored public host and keep the fence's trust list in
+* sync. `reflect()` is idempotent and safe to call after every state change;
+* `dispose()` clears the mirror (plugin teardown).
+*/
+var ConnectionTrustSync = class {
+	owner;
+	host;
+	/**
+	* @param owner - the connection service's trust list, when present.
+	*/
+	constructor(owner) {
+		this.owner = owner;
+	}
+	/**
+	* Mirror the active public base's authority (or clear it). A malformed
+	* base clears the previous entry rather than throwing — the caller already
+	* validated it before advertising, and a bad value must not wedge the
+	* fence.
+	* @param baseUrl - the active public base URL, or undefined when none.
+	*/
+	reflect(baseUrl) {
+		if (this.owner === void 0) return;
+		let host;
+		if (baseUrl !== void 0) try {
+			host = new URL(baseUrl).host;
+		} catch {
+			host = void 0;
+		}
+		if (host === this.host) return;
+		if (this.host !== void 0) {
+			const index = this.owner.trustedHosts.indexOf(this.host);
+			if (index !== -1) this.owner.trustedHosts.splice(index, 1);
+		}
+		this.host = host;
+		if (host !== void 0 && !this.owner.trustedHosts.includes(host)) this.owner.trustedHosts.push(host);
+	}
+	/** Clear the mirrored authority (plugin teardown). */
+	dispose() {
+		this.reflect(void 0);
+	}
+};
+//#endregion
 //#region src/dsh-home.ts
 /**
 * DSH_HOME resolution shared by the plugin family's Host halves: the
@@ -678,6 +734,7 @@ const COOKIE_MAX_AGE_SEC = 31536e3;
 const PAIR_PATHS = {
 	issue: "/api/pair/issue",
 	accept: "/api/pair/accept",
+	open: "/api/pair/open",
 	stop: "/api/pair/stop",
 	revoke: "/api/pair/revoke",
 	heartbeat: "/api/pair/heartbeat",
@@ -759,6 +816,38 @@ var PairingEventsStream = class {
 		return this.streams.size;
 	}
 };
+/** One device-session cookie (the accept and bootstrap hops share it). */
+function deviceSessionCookie(service, deviceId) {
+	return `${service.config.cookieName}=${deviceId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${String(COOKIE_MAX_AGE_SEC)}`;
+}
+/**
+* The origin the phone actually reached the server through, preserving the
+* scheme. A tunneled public base keeps https; every other authority (LAN,
+* or loopback) is plain http — the native launch-token exchange is
+* authority-agnostic, so the redirect simply lands on the origin the QR was
+* opened from.
+* @param req - the bootstrap request (its Host names the reachable authority).
+* @param service - pairing service carrying the configured public base.
+* @returns the base origin for the redirect, or undefined without a Host.
+*/
+function requestOriginBase(req, service) {
+	const host = req.headers.host;
+	if (typeof host !== "string" || host === "") return void 0;
+	const publicUrl = service.publicBaseUrl;
+	if (publicUrl !== void 0) try {
+		const publicHost = new URL(publicUrl).hostname;
+		if (new URL(`http://${host}`).hostname === publicHost) return `${new URL(publicUrl).protocol}//${host}`;
+	} catch {}
+	return `http://${host}`;
+}
+/** One minimal plain-text response (bootstrap-hop error pages). */
+function writeText(res, status, text) {
+	res.writeHead(status, {
+		"content-type": "text/plain; charset=utf-8",
+		"cache-control": "no-store"
+	});
+	res.end(text);
+}
 /**
 * Build the /api/pair route family.
 * @param deps - service + fence inputs.
@@ -831,7 +920,7 @@ function makeRoutes(deps) {
 			if (base === void 0) throw new Error("remote-web-ui: base unavailable");
 			writeJson(res, 200, {
 				ok: true,
-				url: `${base}/?pair=${token}${workspaceId === void 0 ? "" : `&workspace=${encodeURIComponent(workspaceId)}`}`,
+				url: `${base}/api/pair/open?token=${token}`,
 				token,
 				expiresAt,
 				lanAddresses: service.lanAddresses,
@@ -885,7 +974,47 @@ function makeRoutes(deps) {
 		writeJson(res, 200, {
 			ok: true,
 			deviceId: result.deviceId
-		}, { "set-cookie": [`${service.config.cookieName}=${result.deviceId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${String(COOKIE_MAX_AGE_SEC)}`] });
+		}, { "set-cookie": [deviceSessionCookie(service, result.deviceId)] });
+	};
+	/**
+	* The QR bootstrap hop (GET /api/pair/open?token=…). A fresh phone opens
+	* this: the one-time token is consumed, the device cookie is set, and the
+	* browser is redirected to the native launch-token URL (`base/?token=…`) —
+	* DSH 0.1.5's index auth exchange then mints the browser cookie and lands
+	* the device on the full Web GUI with both credentials. A dead link with a
+	* live paired cookie still re-opens the GUI (idempotent re-entry); with no
+	* live cookie it is refused.
+	*/
+	const handleOpen = (req, res) => {
+		if (!requireMethod(req, res, "GET")) return;
+		if (!lanFence(req)) {
+			writeText(res, 403, "forbidden");
+			return;
+		}
+		if (rateLimitAccept(req)) {
+			writeText(res, 429, "rate-limited");
+			return;
+		}
+		const token = new URL(req.url ?? "/", "http://dsh.invalid").searchParams.get("token") ?? "";
+		const ua = req.headers["user-agent"];
+		const result = service.accept(token, typeof ua === "string" ? ua : void 0);
+		const cookieId = result.ok ? result.deviceId : readCookie(req.headers.cookie, service.config.cookieName);
+		const liveDevice = cookieId !== void 0 && service.hasDevice(cookieId);
+		if (!result.ok && !liveDevice) {
+			writeText(res, 404, "This pairing link is invalid, expired, or already used. Open a fresh link from the remote-control panel.");
+			return;
+		}
+		const base = requestOriginBase(req, service);
+		if (base === void 0) {
+			writeText(res, 400, "missing Host header");
+			return;
+		}
+		res.writeHead(303, {
+			"location": deps.authenticatedUrl(base),
+			"cache-control": "no-store",
+			"set-cookie": [deviceSessionCookie(service, cookieId)]
+		});
+		res.end();
 	};
 	const handleStop = async (req, res) => {
 		if (!requireMethod(req, res, "POST")) return;
@@ -1015,6 +1144,11 @@ function makeRoutes(deps) {
 			kind: "exact",
 			path: PAIR_PATHS.accept,
 			handler: handleAccept
+		},
+		{
+			kind: "exact",
+			path: PAIR_PATHS.open,
+			handler: handleOpen
 		},
 		{
 			kind: "exact",
@@ -1358,7 +1492,11 @@ const UUID_POLYFILL_SCRIPT = [
 /** Stable cordis plugin name. */
 const name = "remote-web-ui";
 /** Services required before the pairing surfaces can mount. */
-const inject = ["webServer", "settings"];
+const inject = [
+	"webServer",
+	"settings",
+	"connection"
+];
 /**
 * Settings namespace of the remote-control capability — the section the web
 * settings surface edits. Spelled here rather than imported: the browser
@@ -1444,6 +1582,7 @@ function applyImpl(ctx, config) {
 		};
 	};
 	const service = new PairingService(pairingConfigOf(resolved));
+	const trust = new ConnectionTrustSync(asTrustedHostsOwner(ctx.connection));
 	const tunnel = new TunnelManager();
 	let autoTunnel = resolved.autoTunnel;
 	tunnel.onPhase((info) => {
@@ -1464,9 +1603,11 @@ function applyImpl(ctx, config) {
 				error: info.error
 			});
 		}
+		trust.reflect(service.publicBaseUrl);
 	});
 	ctx.effect(() => () => {
 		tunnel.dispose();
+		trust.dispose();
 	}, "remote-web-ui: auto tunnel");
 	const lanBases = ctx.webServer.host === "0.0.0.0" ? lanIPv4Addresses().map((address) => ({
 		address,
@@ -1478,7 +1619,8 @@ function applyImpl(ctx, config) {
 	let disposeSweep;
 	const routes = makeRoutes({
 		service,
-		lanAddresses
+		lanAddresses,
+		authenticatedUrl: (base) => ctx.connection.authenticatedUrl(base)
 	});
 	ctx.effect(() => ctx.on("webserver/index-inject", (table) => {
 		table.push({
@@ -1505,6 +1647,7 @@ function applyImpl(ctx, config) {
 				service.setPublicBaseUrl(void 0);
 			} else service.setPublicBaseUrl(value.publicBaseUrl);
 		}
+		trust.reflect(service.publicBaseUrl);
 		const enabled = value.enabled;
 		if (!enabled) service.stop();
 		if (disposeRoutes === void 0 && enabled) disposeRoutes = ctx.effect(() => {

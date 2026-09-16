@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import { setInterval as nodeSetInterval } from 'node:timers';
 import z from 'schemastery';
 import { DEFAULT_IDLE_EXPIRE_MS, PairingService } from "./pairing.js";
+import { asTrustedHostsOwner, ConnectionTrustSync } from "./connection-trust.js";
 import { dshHome } from "./dsh-home.js";
 import { isPairedDeviceRequest } from "./gate.js";
 import { RemoteWebUiPairing } from "./pairing-access.js";
@@ -29,7 +30,7 @@ import { UUID_POLYFILL_SCRIPT } from "./uuid-polyfill.js";
 /** Stable cordis plugin name. */
 export const name = 'remote-web-ui';
 /** Services required before the pairing surfaces can mount. */
-export const inject = ['webServer', 'settings'];
+export const inject = ['webServer', 'settings', 'connection'];
 /**
  * Settings namespace of the remote-control capability — the section the web
  * settings surface edits. Spelled here rather than imported: the browser
@@ -118,6 +119,14 @@ function applyImpl(ctx, config) {
         };
     };
     const service = new PairingService(pairingConfigOf(resolved));
+    // ── native connection integration (DSH 0.1.5) ─────────────────────────────
+    // The QR bootstrap hop redirects to the connection plugin's launch-token
+    // URL (the phone lands on the Web GUI with the browser cookie), and the
+    // active public host — a tunnel host is unknowable at boot, so it cannot
+    // enter the fence via --trusted-host — is mirrored into the connection
+    // fence's trustedHosts so the tunneled phone's /api requests pass the Host
+    // check while the browser-session cookie still gates every request.
+    const trust = new ConnectionTrustSync(asTrustedHostsOwner(ctx.connection));
     // ── auto tunnel ─────────────────────────────────────────────────────────
     // The minted public URL becomes the QR base (and the phone-facing pairing
     // fence's trusted host).
@@ -140,9 +149,11 @@ function applyImpl(ctx, config) {
             service.setPublicBaseUrl(undefined);
             service.setTunnelStatus(info.error === undefined ? { state: 'failed' } : { state: 'failed', error: info.error });
         }
+        trust.reflect(service.publicBaseUrl);
     });
     ctx.effect(() => () => {
         tunnel.dispose();
+        trust.dispose();
     }, 'remote-web-ui: auto tunnel');
     // The bind facts are known by now (webServer is an inject edge): the LAN
     // bases are frozen per process, matching the CLI's once-per-invocation
@@ -160,7 +171,11 @@ function applyImpl(ctx, config) {
     // routes and sweep timer are dropped and all device/token state is revoked.
     let disposeRoutes;
     let disposeSweep;
-    const routes = makeRoutes({ service, lanAddresses });
+    const routes = makeRoutes({
+        service,
+        lanAddresses,
+        authenticatedUrl: base => ctx.connection.authenticatedUrl(base),
+    });
     // Inject the crypto.randomUUID polyfill before any other script runs, so that
     // the main bundle doesn't crash on non-secure contexts (LAN HTTP)
     ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
@@ -199,6 +214,9 @@ function applyImpl(ctx, config) {
                 service.setPublicBaseUrl(value.publicBaseUrl);
             }
         }
+        // The tunnel phase listener mirrors the auto-tunnel URL; the manual base
+        // (and every live edit) lands here.
+        trust.reflect(service.publicBaseUrl);
         const enabled = value.enabled;
         if (!enabled)
             service.stop();

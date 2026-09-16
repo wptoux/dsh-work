@@ -1,10 +1,14 @@
 /**
- * Pairing boot flow: the QR link's `pair` + `workspace` parameters. Runs
- * from the client apply on every page load, on any device:
+ * Pairing boot flow: the `pair` + `workspace` query parameters. Runs from
+ * the client apply on every page load, on any device:
  * - `pair` present → accept the token, then reload so the whole SPA boots
  *   with the device cookie (the accept endpoint is exempt from the pairing
- *   gate; every other /api request needs the cookie). Phones and computers
- *   both land on the full Web GUI.
+ *   gate; every other /api request needs the cookie). This is the
+ *   direct-link path for browsers that already hold the harness's browser
+ *   cookie; the QR bootstrap on a fresh device runs server-side instead —
+ *   `/api/pair/open` consumes the token, sets the device cookie, and
+ *   redirects through the native launch-token exchange, so the SPA boots
+ *   with no query parameters at all.
  * - `workspace` present (and paired) → deep-link: connect that workspace's
  *   session and open it, then strip the parameter.
  * Failure of accept leaves a sessionStorage marker the entry renders as a

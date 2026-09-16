@@ -87,6 +87,7 @@ const COOKIE_MAX_AGE_SEC = 365 * 24 * 60 * 60;
 export const PAIR_PATHS = {
     issue: '/api/pair/issue',
     accept: '/api/pair/accept',
+    open: '/api/pair/open',
     stop: '/api/pair/stop',
     revoke: '/api/pair/revoke',
     heartbeat: '/api/pair/heartbeat',
@@ -168,6 +169,43 @@ export class PairingEventsStream {
         return this.streams.size;
     }
 }
+/** One device-session cookie (the accept and bootstrap hops share it). */
+function deviceSessionCookie(service, deviceId) {
+    return `${service.config.cookieName}=${deviceId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${String(COOKIE_MAX_AGE_SEC)}`;
+}
+/**
+ * The origin the phone actually reached the server through, preserving the
+ * scheme. A tunneled public base keeps https; every other authority (LAN,
+ * or loopback) is plain http — the native launch-token exchange is
+ * authority-agnostic, so the redirect simply lands on the origin the QR was
+ * opened from.
+ * @param req - the bootstrap request (its Host names the reachable authority).
+ * @param service - pairing service carrying the configured public base.
+ * @returns the base origin for the redirect, or undefined without a Host.
+ */
+export function requestOriginBase(req, service) {
+    const host = req.headers.host;
+    if (typeof host !== 'string' || host === '')
+        return undefined;
+    const publicUrl = service.publicBaseUrl;
+    if (publicUrl !== undefined) {
+        try {
+            const publicHost = new URL(publicUrl).hostname;
+            if (new URL(`http://${host}`).hostname === publicHost) {
+                return `${new URL(publicUrl).protocol}//${host}`;
+            }
+        }
+        catch {
+            // Malformed public base: fall through to the plain-http construction.
+        }
+    }
+    return `http://${host}`;
+}
+/** One minimal plain-text response (bootstrap-hop error pages). */
+function writeText(res, status, text) {
+    res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(text);
+}
 /**
  * Build the /api/pair route family.
  * @param deps - service + fence inputs.
@@ -245,13 +283,13 @@ export function makeRoutes(deps) {
             const base = address === undefined ? (service.publicBaseUrl ?? service.lanBaseUrl) : service.lanBaseUrlFor(address);
             if (base === undefined)
                 throw new Error('remote-web-ui: base unavailable');
-            const workspaceQuery = workspaceId === undefined ? '' : `&workspace=${encodeURIComponent(workspaceId)}`;
             writeJson(res, 200, {
                 ok: true,
-                // One link for every device: phones and computers both open the full
-                // Web GUI and pair through the same flow (/remote channel for
-                // non-loopback origins).
-                url: `${base}/?pair=${token}${workspaceQuery}`,
+                // One bootstrap link for every device: the /api/pair/open hop
+                // consumes the one-time token, sets the device cookie, and redirects
+                // to the native launch-token URL so DSH 0.1.5's index auth mints the
+                // browser cookie and serves the full Web GUI.
+                url: `${base}/api/pair/open?token=${token}`,
                 token,
                 expiresAt,
                 // Every constructible base, so a multi-homed panel can switch the
@@ -299,10 +337,49 @@ export function makeRoutes(deps) {
         // work there), and the same cookie rides HTTPS on the tunnel. Lax keeps
         // top-level navigations working while blocking cross-site subrequests.
         writeJson(res, 200, { ok: true, deviceId: result.deviceId }, {
-            'set-cookie': [
-                `${service.config.cookieName}=${result.deviceId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${String(COOKIE_MAX_AGE_SEC)}`,
-            ],
+            'set-cookie': [deviceSessionCookie(service, result.deviceId)],
         });
+    };
+    /**
+     * The QR bootstrap hop (GET /api/pair/open?token=…). A fresh phone opens
+     * this: the one-time token is consumed, the device cookie is set, and the
+     * browser is redirected to the native launch-token URL (`base/?token=…`) —
+     * DSH 0.1.5's index auth exchange then mints the browser cookie and lands
+     * the device on the full Web GUI with both credentials. A dead link with a
+     * live paired cookie still re-opens the GUI (idempotent re-entry); with no
+     * live cookie it is refused.
+     */
+    const handleOpen = (req, res) => {
+        if (!requireMethod(req, res, 'GET'))
+            return;
+        if (!lanFence(req)) {
+            writeText(res, 403, 'forbidden');
+            return;
+        }
+        if (rateLimitAccept(req)) {
+            writeText(res, 429, 'rate-limited');
+            return;
+        }
+        const token = new URL(req.url ?? '/', 'http://dsh.invalid').searchParams.get('token') ?? '';
+        const ua = req.headers['user-agent'];
+        const result = service.accept(token, typeof ua === 'string' ? ua : undefined);
+        const cookieId = result.ok ? result.deviceId : readCookie(req.headers.cookie, service.config.cookieName);
+        const liveDevice = cookieId !== undefined && service.hasDevice(cookieId);
+        if (!result.ok && !liveDevice) {
+            writeText(res, 404, 'This pairing link is invalid, expired, or already used. Open a fresh link from the remote-control panel.');
+            return;
+        }
+        const base = requestOriginBase(req, service);
+        if (base === undefined) {
+            writeText(res, 400, 'missing Host header');
+            return;
+        }
+        res.writeHead(303, {
+            'location': deps.authenticatedUrl(base),
+            'cache-control': 'no-store',
+            'set-cookie': [deviceSessionCookie(service, cookieId)],
+        });
+        res.end();
     };
     const handleStop = async (req, res) => {
         if (!requireMethod(req, res, 'POST'))
@@ -393,6 +470,7 @@ export function makeRoutes(deps) {
     return [
         { kind: 'exact', path: PAIR_PATHS.issue, handler: handleIssue },
         { kind: 'exact', path: PAIR_PATHS.accept, handler: handleAccept },
+        { kind: 'exact', path: PAIR_PATHS.open, handler: handleOpen },
         { kind: 'exact', path: PAIR_PATHS.stop, handler: handleStop },
         { kind: 'exact', path: PAIR_PATHS.revoke, handler: handleRevoke },
         { kind: 'exact', path: PAIR_PATHS.heartbeat, handler: handleHeartbeat },

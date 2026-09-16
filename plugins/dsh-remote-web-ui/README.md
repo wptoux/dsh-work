@@ -19,30 +19,35 @@ code, live device status, an authorized-device list, and stop/refresh/copy
 actions.
 
 > **This fork removed the standalone `/m/` mobile surface**: phones and
-> computers use the same pairing link (`/?pair=...`) and both run the full
-> Web GUI after pairing (the narrow-screen layout comes from
-> `dsh-ui-tweaks` — the sidebar collapses to a whale-logo drawer at the
-> top-left).
+> computers use the same pairing link (a `/api/pair/open?token=...`
+> bootstrap URL) and both run the full Web GUI after pairing (the
+> narrow-screen layout comes from `dsh-ui-tweaks` — the sidebar collapses
+> to a whale-logo drawer at the top-left).
 
 ## What it does
 
 - **Entry**: a phone icon beside the settings button in both the expanded sidebar and narrow rail; its tooltip and accessible label say "Remote access".
-- **Panel**: "Remote access" title, "Pair a phone or another computer to access this workspace remotely" subtitle, a "Pair a device" card with the status area ("Waiting for a device" + status badge), a large QR code, one **unified pairing link** (`/?pair=...`) with a copy button, plus Stop / Refresh QR actions and an authorized-device list (a device name inferred from User-Agent, online/offline, last active time, per-device unpair). Credential-bearing device ids and raw User-Agent values are never rendered. The link carries one single-use token that dies as soon as any device pairs.
-- **Device side (the same path for phones and computers)**: scanning the QR or opening the copied link binds the device (a phone or another computer) with a one-time, time-limited token; after the accept round trip the **full Web GUI** runs there — workspaces, sessions, chat, model switching. The link carries a `workspace` parameter so the device lands in the same workspace the desktop was looking at. Phones get the narrow-screen layout from `dsh-ui-tweaks` (the sidebar hides, leaving a small whale logo at the top-left that opens the sidebar as a drawer overlay).
+- **Panel**: "Remote access" title, "Pair a phone or another computer to access this workspace remotely" subtitle, a "Pair a device" card with the status area ("Waiting for a device" + status badge), a large QR code, one **unified pairing link** (a `/api/pair/open?token=...` bootstrap URL) with a copy button, plus Stop / Refresh QR actions and an authorized-device list (a device name inferred from User-Agent, online/offline, last active time, per-device unpair). Credential-bearing device ids and raw User-Agent values are never rendered. The link carries one single-use token that dies as soon as any device pairs.
+- **Device side (the same path for phones and computers)**: scanning the QR or opening the copied link runs a two-hop bootstrap — the `/api/pair/open` hop consumes the one-time, time-limited token and sets the HttpOnly device cookie, then redirects to the harness's native launch-token URL (`/?token=...`), which exchanges it for the browser-session cookie and lands the device on the **full Web GUI** — workspaces, sessions, chat, model switching. Fresh devices no longer receive a `workspace` query parameter (the native index exchange redirects to the clean root); a direct `/?workspace=<id>` link still deep-links an already-authorized browser. Phones get the narrow-screen layout from `dsh-ui-tweaks` (the sidebar hides, leaving a small whale logo at the top-left that opens the sidebar as a drawer overlay).
 - **Security**: one active one-time token (a refresh invalidates the old
   link; an accepted token cannot be reused; tokens expire). 停止 revokes
   every paired device and the current token — a revoked device is no longer
   recognized by the plugin's pairing surfaces and must scan a fresh QR.
   **DSH 0.1.5 adaptation**: the harness's `/api` trust fence is declarative
   (`Connection` config `trustedHosts` + LAN literals auto-trusted from an
-  all-interface bind), and the 0.1.1 `api/gate` per-request veto seam no
-  longer exists. Pairing is therefore *identity/recognition*, not access
-  control over the harness's own `/api` dispatch: this plugin owns its
-  `/api/pair` surfaces, exposes the live paired-cookie predicate to sibling
-  plugins (`remoteWebUiPairing`), and manages token/session lifecycle —
-  it does not veto what the SDK itself trusts for `/api`. On DSH ≥0.1.5 with
-  a `0.0.0.0` bind, LAN origins are trusted by the SDK by default; bind
-  loopback (or configure `trustedHosts`) when you want `/api` LAN-closed.
+  all-interface bind) and its index is gated by a browser-session cookie
+  minted from the per-process launch token; the 0.1.1 `api/gate`
+  per-request veto seam no longer exists. Pairing is therefore
+  *identity/recognition*, not access control over the harness's own `/api`
+  dispatch: this plugin owns its `/api/pair` surfaces, exposes the live
+  paired-cookie predicate to sibling plugins (`remoteWebUiPairing`), and
+  manages token/session lifecycle — its bootstrap hop drives devices
+  through the native launch-token exchange, and it mirrors the active
+  public host into the SDK `/api` trust list at runtime (a tunnel host is
+  unknowable at boot, so it cannot enter the fence via `--trusted-host`).
+  It does not otherwise veto what the SDK itself trusts for `/api`. On DSH
+  ≥0.1.5 with a `0.0.0.0` bind, LAN origins are trusted by the SDK by
+  default; bind loopback when you want `/api` LAN-closed.
 - **Live status**: the desktop panel mirrors the pairing state in real time
   (waiting → connected → disconnected) over an SSE stream, including the
   authorized-device list.
@@ -103,8 +108,9 @@ mounts both halves.
 
 1. `dsh web --host 0.0.0.0` (the printed LAN URL confirms reachability).
 2. Click the phone icon → the panel mints a fresh one-time QR.
-3. Scan with the phone (or open the copied link): the phone binds, reloads
-   into the **full Web GUI**. On a narrow screen the layout comes from
+3. Scan with the phone (or open the copied link): the phone consumes the
+   token, bounces through the native launch-token exchange, and lands in
+   the **full Web GUI**. On a narrow screen the layout comes from
    `dsh-ui-tweaks` — the sidebar hides automatically, leaving a small whale
    logo at the top-left that opens the sidebar as a drawer overlay;
    workspaces, sessions, chat, and model switching are exactly the desktop's.
@@ -118,13 +124,16 @@ mounts both halves.
    remote access: a revoked device is no longer recognized and must scan
    again.
 
-The pairing link points straight at the full Web GUI. On DSH ≥0.1.5 the SDK
-trusts LAN literals (and any configured `trustedHosts`) for `/api` directly,
-so a paired phone or computer runs the GUI natively — **no harness source
-changes and no request rewriting** are needed. The plugin owns the
-`/api/pair` surface (token mint/accept/revoke/heartbeat/status/events) and
-the `remoteWebUiPairing` service: sibling plugins recognize a live paired
-device by its cookie.
+The pairing link runs a two-hop bootstrap straight into the full Web GUI:
+`/api/pair/open` (this plugin) consumes the one-time token and sets the
+device cookie, then redirects to the harness's native launch-token URL,
+which mints the browser-session cookie and lands on `/`. On DSH ≥0.1.5 the
+SDK trusts LAN literals (and any configured `trustedHosts`) for `/api`
+directly, so a paired phone or computer runs the GUI natively — **no
+harness source changes and no request rewriting** are needed. The plugin
+owns the `/api/pair` surface (token mint/accept/open/revoke/heartbeat/
+status/events) and the `remoteWebUiPairing` service: sibling plugins
+recognize a live paired device by its cookie.
 
 ### Behavior notes
 
@@ -189,13 +198,17 @@ address — the QR is then built from the tunnel URL. One knob is involved;
   device cookie. The accept rate limit partitions its buckets by the
   client-visible `X-Forwarded-For` hop so one internet client cannot
   exhaust the shared bucket behind the tunnel.
-- **`--trusted-host <tunnel-domain>`** (optional dsh web flag, not recommended
-  for this plugin on security grounds): this flag makes the SDK trust the
-  host for `/api` itself, so unpaired callers can reach the ungated host
-  API. The SDK leaves no per-request veto seam for third-party plugins
-  (0.1.1's `api/gate` is gone), so pairing only covers the plugin's own
-  surfaces; the more closed stance is to keep the domain out of trust and
-  let devices pair.
+- **`--trusted-host <tunnel-domain>`** (optional dsh web flag, not
+  recommended for this plugin): the flag makes the SDK trust the host for
+  `/api` itself — but the browser-session cookie still gates every request,
+  so it adds nothing this plugin already provides for its own tunnel. The
+  plugin mirrors the active public host into the SDK `/api` trust list at
+  runtime (a quick-tunnel hostname is unknowable at boot, so it cannot be
+  declared up front), which is exactly the trust a paired phone needs while
+  the pairing surfaces keep the identity fence. The SDK leaves no per-request
+  veto seam for third-party plugins (0.1.1's `api/gate` is gone), so pairing
+  only covers the plugin's own surfaces; the more closed stance is to rely on
+  the plugin's mirror plus the browser cookie and let devices pair.
 
 ### Cloudflare Tunnel (quick tunnel — no account, no domain)
 
@@ -209,9 +222,9 @@ cloudflared tunnel --url http://127.0.0.1:3080
 #    prints something like: https://xxxx-xxxx-xxxx.trycloudflare.com
 
 # 2. Start dsh web as usual. Do not add --trusted-host for the tunnel
-#    domain unless you intentionally want the SDK to trust that host for
-#    /api (the SDK leaves plugins no per-request veto seam; trusting the
-#    host opens /api entirely).
+#    domain: the plugin mirrors the active public host into the SDK /api
+#    trust list at runtime, and the browser-session cookie still gates every
+#    request.
 #    Use --host 0.0.0.0 only when LAN access should stay available:
 dsh web
 ```
@@ -236,9 +249,11 @@ Notes:
 - A quick tunnel is public: anyone with the URL can load the static page.
   The plugin's boundary is its own pairing-surface fences (`/api/pair`
   control endpoints are loopback-only; phone-facing endpoints accept the
-  configured public host). The SDK's `/api` trust is `trustedHosts` + LAN
-  auto-trust — do not add the tunnel domain to `--trusted-host`, which
-  opens SDK `/api` outside pairing.
+  configured public host) plus the harness's browser-session cookie. The
+  plugin mirrors the public host into the SDK's `/api` trust list so the
+  paired phone's native GUI API calls pass the Host fence — the cookie
+  still gates every request — and you should not add the tunnel domain to
+  `--trusted-host` yourself.
 - For a stable hostname, create a named tunnel from the Cloudflare
   dashboard (Networking → Tunnels; the domain must be hosted on Cloudflare)
   and use its hostname as `publicBaseUrl` (only). Reachability from
@@ -312,9 +327,10 @@ flow:
 2. Open the **loopback** URL (`http://127.0.0.1:3190`) in a browser: the
    phone icon sits in the sidebar foot; the panel mints a QR instantly.
 3. In a second tab (or a phone) open the **LAN** URL with the pair token
-   (e.g. `http://192.168.1.7:3190/?pair=<token>`): the page accepts, sets
-   the HttpOnly `dsh_pair` cookie, reloads, and boots the full UI — no
-   console errors, and a generation round trip completes.
+   (e.g. `http://192.168.1.7:3190/api/pair/open?token=<token>`): the page
+   accepts, sets the HttpOnly `dsh_pair` cookie, bounces through the native
+   launch-token exchange, and boots the full UI — no console errors, and a
+   generation round trip completes.
 4. The desktop badge flips to 已连接 in real time; a LAN-origin desktop
    page instead shows the 配对面板仅限本机使用 banner and opens no status
    stream.
@@ -332,13 +348,16 @@ opens at `http://127.0.0.1`.
 
 - The plugin's pairing surfaces recognize devices by a live session:
   `/api/pair` stop/revoke and the loopback panel endpoints are
-  loopback-only, the accept/heartbeat/status endpoints accept the LAN
+  loopback-only, the accept/open/heartbeat/status endpoints accept the LAN
   literals or the configured public host, and the `remoteWebUiPairing`
   service hands the "live paired-device cookie" predicate to sibling
   plugins. Revocation is immediate: a revoked device is no longer
   recognized and must scan again. The harness's own `/api` trust
   (`trustedHosts` + LAN auto-trust) is the SDK's seam; this plugin does not
-  veto it.
+  veto it — it only mirrors its own active public host into the SDK's
+  trust list at runtime (the tunnel host is unknowable at boot) and drives
+  fresh devices through the native launch-token exchange, so the browser
+  cookie always gates the harness's own `/api`.
 
 ## Known Limitations and Deferred Work
 

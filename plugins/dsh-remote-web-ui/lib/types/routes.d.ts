@@ -39,6 +39,7 @@ export declare function publicHostOf(url: string | undefined): string | undefine
 export declare const PAIR_PATHS: {
     readonly issue: "/api/pair/issue";
     readonly accept: "/api/pair/accept";
+    readonly open: "/api/pair/open";
     readonly stop: "/api/pair/stop";
     readonly revoke: "/api/pair/revoke";
     readonly heartbeat: "/api/pair/heartbeat";
@@ -84,7 +85,24 @@ export interface PairRoutesDeps {
     service: PairingService;
     /** The LAN IP literals the fence accepts (derived from the bind host). */
     lanAddresses: readonly string[];
+    /**
+     * The native browser-auth URL for a base origin: `${base}/?token=<launch>`.
+     * Drives the /api/pair/open bootstrap hop's redirect; the connection
+     * plugin's index auth exchanges the launch token for the browser cookie.
+     */
+    authenticatedUrl: (base: string) => string;
 }
+/**
+ * The origin the phone actually reached the server through, preserving the
+ * scheme. A tunneled public base keeps https; every other authority (LAN,
+ * or loopback) is plain http — the native launch-token exchange is
+ * authority-agnostic, so the redirect simply lands on the origin the QR was
+ * opened from.
+ * @param req - the bootstrap request (its Host names the reachable authority).
+ * @param service - pairing service carrying the configured public base.
+ * @returns the base origin for the redirect, or undefined without a Host.
+ */
+export declare function requestOriginBase(req: IncomingMessage, service: PairingService): string | undefined;
 /**
  * Build the /api/pair route family.
  * @param deps - service + fence inputs.
