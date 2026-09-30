@@ -680,12 +680,15 @@ function writeJson(res, status, body, headers = {}) {
 * predicate — the fence for the /api prefix lives inside the connection
 * plugin — so the pairing routes, which must stay reachable from LAN phones
 * ahead of the connection prefix route (exact routes match first), carry
-* their own copy scoped to the literals the QR links advertise.
+* their own copy scoped to the literals the QR links advertise. A top-level
+* navigation (`Sec-Fetch-Mode: navigate` + `Sec-Fetch-Dest: document`) skips
+* the initiator markers: a phone camera scanner or in-app browser navigates
+* from another app and legitimately reports `Sec-Fetch-Site: cross-site`.
 * @param request - the node HTTP request.
 * @param trustedHosts - non-loopback authorities this surface serves: exact
 * `host:port`, or port-less `host` matching any port.
-* @returns true when the Host is ours (loopback or trusted) and any attached
-* browser markers are same-origin.
+* @returns true when the Host is ours (loopback or trusted) and, for
+* non-navigation traffic, any attached browser markers are same-origin.
 */
 function isTrustedApiRequest(request, trustedHosts) {
 	const host = request.headers.host;
@@ -701,6 +704,7 @@ function isTrustedApiRequest(request, trustedHosts) {
 		const entryUrl = new URL(`http://${entry}`);
 		return entryUrl.port === "" ? entryUrl.hostname === hostname : entryUrl.host === hostUrl.host;
 	}))) return false;
+	if (request.headers["sec-fetch-mode"] === "navigate" && request.headers["sec-fetch-dest"] === "document") return true;
 	if (request.headers["sec-fetch-site"] === "cross-site") return false;
 	const origin = request.headers.origin;
 	if (origin === void 0 || origin === "null") return true;

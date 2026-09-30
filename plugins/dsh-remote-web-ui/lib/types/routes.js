@@ -18,12 +18,15 @@ import { readJsonBody, writeJson } from "./http.js";
  * predicate — the fence for the /api prefix lives inside the connection
  * plugin — so the pairing routes, which must stay reachable from LAN phones
  * ahead of the connection prefix route (exact routes match first), carry
- * their own copy scoped to the literals the QR links advertise.
+ * their own copy scoped to the literals the QR links advertise. A top-level
+ * navigation (`Sec-Fetch-Mode: navigate` + `Sec-Fetch-Dest: document`) skips
+ * the initiator markers: a phone camera scanner or in-app browser navigates
+ * from another app and legitimately reports `Sec-Fetch-Site: cross-site`.
  * @param request - the node HTTP request.
  * @param trustedHosts - non-loopback authorities this surface serves: exact
  * `host:port`, or port-less `host` matching any port.
- * @returns true when the Host is ours (loopback or trusted) and any attached
- * browser markers are same-origin.
+ * @returns true when the Host is ours (loopback or trusted) and, for
+ * non-navigation traffic, any attached browser markers are same-origin.
  */
 export function isTrustedApiRequest(request, trustedHosts) {
     const host = request.headers.host;
@@ -45,6 +48,16 @@ export function isTrustedApiRequest(request, trustedHosts) {
     });
     if (!trusted)
         return false;
+    // A user-initiated top-level navigation may carry `Sec-Fetch-Site:
+    // cross-site` when its initiator is another app or site — exactly how a
+    // phone camera scanner or an in-app browser opens the one-time bootstrap
+    // link. The URL token (not a cookie) is the credential and the response is
+    // a same-origin redirect the initiator cannot read, so there is no
+    // cross-site request to forge; navigation traffic therefore skips the
+    // initiator fences. Subresource and fetch traffic still refuses every
+    // cross-site marker and mismatched Origin below.
+    if (request.headers['sec-fetch-mode'] === 'navigate' && request.headers['sec-fetch-dest'] === 'document')
+        return true;
     // Cross-site fence: an explicit cross-site marker is refused regardless of
     // Origin (modern browsers label the initiator on every fetch).
     if (request.headers['sec-fetch-site'] === 'cross-site')

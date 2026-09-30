@@ -18,12 +18,15 @@ import { type PairingService, type PairingSnapshot } from './pairing.ts';
  * predicate — the fence for the /api prefix lives inside the connection
  * plugin — so the pairing routes, which must stay reachable from LAN phones
  * ahead of the connection prefix route (exact routes match first), carry
- * their own copy scoped to the literals the QR links advertise.
+ * their own copy scoped to the literals the QR links advertise. A top-level
+ * navigation (`Sec-Fetch-Mode: navigate` + `Sec-Fetch-Dest: document`) skips
+ * the initiator markers: a phone camera scanner or in-app browser navigates
+ * from another app and legitimately reports `Sec-Fetch-Site: cross-site`.
  * @param request - the node HTTP request.
  * @param trustedHosts - non-loopback authorities this surface serves: exact
  * `host:port`, or port-less `host` matching any port.
- * @returns true when the Host is ours (loopback or trusted) and any attached
- * browser markers are same-origin.
+ * @returns true when the Host is ours (loopback or trusted) and, for
+ * non-navigation traffic, any attached browser markers are same-origin.
  */
 export declare function isTrustedApiRequest(request: IncomingMessage, trustedHosts: readonly string[]): boolean;
 /**

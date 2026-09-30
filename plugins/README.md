@@ -243,7 +243,12 @@ profile dir + reconcile 安装态）。
 ## 已知本地改动（相对上游）
 
 - `dsh-remote-web-ui`：
-  - **DSH 0.2.0 适配（本地自持，2026-09-30，版本 0.4.0）**：按用户决策**不再跟随上游**，
+  - **配对围栏放行扫码顶级导航（2026-09-30，本地修复）**：手机相机/App 内置浏览器打开
+    引导链接时会带 `Sec-Fetch-Site: cross-site`（同时 `Sec-Fetch-Mode: navigate` /
+    `Sec-Fetch-Dest: document`），旧围栏一律拒绝 → 手机只见 `forbidden`（桌面无痕因
+    `Sec-Fetch-Site: none` 反而正常）。`isTrustedApiRequest` 现对顶级导航跳过发起方标记
+    （凭据是一次性 URL 令牌而非 cookie，跳转对发起方不可读），跨站子资源/请求仍全部拒绝。
+  - **DSH 0.2.0 适配（本地自持，2026-09-30，版本 0.4.1）**：按用户决策**不再跟随上游**，
     直接在本地源码上迁移。① 宿主 `Config` 改用 `@deepseek-ai/schemastery` 且每个字段
     `.volatile()`；`apply` 经 `readConfig()` 读 `Volatile.get()`，删除
     `settings.installSection` 与 `current` 间接层；结构性同步（启停路由/隧道）改由

@@ -554,7 +554,7 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
     }
   })
 
-  it('treats an opaque Origin (QR scanner / in-app webview) like an absent one, but still refuses cross-site', async () => {
+  it('treats an opaque Origin (QR scanner / in-app webview) like an absent one, refuses cross-site subresources, and admits a cross-site top-level navigation', async () => {
     const service = makeService()
     const { port, close } = await serve(makeRoutes({
       service,
@@ -572,12 +572,29 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
       })
       expect(opened.status).toBe(303)
       expect(opened.cookies[0]).toMatch(/^dsh_pair=tok-1; Path=\//)
-      // The same opaque origin with an explicit cross-site marker is refused.
+      // The same opaque origin with an explicit cross-site marker on
+      // non-navigation traffic (no navigate/document) is refused.
       const crossSite = await openLink(port, '/api/pair/open?token=nope', {
         host: '192.168.1.5:3080',
         headers: { origin: 'null', 'sec-fetch-site': 'cross-site' },
       })
       expect(crossSite.status).toBe(403)
+      // A real phone scanner navigates top-level from another app, so it also
+      // reports navigate/document. That user-initiated navigation is admitted
+      // despite the cross-site marker (the token, not a cookie, is the
+      // credential and the redirect is unreadable to the initiator).
+      await call(port, 'POST', '/api/pair/issue', {})
+      const scanned = await openLink(port, '/api/pair/open?token=tok-1', {
+        host: '192.168.1.5:3080',
+        headers: {
+          origin: 'null',
+          'sec-fetch-site': 'cross-site',
+          'sec-fetch-mode': 'navigate',
+          'sec-fetch-dest': 'document',
+        },
+      })
+      expect(scanned.status).toBe(303)
+      expect(scanned.cookies[0]).toMatch(/^dsh_pair=tok-1; Path=\//)
     } finally {
       await close()
     }

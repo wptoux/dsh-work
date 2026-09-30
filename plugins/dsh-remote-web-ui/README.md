@@ -48,6 +48,12 @@ actions.
   It does not otherwise veto what the SDK itself trusts for `/api`. On DSH
   ≥0.1.5 with a `0.0.0.0` bind, LAN origins are trusted by the SDK by
   default; bind loopback when you want `/api` LAN-closed.
+  A phone camera scanner or an in-app browser opens the bootstrap link as a
+  cross-site top-level navigation (`Sec-Fetch-Site: cross-site` together with
+  `Sec-Fetch-Mode: navigate` / `Sec-Fetch-Dest: document`). The pairing fence
+  admits that navigation — the one-time URL token, not a cookie, is the
+  credential and the same-origin redirect is unreadable to the initiator —
+  while still refusing every cross-site subresource or fetch.
 - **Live status**: the desktop panel mirrors the pairing state in real time
   (waiting → connected → disconnected) over an SSE stream, including the
   authorized-device list.
