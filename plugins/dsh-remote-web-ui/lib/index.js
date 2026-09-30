@@ -1,6 +1,6 @@
 import { dirname, isAbsolute, join } from "node:path";
 import { setInterval } from "node:timers";
-import z from "schemastery";
+import z from "@deepseek-ai/schemastery";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir, networkInterfaces } from "node:os";
@@ -1481,22 +1481,24 @@ const UUID_POLYFILL_SCRIPT = [
 * (the `./client` entry) renders the sidebar entry, the pairing panel, and
 * the pair/accept + deep-link flow.
 *
-* DSH 0.1.5 adaptation: the harness's /api trust fence is declarative
-* (`Connection` config trustedHosts + LAN literals auto-trusted from an
-* all-interface bind) and the 0.1.1 `api/gate` per-request veto seam no
-* longer exists. Pairing is therefore identity/recognition: this plugin owns
-* its /api/pair surfaces and exposes the live paired-cookie predicate to
-* sibling plugins (RemoteWebUiPairing), but it does not veto the harness's
-* own /api dispatch.
+* DSH 0.2.0 adaptation: plugin configuration is the Loader entry's own Config
+* (this package's `cordis.patch.yml` row), projected into the settings surface
+* from schema fields marked `.volatile()`. There is no `installSection`; a
+* live edit commits straight into the frozen `Volatile` references this plugin
+* reads, and the `settings/document-updated` event re-runs the structural
+* sync. The browser half registers its own card into the Plugins page's
+* `plugins.item` seat, so this half suppresses the auto-generated page.
+*
+* The harness's /api trust fence is declarative (`Connection` config
+* trustedHosts + LAN literals auto-trusted from an all-interface bind).
+* Pairing is therefore identity/recognition: this plugin owns its /api/pair
+* surfaces and exposes the live paired-cookie predicate to sibling plugins
+* (RemoteWebUiPairing), but it does not veto the harness's own /api dispatch.
 */
 /** Stable cordis plugin name. */
 const name = "remote-web-ui";
 /** Services required before the pairing surfaces can mount. */
-const inject = [
-	"webServer",
-	"settings",
-	"connection"
-];
+const inject = ["webServer", "connection"];
 /**
 * Settings namespace of the remote-control capability — the section the web
 * settings surface edits. Spelled here rather than imported: the browser
@@ -1504,18 +1506,30 @@ const inject = [
 */
 const REMOTE_WEB_UI_SETTINGS_NAMESPACE = "remote-web-ui";
 const Config = z.object({
-	tokenTtlMs: z.number().step(1).min(6e4).default(6e5),
-	offlineAfterMs: z.number().step(1).min(5e3).default(25e3),
-	maxDevices: z.number().step(1).min(1).max(64).default(4),
-	idleExpireMs: z.number().step(1).min(6e4).default(DEFAULT_IDLE_EXPIRE_MS),
-	cookieName: z.string().min(1).default("dsh_pair"),
-	publicBaseUrl: z.string(),
-	devicesFile: z.string(),
-	autoTunnel: z.boolean().default(false),
-	enabled: z.boolean().default(true)
+	tokenTtlMs: z.number().step(1).min(6e4).default(6e5).volatile(),
+	offlineAfterMs: z.number().step(1).min(5e3).default(25e3).volatile(),
+	maxDevices: z.number().step(1).min(1).max(64).default(4).volatile(),
+	idleExpireMs: z.number().step(1).min(6e4).default(DEFAULT_IDLE_EXPIRE_MS).volatile(),
+	cookieName: z.string().min(1).default("dsh_pair").volatile(),
+	publicBaseUrl: z.string().volatile(),
+	devicesFile: z.string().volatile(),
+	autoTunnel: z.boolean().default(false).volatile(),
+	enabled: z.boolean().default(true).volatile()
 });
 /** Presence sweep cadence (a stale device flips to disconnected within two sweeps). */
 const SWEEP_INTERVAL_MS = 1e4;
+/**
+* Read one config field's current value. The Loader hands `apply` frozen
+* `Volatile` references (`.get()`); hand-built test contexts may pass plain
+* values instead, so both shapes are accepted.
+* @param value - a Volatile reference, a plain value, or undefined.
+* @returns the current plain value.
+*/
+function readConfig(value) {
+	if (value === null || typeof value !== "object") return value;
+	const get = value.get;
+	return typeof get === "function" ? get.call(value) : value;
+}
 /**
 * The single mapping from resolved plugin config to the pairing service
 * config. Both the constructed service and every live settings sync reuse
@@ -1555,36 +1569,21 @@ const DEFAULTS = {
 */
 const apply = mountOnce("dsh-remote-web-ui", applyImpl);
 function applyImpl(ctx, config) {
-	const resolved = {
-		tokenTtlMs: config?.tokenTtlMs ?? DEFAULTS.tokenTtlMs,
-		offlineAfterMs: config?.offlineAfterMs ?? DEFAULTS.offlineAfterMs,
-		maxDevices: config?.maxDevices ?? DEFAULTS.maxDevices,
-		idleExpireMs: config?.idleExpireMs ?? DEFAULTS.idleExpireMs,
-		cookieName: config?.cookieName ?? DEFAULTS.cookieName,
-		publicBaseUrl: config?.publicBaseUrl,
-		devicesFile: config?.devicesFile ?? DEFAULTS.devicesFile,
-		autoTunnel: config?.autoTunnel ?? DEFAULTS.autoTunnel,
-		enabled: config?.enabled ?? DEFAULTS.enabled
-	};
-	let current = () => config ?? {};
-	const resolve = () => {
-		const value = current();
-		return {
-			tokenTtlMs: value.tokenTtlMs ?? DEFAULTS.tokenTtlMs,
-			offlineAfterMs: value.offlineAfterMs ?? DEFAULTS.offlineAfterMs,
-			maxDevices: value.maxDevices ?? DEFAULTS.maxDevices,
-			idleExpireMs: value.idleExpireMs ?? DEFAULTS.idleExpireMs,
-			cookieName: value.cookieName ?? DEFAULTS.cookieName,
-			publicBaseUrl: value.publicBaseUrl,
-			devicesFile: value.devicesFile ?? DEFAULTS.devicesFile,
-			autoTunnel: value.autoTunnel ?? DEFAULTS.autoTunnel,
-			enabled: value.enabled ?? DEFAULTS.enabled
-		};
-	};
-	const service = new PairingService(pairingConfigOf(resolved));
+	const resolve = () => ({
+		tokenTtlMs: readConfig(config?.tokenTtlMs) ?? DEFAULTS.tokenTtlMs,
+		offlineAfterMs: readConfig(config?.offlineAfterMs) ?? DEFAULTS.offlineAfterMs,
+		maxDevices: readConfig(config?.maxDevices) ?? DEFAULTS.maxDevices,
+		idleExpireMs: readConfig(config?.idleExpireMs) ?? DEFAULTS.idleExpireMs,
+		cookieName: readConfig(config?.cookieName) ?? DEFAULTS.cookieName,
+		publicBaseUrl: readConfig(config?.publicBaseUrl),
+		devicesFile: readConfig(config?.devicesFile) ?? DEFAULTS.devicesFile,
+		autoTunnel: readConfig(config?.autoTunnel) ?? DEFAULTS.autoTunnel,
+		enabled: readConfig(config?.enabled) ?? DEFAULTS.enabled
+	});
+	const service = new PairingService(pairingConfigOf(resolve()));
 	const trust = new ConnectionTrustSync(asTrustedHostsOwner(ctx.connection));
 	const tunnel = new TunnelManager();
-	let autoTunnel = resolved.autoTunnel;
+	let autoTunnel = resolve().autoTunnel;
 	tunnel.onPhase((info) => {
 		if (!autoTunnel) return;
 		if (info.phase === "running" && info.url !== void 0) {
@@ -1675,13 +1674,12 @@ function applyImpl(ctx, config) {
 		}
 	};
 	sync();
-	ctx.settings.installSection(ctx, REMOTE_WEB_UI_SETTINGS_NAMESPACE, Config, config ?? {}, {
-		setSource: (source) => {
-			current = source;
-			sync();
-		},
-		onChange: sync
+	ctx.inject(["settings"], (child) => {
+		child.effect(() => child.settings.configure({ auto: false }, ctx.fiber));
 	});
+	ctx.effect(() => ctx.on("settings/document-updated", (ns) => {
+		if (ns === "remote-web-ui") sync();
+	}), "remote-web-ui: live settings sync");
 }
 /** Whether a configured public base is a parseable http(s) URL with a host. */
 function isHttpUrl(value) {

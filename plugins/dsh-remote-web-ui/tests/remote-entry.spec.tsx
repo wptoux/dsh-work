@@ -311,13 +311,14 @@ describe('apply registration', () => {
         inject: (key: string) => { injected.push(key); return () => {} },
         register: () => () => {},
       },
-      settingsScope: {
-        bind: () => ({
+      configForms: {
+        get: () => ({
           getSnapshot: () => ({ status: 'unavailable' as const, writable: false }),
           subscribe: () => () => {},
-          set: async () => {},
-          unset: async () => {},
+          set: async () => true,
+          unset: async () => true,
         }),
+        whileServed: (namespaces: readonly string[], register: (served: ReadonlySet<string>) => () => void) => register(new Set(namespaces)),
       },
       get: (name: string) => {
         if (name === 'connection') return { isLoopback: true }
@@ -325,7 +326,7 @@ describe('apply registration', () => {
       },
     }
     apply(ctx as never)
-    expect(injected).toEqual(['sidebar.footer.action', 'settings.plugins.tab'])
+    expect(injected).toEqual(['sidebar.footer.action', 'plugins.item'])
   })
 
   it('waits for the settings snapshot before mounting the sidebar entry and runtime', async () => {
@@ -349,13 +350,14 @@ describe('apply registration', () => {
           return () => {}
         },
       },
-      settingsScope: {
-        bind: () => ({
+      configForms: {
+        get: () => ({
           getSnapshot: () => snapshot,
           subscribe: (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn) } },
-          set: async () => {},
-          unset: async () => {},
+          set: async () => true,
+          unset: async () => true,
         }),
+        whileServed: (namespaces: readonly string[], register: (served: ReadonlySet<string>) => () => void) => register(new Set(namespaces)),
       },
       get: (name: string) => {
         if (name === 'connection') return { isLoopback: true }
@@ -363,14 +365,14 @@ describe('apply registration', () => {
       },
     }
     apply(ctx as never)
-    expect(registered).toEqual(['settings.plugins.tab'])
+    expect(registered).toEqual(['plugins.item'])
 
     snapshot = { status: 'ready' as const, writable: true, value: { enabled: false } }
     notify()
-    expect(registered).toEqual(['settings.plugins.tab'])
+    expect(registered).toEqual(['plugins.item'])
 
     snapshot = { status: 'ready' as const, writable: true, value: { enabled: true } }
     notify()
-    expect(registered).toEqual(['settings.plugins.tab', 'sidebar.footer.action'])
+    expect(registered).toEqual(['plugins.item', 'sidebar.footer.action'])
   })
 })

@@ -1505,7 +1505,7 @@ window.__ModuleLoader__.load({
 						className: remote_module_css_default.close,
 						"aria-label": t("close.label"),
 						onClick: onClose,
-						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutline16, { size: 14 })
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, { size: 14 })
 					})]
 				}), state.kind === "lan-required" ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: remote_module_css_default.banner,
@@ -1599,7 +1599,7 @@ window.__ModuleLoader__.load({
 								type: "button",
 								className: remote_module_css_default.copyLink,
 								onClick: () => onCopy(state.url),
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCopyOutline16, { size: 14 }), copied ? t("action.copied") : t("action.copy")]
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCopyOutlineRegular, { size: 14 }), copied ? t("action.copied") : t("action.copy")]
 							})]
 						})
 					}),
@@ -1666,12 +1666,12 @@ window.__ModuleLoader__.load({
 							type: "button",
 							className: remote_module_css_default.action,
 							onClick: onStop,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconStopFill16, { size: 14 }), t("action.stop")]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconStopFillRegular, { size: 14 }), t("action.stop")]
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 							type: "button",
 							className: remote_module_css_default.action,
 							onClick: onRefresh,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconRefreshOutline16, { size: 14 }), t("action.refresh")]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconRefreshOutlineRegular, { size: 14 }), t("action.refresh")]
 						})]
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
@@ -2063,14 +2063,14 @@ window.__ModuleLoader__.load({
 		*/
 		function PluginSettingsCard(props) {
 			const [open, setOpen] = (0, react.useState)(props.defaultOpen ?? true);
-			const { state, alwaysOpen } = props;
+			const { state, alwaysOpen, hideHeader } = props;
 			if (!state.available) return null;
 			const title = props.t(props.titleKey);
 			const description = props.t(props.descriptionKey);
 			const blocked = !state.dirty || state.invalid || state.saving;
-			const expanded = alwaysOpen === true || open;
+			const expanded = hideHeader === true || alwaysOpen === true || open;
 			const cardClass = expanded ? `${settings_card_module_css_default.cardOpen} ${settings_card_module_css_default.card}` : settings_card_module_css_default.card;
-			const header = alwaysOpen === true ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+			const header = hideHeader === true ? null : alwaysOpen === true ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: settings_card_module_css_default.headerStatic,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: settings_card_module_css_default.headText,
@@ -2128,7 +2128,7 @@ window.__ModuleLoader__.load({
 					})
 				]
 			});
-			if (!state.exposed) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+			if (!state.exposed) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: cardClass,
 				children: [header, expanded ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 					className: settings_card_module_css_default.body,
@@ -2139,7 +2139,7 @@ window.__ModuleLoader__.load({
 					})
 				}) : null]
 			});
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: cardClass,
 				children: [header, expanded ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: settings_card_module_css_default.body,
@@ -2519,7 +2519,7 @@ window.__ModuleLoader__.load({
 			saving = false;
 			failed = false;
 			failedReason;
-			/** @param scope - the bound settings scope for this card's namespace. */
+			/** @param scope - the bound config form for this card's namespace. */
 			constructor(scope, specs) {
 				this.scope = scope;
 				this.specs = new Map(specs.map((spec) => [spec.field, spec]));
@@ -2705,15 +2705,15 @@ window.__ModuleLoader__.load({
 		//#region src/client/RemoteSettingsCard.tsx
 		/**
 		* The remote-control settings card: pairing security and device limits.
-		* Registers into the Plugins settings section's tab list
-		* (`settings.plugins.tab`, keyed by the `remote-web-ui` settings namespace)
-		* that the stock web app's ui-settings-plugins section renders.
+		* Registers into the Plugins page's `plugins.item` seat under the
+		* `remote-web-ui` settings namespace (the Host entry id): the page renders
+		* the summary one-liner on the card and this form on the plugin's own page.
 		*/
-		/** Bridges the `remote-web-ui` scope onto the card's staged form. */
+		/** Bridges the `remote-web-ui` config form onto the card's staged form. */
 		var RemoteSettingsCardController = class {
 			form;
 			store;
-			/** @param scope - the bound settings scope for the `remote-web-ui` namespace. */
+			/** @param scope - the bound config form for the `remote-web-ui` namespace. */
 			constructor(scope) {
 				this.form = new CardForm(scope, [
 					booleanField("enabled"),
@@ -2759,14 +2759,16 @@ window.__ModuleLoader__.load({
 			}
 		};
 		/**
-		* Render the remote-control card.
-		* @param props - locale copy, the card snapshot, and its form actions.
-		* @returns the card.
+		* Render the remote-control card: the page's one-liner in the summary view,
+		* the settings form in the page view.
+		* @param props - the view asked for, locale copy, the card snapshot, and its form actions.
+		* @returns the one-liner, or the card.
 		*/
 		function RemoteSettingsCard(props) {
 			const { t } = props;
 			const [state, setState] = (0, react.useState)(() => props.store.getSnapshot());
 			(0, react.useEffect)(() => props.store.subscribe(() => setState(props.store.getSnapshot())), [props.store]);
+			if (props.view === "summary") return t("settings.description");
 			const disabled = !state.writable;
 			const fieldProps = {
 				overriddenLabel: t("settings.overridden"),
@@ -2778,7 +2780,7 @@ window.__ModuleLoader__.load({
 				t,
 				titleKey: "settings.title",
 				descriptionKey: "settings.description",
-				defaultOpen: false,
+				hideHeader: true,
 				state,
 				onSave: props.save,
 				onDiscard: props.discard,
@@ -3132,11 +3134,12 @@ window.__ModuleLoader__.load({
 			while (Date.now() < deadline) {
 				const workspaces = ctx.get("workspaces");
 				const sessions = ctx.get("sessions");
-				if (workspaces !== void 0 && sessions !== void 0) {
+				const uiWorkspace = ctx.get("uiWorkspace");
+				if (workspaces !== void 0 && sessions !== void 0 && uiWorkspace !== void 0) {
 					if (workspaces.list.getSnapshot().items.some((item) => item.workspaceId === target)) {
 						try {
 							const sessionId = await sessions.create({ workspaceId: target });
-							sessions.open(sessionId);
+							uiWorkspace.openSession(sessionId);
 						} catch {}
 						break;
 					}
@@ -3153,11 +3156,11 @@ window.__ModuleLoader__.load({
 		* Phone and desktop remote control — browser half. Registers the `remote`
 		* dictionaries, the sidebar-foot entry (phone trigger + pairing panel) into
 		* the ui-sidebar `sidebar.footer.action` list seat, the remote-control
-		* settings card into the settings shell's `settings.plugins.tab` seat, and
-		* runs the pair-accept boot flow (token accept + workspace deep-link +
-		* presence heartbeats) plus the one-time failed-pair notice. Export
-		* discipline: packages/client/AGENTS.md — the /client surface carries only
-		* what cordis loading needs plus types.
+		* settings card into the Plugins page's `plugins.item` seat, and runs the
+		* pair-accept boot flow (token accept + workspace deep-link + presence
+		* heartbeats) plus the one-time failed-pair notice. Export discipline:
+		* packages/client/AGENTS.md — the /client surface carries only what cordis
+		* loading needs plus types.
 		*/
 		/** Dictionary namespace owned by this plugin. */
 		const NS = "remote";
@@ -3170,8 +3173,7 @@ window.__ModuleLoader__.load({
 			"slots",
 			"locale",
 			"connection",
-			"settingsScope",
-			"remote"
+			"configForms"
 		];
 		/**
 		* Register the remote-control surface.
@@ -3189,9 +3191,9 @@ window.__ModuleLoader__.load({
 				}
 			}, "remote-web-ui: dictionaries");
 			const t = ctx.locale.bind(NS);
-			const settingsScope = ctx.settingsScope.bind({ namespace: REMOTE_WEB_UI_NS });
+			const form = ctx.configForms.get(REMOTE_WEB_UI_NS);
 			const enabled = () => {
-				const snapshot = settingsScope.getSnapshot();
+				const snapshot = form.getSnapshot();
 				return snapshot.status === "ready" ? snapshot.value?.enabled ?? true : snapshot.status === "unavailable";
 			};
 			ctx.slots.inject("sidebar.footer.action", () => {
@@ -3209,18 +3211,18 @@ window.__ModuleLoader__.load({
 						disposeEntry = void 0;
 					}
 				};
-				const unsubscribe = settingsScope.subscribe(syncEntry);
+				const unsubscribe = form.subscribe(syncEntry);
 				syncEntry();
 				return () => {
 					unsubscribe();
 					disposeEntry?.();
 				};
 			});
-			const remoteSettings = new RemoteSettingsCardController(settingsScope);
-			ctx.slots.inject("settings.plugins.tab", () => {
+			const remoteSettings = new RemoteSettingsCardController(form);
+			ctx.effect(() => ctx.configForms.whileServed([REMOTE_WEB_UI_NS], () => ctx.slots.inject("plugins.item", () => {
 				try {
 					const unregister = ctx.slots.register({
-						name: "settings.plugins.tab",
+						name: "plugins.item",
 						id: REMOTE_WEB_UI_NS,
 						order: 100,
 						label: () => t("settings.pluginsTab"),
@@ -3234,7 +3236,7 @@ window.__ModuleLoader__.load({
 				} catch {
 					return () => {};
 				}
-			});
+			})), "remote-web-ui: settings card");
 			let disposeRuntime;
 			const syncRuntime = () => {
 				if (enabled() && disposeRuntime === void 0) disposeRuntime = ctx.effect(() => {
@@ -3253,7 +3255,7 @@ window.__ModuleLoader__.load({
 					disposeRuntime = void 0;
 				}
 			};
-			settingsScope.subscribe(syncRuntime);
+			form.subscribe(syncRuntime);
 			syncRuntime();
 			ctx.effect(() => {
 				const timer = window.setTimeout(() => {

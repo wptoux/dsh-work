@@ -45,6 +45,11 @@ export interface PluginSettingsCardProps<TKey extends string = string> {
      * edits, so the footer would sit there permanently disabled.
      */
     hideFooter?: boolean;
+    /**
+     * Hide the header row: the Plugins page already renders the item's title and
+     * summary above the page body, so a custom page omits the duplicate header.
+     */
+    hideHeader?: boolean;
     /** The plugin's controls. */
     children: ReactNode;
 }

@@ -103,8 +103,10 @@ describe('runPairBootFlow', () => {
         if (name === 'sessions') {
           return {
             create: async ({ workspaceId }: { workspaceId: string }) => { opened.push(workspaceId); return 'session-9' },
-            open: (id: string) => { opened.push(id) },
           }
+        }
+        if (name === 'uiWorkspace') {
+          return { openSession: (id: string) => { opened.push(id) } }
         }
         return undefined
       },
@@ -128,8 +130,10 @@ describe('runPairBootFlow', () => {
         if (name === 'sessions') {
           return {
             create: async ({ workspaceId }: { workspaceId: string }) => { opened.push(workspaceId); return 'session-9' },
-            open: (id: string) => { opened.push(id) },
           }
+        }
+        if (name === 'uiWorkspace') {
+          return { openSession: (id: string) => { opened.push(id) } }
         }
         return undefined
       },

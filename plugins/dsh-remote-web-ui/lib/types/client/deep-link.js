@@ -90,14 +90,15 @@ async function runDeepLink(ctx, workspaceId, page) {
     while (Date.now() < deadline) {
         const workspaces = ctx.get('workspaces');
         const sessions = ctx.get('sessions');
-        if (workspaces !== undefined && sessions !== undefined) {
+        const uiWorkspace = ctx.get('uiWorkspace');
+        if (workspaces !== undefined && sessions !== undefined && uiWorkspace !== undefined) {
             const items = workspaces.list.getSnapshot().items;
             if (items.some(item => item.workspaceId === target)) {
                 try {
                     // Create-or-adopt the workspace's blank session, then select it.
                     // The QR's workspace target is explicit user intent and must win.
                     const sessionId = await sessions.create({ workspaceId: target });
-                    sessions.open(sessionId);
+                    uiWorkspace.openSession(sessionId);
                 }
                 catch {
                     // Unknown workspace or a failed connect: fall through to the

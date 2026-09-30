@@ -10,7 +10,7 @@
 
 | 目录 | 包名 | 上游仓库 | 冻结 commit | 说明 |
 |---|---|---|---|---|
-| `dsh-remote-web-ui/` | `dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui | `a3b44d9`（tag v0.3.2） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下） |
+| `dsh-remote-web-ui/` | `dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui（**已停止跟随**） | 本地自持（扁平化自 v0.3.2 `a3b44d9`） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下）。**2026-09-30 本地适配 DSH 0.2.0（版本 0.4.0）**：volatile Config + `configForms`/`plugins.item` + 图标改名，不再跟踪上游 |
 | `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `754974a`（tag v0.19.0） | 增强侧边栏。**v0.19.0 为官方 DSH 0.1.5-rc.1 适配版**（原生右栏 `dsh-client-ui-sidebar-right` 表面，own right panel 已退役），**需内核 ≥0.1.5-rc.1**，见「已知本地改动」 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
 | `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
@@ -229,16 +229,34 @@ profile dir + reconcile 安装态）。
 
 ### 更新上游（慎用，违背冻结策略）
 
+> **`dsh-remote-web-ui` 例外（2026-09-30 起）**：按用户决策该包**不再跟随上游**，DSH 0.2.0
+> 适配直接改在本地源码上（见「已知本地改动」首条）。上游仓库已改名
+> `zhu1090093659/dsh-web`，其 v0.4.4 起才支持 DSH 0.2.0，本仓库不再引用。
+
 只有当确认需要上游新功能时：
 1. 在临时目录 `git clone <上游 URL>`，checkout 到上表冻结 commit 或目标 commit。
 2. 对比/挑选改动（`git diff` 两个 checkout，或直接拷文件），合入 `plugins/` 对应目录。
 3. 构建、验证（`pnpm build` + 重启 dsh）、在统一仓库提交。
-4. 如全家桶需要新增子包（当前已裁掉），从 `zhu1090093659/dsh-web-ui` 全量 clone 后
+4. 如全家桶需要新增子包（当前已裁掉），从 `zhu1090093659/dsh-web` 全量 clone 后
    单独提取，或重新评估裁剪。
 
 ## 已知本地改动（相对上游）
 
 - `dsh-remote-web-ui`：
+  - **DSH 0.2.0 适配（本地自持，2026-09-30，版本 0.4.0）**：按用户决策**不再跟随上游**，
+    直接在本地源码上迁移。① 宿主 `Config` 改用 `@deepseek-ai/schemastery` 且每个字段
+    `.volatile()`；`apply` 经 `readConfig()` 读 `Volatile.get()`，删除
+    `settings.installSection` 与 `current` 间接层；结构性同步（启停路由/隧道）改由
+    `settings/document-updated` 事件触发——volatile-only 编辑走 loader 快速路径、
+    **不重挂载**插件；`settings.configure({auto:false}, ctx.fiber)` 抑制自动表单页。
+    ② 客户端 `settingsScope` → `ctx.configForms.get(entryId)`；设置卡从
+    `settings.plugins.tab` 迁到 `plugins.item`（在 `configForms.whileServed` 内注册，
+    同时实现 `view:'summary'`/`view:'page'`）；`ctx.slots` 改用 renderer 的
+    `SlotRegistry` 声明，删除本地结构镜像。③ 面板图标 `…16` → `…Regular`；Session 导航
+    `sessions.open` → `uiWorkspace.openSession`。④ devDeps 全量 `^0.2.0-rc.1`、
+    `@deepseek-ai/cordis ^4.0.4`；`shared/web-platform.ts` 种子加
+    `dsh-client-ui-dockkit`；`dsh.engines.dsh` 与新增的 `@deepseek-ai/dsh` peer 固定
+    `>=0.2.0-rc.1 <0.3.0-0`。**激活前提：内核 ≥0.2.0-rc.1**。
   - 从 `dsh-web-ui` 全家桶 monorepo 中**扁平化提取**：删除 19 个无关子包、skins、market
     站点、aggregate 聚合包、docs/gallery/tests 脚手架、sync-shared 工具链；保留包自身
     源码 + `shared/` 构建预设（tsdown config 的 import 路径已从 `../../shared` 改为

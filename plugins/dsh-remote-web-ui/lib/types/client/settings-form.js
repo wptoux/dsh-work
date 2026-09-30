@@ -97,7 +97,7 @@ export class CardForm {
     saving = false;
     failed = false;
     failedReason;
-    /** @param scope - the bound settings scope for this card's namespace. */
+    /** @param scope - the bound config form for this card's namespace. */
     constructor(scope, specs) {
         this.scope = scope;
         this.specs = new Map(specs.map(spec => [spec.field, spec]));

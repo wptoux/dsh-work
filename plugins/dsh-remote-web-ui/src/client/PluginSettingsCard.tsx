@@ -62,6 +62,11 @@ export interface PluginSettingsCardProps<TKey extends string = string> {
    * edits, so the footer would sit there permanently disabled.
    */
   hideFooter?: boolean
+  /**
+   * Hide the header row: the Plugins page already renders the item's title and
+   * summary above the page body, so a custom page omits the duplicate header.
+   */
+  hideHeader?: boolean
   /** The plugin's controls. */
   children: ReactNode
 }
@@ -73,16 +78,18 @@ export interface PluginSettingsCardProps<TKey extends string = string> {
  */
 export function PluginSettingsCard<TKey extends string = string>(props: PluginSettingsCardProps<TKey>) {
   const [open, setOpen] = useState(props.defaultOpen ?? true)
-  const { state, alwaysOpen } = props
+  const { state, alwaysOpen, hideHeader } = props
   if (!state.available) return null
   const title = props.t(props.titleKey)
   const description = props.t(props.descriptionKey)
   const blocked = !state.dirty || state.invalid || state.saving
-  const expanded = alwaysOpen === true || open
+  const expanded = hideHeader === true || alwaysOpen === true || open
   const cardClass = expanded ? `${css.cardOpen} ${css.card}` : css.card
   // With alwaysOpen the nav entry already provides the selection, so the
   // header is a static title row instead of a disclosure button.
-  const header = alwaysOpen === true
+  const header = hideHeader === true
+    ? null
+    : alwaysOpen === true
     ? (
       <div className={css.headerStatic}>
         <span className={css.headText}>
@@ -126,7 +133,7 @@ export function PluginSettingsCard<TKey extends string = string>(props: PluginSe
   // reads as a missing plugin.
   if (!state.exposed) {
     return (
-      <li className={cardClass}>
+      <div className={cardClass}>
         {header}
         {expanded
           ? (
@@ -135,11 +142,11 @@ export function PluginSettingsCard<TKey extends string = string>(props: PluginSe
             </div>
           )
           : null}
-      </li>
+      </div>
     )
   }
   return (
-    <li className={cardClass}>
+    <div className={cardClass}>
       {header}
       {expanded
         ? (
@@ -178,7 +185,7 @@ export function PluginSettingsCard<TKey extends string = string>(props: PluginSe
           </div>
         )
         : null}
-    </li>
+    </div>
   )
 }
 

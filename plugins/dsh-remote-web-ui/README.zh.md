@@ -15,7 +15,7 @@
 - **入口**：设置按钮旁始终显示手机图标；悬停时显示“远程访问”提示。
 - **面板**：「远程访问」标题、「通过手机或另一台电脑配对，远程访问当前工作区」副标题、「设备配对」卡片（含状态区「等待设备连接」+ 状态徽标）、大号二维码、一条**统一配对链接**（`/api/pair/open?token=...` 引导 URL，带复制按钮）、停止 / 刷新二维码操作，以及已授权设备列表（根据 User-Agent 推断的设备名称、在线/离线、最近活动时间、单台取消配对）。界面不渲染作为会话凭据的设备 id 或原始 User-Agent。该链接携带一枚一次性令牌，任意一台设备配对成功后立即失效。
 - **设备侧（手机与电脑同一条路径）**：扫码或打开复制的链接会跑一轮两跳引导——`/api/pair/open` 这跳消费一次性、限时令牌并种下 HttpOnly 设备 cookie，然后重定向到 harness 原生的 launch-token URL（`/?token=...`），由原生 index 鉴权换出浏览器会话 cookie，设备最终落在**完整 Web GUI**——工作区、会话、聊天、切模型。全新设备不再收到 `workspace` 查询参数（原生 index 交换会重定向到干净的根路径）；已授权浏览器直接打开 `/?workspace=<id>` 链接仍可深链到目标工作区。手机小屏下的布局由 `dsh-ui-tweaks` 适配（左侧边栏自动隐藏，左上角只留一枚小鲸鱼 logo，点击展开为抽屉覆层）。
-- **安全**：一个有效的一次性令牌（刷新会使旧链接失效；已接受的令牌不可复用；令牌会过期）。停止会撤销每一台已配对设备与当前令牌——被撤销的设备不再被本插件的配对面识别，必须重新扫码。**DSH 0.1.5 适配**：harness 的 `/api` 信任围栏是声明式的（`Connection` 配置 `trustedHosts` + 全接口绑定下自动信任的局域网字面量），其 index 还要求浏览器会话 cookie（由进程级 launch token 换出）；0.1.1 的 `api/gate` 逐请求 veto 环缝已不存在。配对因此是*身份/识别*而非对 harness 自身 `/api` 分发的访问控制：本插件拥有自己的 `/api/pair` 面，向兄弟插件暴露在线配对 cookie 谓词（`remoteWebUiPairing`），并管理令牌/会话生命周期——其引导跳会驱动设备走原生 launch-token 交换，并把当前公网主机在运行时镜像进 SDK 的 `/api` 信任列表（隧道主机在启动时不可知，无法经 `--trusted-host` 预先声明）；它不会否决 SDK 自身信任的 `/api` 流量。DSH ≥0.1.5 以 `0.0.0.0` 绑定时局域网 origin 默认被 SDK 信任；需要 `/api` 对局域网关闭时就绑定 loopback。
+- **安全**：一个有效的一次性令牌（刷新会使旧链接失效；已接受的令牌不可复用；令牌会过期）。停止会撤销每一台已配对设备与当前令牌——被撤销的设备不再被本插件的配对面识别，必须重新扫码。**DSH 0.2.0 适配**：harness 的 `/api` 信任围栏是声明式的（`Connection` 配置 `trustedHosts` + 全接口绑定下自动信任的局域网字面量），其 index 还要求浏览器会话 cookie（由进程级 launch token 换出）；0.1.1 的 `api/gate` 逐请求 veto 环缝已不存在。配对因此是*身份/识别*而非对 harness 自身 `/api` 分发的访问控制：本插件拥有自己的 `/api/pair` 面，向兄弟插件暴露在线配对 cookie 谓词（`remoteWebUiPairing`），并管理令牌/会话生命周期——其引导跳会驱动设备走原生 launch-token 交换，并把当前公网主机在运行时镜像进 SDK 的 `/api` 信任列表（隧道主机在启动时不可知，无法经 `--trusted-host` 预先声明）；它不会否决 SDK 自身信任的 `/api` 流量。DSH ≥0.1.5 以 `0.0.0.0` 绑定时局域网 origin 默认被 SDK 信任；需要 `/api` 对局域网关闭时就绑定 loopback。
 - **实时状态**：桌面面板经 SSE 流实时镜像配对状态（等待 → 已连接 → 已断开），并展示已授权设备名单。
 - **远程更新**：本冻结 fork 已移除（侧边栏下载触发按钮、`/api/update` 端点与 npm registry 探测一并删除；本 fork 不从 npm 更新插件）。
 
@@ -131,13 +131,14 @@ pnpm run build
 
 ## Harness 契约依赖
 
-本插件依托的 harness seam（0.1.5 线）：
+本插件依托的 harness seam（0.2.0 线）：
 
+- **Loader entry 的 volatile 配置**（entry 自带 `Config` schema，经 `Volatile` 引用读取）：DSH 0.2.0 删除了宿主 `settings.installSection` 与客户端 `settingsScope` 服务。设置编辑直接写入运行中的引用、**不重挂载**插件；宿主据 `settings/document-updated` 事件重跑结构性同步。
 - **`/api` 信任围栏的声明式模型**（connection 配置 `trustedHosts` + 全接口绑定时自动信任局域网字面量）：0.1.1 的 `api/gate` 逐请求瀑布已被移除，SDK 也没有给第三方插件留下逐请求 veto 的接缝——因此配对是身份/识别（`/api/pair` 面 + `remoteWebUiPairing` 服务），不改写也不否决 harness 自身的 `/api` 分发。
 - **`sidebar.footer.action` 底部列表座位**（packages/client/ui-sidebar）：侧边栏声明并渲染手机入口占据的座位（0.1.1 的 `sidebar.remote` 座位已删除）。
-- **`settings.plugins.tab` 标签页座位**（packages/client/ui-settings）：设置 → 插件 → 插件配置 部分按命名空间派发本插件的配置卡片（0.1.1 的 `settings.plugin.item` keyed 座位已删除）。
+- **`plugins.item` 页面座位 + `ctx.configForms`**（packages/client/ui-plugin-manager、ui-settings）：设置 → 插件页面在 Host 服务该 entry id 期间派发本插件的配置卡；卡片在 summary 视图渲染页面一行文案、在 page 视图渲染分阶段表单。0.1.5 的 `settings.plugins.tab` 座位与 `settingsScope` 服务在 0.2.0 已删除。
 
-围栏辅助（`isTrustedApiRequest` / `isLoopbackHostname`）在 `src/gate.ts` / `src/routes.ts` 本地重实现：SDK 从 20260810 起把信任围栏移进连接插件并停止导出它们，因此配对路由携带自己限定到二维码链接广告的字面量的副本。浏览器侧 `ctx.slots` 由本插件以结构类型自述（0.1.5 的 UI 包不在 cordis Context 上声明它；better-sidebar 采用同样的结构镜像）。
+围栏辅助（`isTrustedApiRequest` / `isLoopbackHostname`）在 `src/gate.ts` / `src/routes.ts` 本地重实现：SDK 从 20260810 起把信任围栏移进连接插件并停止导出它们，因此配对路由携带自己限定到二维码链接广告的字面量的副本。浏览器侧 `ctx.slots` 直接来自渲染器的 `SlotRegistry`（dsh-client-ui-renderer/client）；此前的结构类型自述只在 0.1.5 的 UI 包未在 cordis Context 上声明它时才需要。
 
 ## 手动 E2E：局域网配对往返
 
@@ -165,4 +166,4 @@ pnpm run build
 
 ## 依赖理由
 
-`qrcode.react`（MIT，活跃维护，React 16–19 支持）将二维码渲染为无依赖的 SVG 组件——无 canvas、无服务端图片生成。它在构建时内联进 client bundle（与官方 skin/turtle-ui 插件内联其非共享依赖相同），profile 安装无需超出 dsh peer closure 之外的额外运行时依赖。`schemastery` 是 DSH 标准配置 schema 校验器。
+`qrcode.react`（MIT，活跃维护，React 16–19 支持）将二维码渲染为无依赖的 SVG 组件——无 canvas、无服务端图片生成。它在构建时内联进 client bundle（与官方 skin/turtle-ui 插件内联其非共享依赖相同），profile 安装无需超出 dsh peer closure 之外的额外运行时依赖。宿主 `Config` 用 `@deepseek-ai/schemastery`（DSH 0.2.0 的 volatile 配置模型所要求的 schema 校验器）。

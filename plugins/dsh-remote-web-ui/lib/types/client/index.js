@@ -2,11 +2,11 @@
  * Phone and desktop remote control — browser half. Registers the `remote`
  * dictionaries, the sidebar-foot entry (phone trigger + pairing panel) into
  * the ui-sidebar `sidebar.footer.action` list seat, the remote-control
- * settings card into the settings shell's `settings.plugins.tab` seat, and
- * runs the pair-accept boot flow (token accept + workspace deep-link +
- * presence heartbeats) plus the one-time failed-pair notice. Export
- * discipline: packages/client/AGENTS.md — the /client surface carries only
- * what cordis loading needs plus types.
+ * settings card into the Plugins page's `plugins.item` seat, and runs the
+ * pair-accept boot flow (token accept + workspace deep-link + presence
+ * heartbeats) plus the one-time failed-pair notice. Export discipline:
+ * packages/client/AGENTS.md — the /client surface carries only what cordis
+ * loading needs plus types.
  */
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -23,7 +23,7 @@ const REMOTE_WEB_UI_NS = 'remote-web-ui';
 /** Heartbeat cadence from a paired phone (presence + revocation liveness). */
 const HEARTBEAT_INTERVAL_MS = 10_000;
 /** Services required by this plugin. */
-export const inject = ['slots', 'locale', 'connection', 'settingsScope', 'remote'];
+export const inject = ['slots', 'locale', 'connection', 'configForms'];
 /**
  * Register the remote-control surface.
  * @param ctx - client root context.
@@ -38,9 +38,12 @@ export function apply(ctx) {
         }
     }, 'remote-web-ui: dictionaries');
     const t = ctx.locale.bind(NS);
-    const settingsScope = ctx.settingsScope.bind({ namespace: REMOTE_WEB_UI_NS });
+    // The Host entry id (`remote-web-ui` in cordis.patch.yml) is the settings
+    // namespace. `configForms` binds the shared describe mirror to it; the
+    // snapshot moves on every Host commit without a page reload.
+    const form = ctx.configForms.get(REMOTE_WEB_UI_NS);
     const enabled = () => {
-        const snapshot = settingsScope.getSnapshot();
+        const snapshot = form.getSnapshot();
         return snapshot.status === 'ready'
             ? snapshot.value?.enabled ?? true
             : snapshot.status === 'unavailable';
@@ -67,7 +70,7 @@ export function apply(ctx) {
                 disposeEntry = undefined;
             }
         };
-        const unsubscribe = settingsScope.subscribe(syncEntry);
+        const unsubscribe = form.subscribe(syncEntry);
         syncEntry();
         return () => {
             unsubscribe();
@@ -75,15 +78,15 @@ export function apply(ctx) {
         };
     });
     // Plugin configuration card: one staged form over the `remote-web-ui`
-    // settings namespace, contributed to the Plugins settings section
-    // (设置 → 插件 → 插件配置) as its own tab. The section only dispatches
-    // namespaces the Host serves — the `remote-web-ui` namespace the host half
-    // registers via settings.installSection.
-    const remoteSettings = new RemoteSettingsCardController(settingsScope);
-    ctx.slots.inject('settings.plugins.tab', () => {
+    // settings namespace, contributed to the Plugins page's `plugins.item` seat
+    // (设置 → 插件). DSH 0.2.0 serves the namespace from the Loader entry's
+    // volatile Config schema, and `whileServed` keeps the card off a deployment
+    // that never composed this plugin.
+    const remoteSettings = new RemoteSettingsCardController(form);
+    ctx.effect(() => ctx.configForms.whileServed([REMOTE_WEB_UI_NS], () => ctx.slots.inject('plugins.item', () => {
         try {
             const unregister = ctx.slots.register({
-                name: 'settings.plugins.tab',
+                name: 'plugins.item',
                 id: REMOTE_WEB_UI_NS,
                 order: 100,
                 label: () => t('settings.pluginsTab'),
@@ -98,7 +101,7 @@ export function apply(ctx) {
         catch {
             return () => { };
         }
-    });
+    })), 'remote-web-ui: settings card');
     // Phone-side boot flow + heartbeats. Loopback pages (the desktop) never
     // heartbeat; the server ignores unpaired heartbeats anyway. Both run only
     // while the plugin is enabled.
@@ -120,7 +123,7 @@ export function apply(ctx) {
             disposeRuntime = undefined;
         }
     };
-    settingsScope.subscribe(syncRuntime);
+    form.subscribe(syncRuntime);
     syncRuntime();
     // One-time failed-pair toast. The accept result lands asynchronously, so
     // the marker check is deferred past the accept round trip.

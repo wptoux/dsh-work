@@ -33,7 +33,7 @@ actions.
   link; an accepted token cannot be reused; tokens expire). 停止 revokes
   every paired device and the current token — a revoked device is no longer
   recognized by the plugin's pairing surfaces and must scan a fresh QR.
-  **DSH 0.1.5 adaptation**: the harness's `/api` trust fence is declarative
+  **DSH 0.2.0 adaptation**: the harness's `/api` trust fence is declarative
   (`Connection` config `trustedHosts` + LAN literals auto-trusted from an
   all-interface bind) and its index is gated by a browser-session cookie
   minted from the per-process launch token; the 0.1.1 `api/gate`
@@ -292,8 +292,13 @@ pnpm run build
 
 ## Harness contract dependencies
 
-This plugin rides the harness seams below (0.1.5 line):
+This plugin rides the harness seams below (0.2.0 line):
 
+- **Volatile Loader-entry config** (the entry's own `Config` schema, read
+  through `Volatile` references): DSH 0.2.0 removed `settings.installSection`
+  and the client `settingsScope` service. A settings edit commits into the
+  running references without remounting the plugin, and the host re-runs its
+  structural sync on `settings/document-updated`.
 - **The declarative `/api` trust fence** (connection config `trustedHosts`
   + LAN literals auto-trusted on an all-interface bind): the 0.1.1
   `api/gate` per-request waterfall is gone and the SDK leaves third-party
@@ -303,17 +308,20 @@ This plugin rides the harness seams below (0.1.5 line):
 - **`sidebar.footer.action` foot list seat** (packages/client/ui-sidebar):
   the sidebar declares and renders the seat the phone entry occupies (the
   0.1.1 `sidebar.remote` seat was deleted).
-- **`settings.plugins.tab` tab seat** (packages/client/ui-settings): the
-  Settings → Plugins section dispatches this plugin's configuration card by
-  namespace (the 0.1.1 `settings.plugin.item` keyed seat was deleted).
+- **`plugins.item` page seat + `ctx.configForms`** (packages/client/
+  ui-plugin-manager, ui-settings): the Settings → Plugins page dispatches
+  this plugin's configuration card while the Host serves its entry id; the
+  card renders the page's one-liner in the summary view and its staged form
+  in the page view. The 0.1.5 `settings.plugins.tab` seat and the
+  `settingsScope` service were deleted in 0.2.0.
 
 The fence helpers (`isTrustedApiRequest` / `isLoopbackHostname`) are
 reimplemented locally in `src/gate.ts` / `src/routes.ts`: the SDK moved the
 trust fence inside the connection plugin and stopped exporting them, so the
 pairing routes carry their own copy scoped to the literals the QR links
-advertise. The browser-side `ctx.slots` is restated structurally by this
-package (the 0.1.5 UI packages do not declare it on the cordis Context;
-better-sidebar uses the same structural mirror).
+advertise. The browser-side `ctx.slots` comes from the renderer's own
+`SlotRegistry` (dsh-client-ui-renderer/client); the earlier structural
+restatement was needed only while 0.1.5's UI packages left it undeclared.
 
 ## Manual E2E: LAN pairing round trip
 
@@ -398,4 +406,6 @@ QR as a dependency-free SVG component — no canvas, no server-side image
 generation. It is inlined into the client bundle at build time (like the
 official skin/turtle-ui plugins inline their non-shared deps), so profile
 installations need no extra runtime dependency beyond the dsh peer closure.
-`schemastery` is the DSH-standard config schema validator.
+`@deepseek-ai/schemastery` is the DSH 0.2.0 config schema validator; its
+`.volatile()` marker is what makes a Config field editable from the Plugins
+page, and the Loader hands the plugin frozen references read through `get()`.

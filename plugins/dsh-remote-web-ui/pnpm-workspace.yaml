@@ -5,3 +5,11 @@ allowBuilds:
   # cloudflared postinstall downloads the tunnel binary; the auto-tunnel
   # feature needs it at runtime.
   cloudflared: true
+  # Transitive devDependency build scripts from the 0.2.0 SDK packages: this
+  # package never loads them (they belong to the kernel's own runtime), so
+  # skipping their builds keeps installs hermetic and fast.
+  '@deepseek-ai/dsh-subprocess-local': false
+  '@google/genai': false
+  koffi: false
+  node-pty: false
+  protobufjs: false

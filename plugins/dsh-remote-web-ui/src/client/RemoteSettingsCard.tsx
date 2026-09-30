@@ -1,13 +1,13 @@
 /**
  * The remote-control settings card: pairing security and device limits.
- * Registers into the Plugins settings section's tab list
- * (`settings.plugins.tab`, keyed by the `remote-web-ui` settings namespace)
- * that the stock web app's ui-settings-plugins section renders.
+ * Registers into the Plugins page's `plugins.item` seat under the
+ * `remote-web-ui` settings namespace (the Host entry id): the page renders
+ * the summary one-liner on the card and this form on the plugin's own page.
  */
 
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { PluginSettingsCard, ValueField, BooleanField } from './PluginSettingsCard.tsx'
 import { CardForm, booleanField, numberField, textField, type CardActions, type CardShell, type FieldState as CardFieldState } from './settings-form.ts'
@@ -58,13 +58,13 @@ export interface RemoteSettingsCardFace extends CardActions {
   store: SnapshotStore<RemoteSettingsCardState>
 }
 
-/** Bridges the `remote-web-ui` scope onto the card's staged form. */
+/** Bridges the `remote-web-ui` config form onto the card's staged form. */
 export class RemoteSettingsCardController {
   private readonly form: CardForm<RemoteSettings>
   private readonly store: SnapshotStore<RemoteSettingsCardState>
 
-  /** @param scope - the bound settings scope for the `remote-web-ui` namespace. */
-  constructor(scope: SettingsScope<RemoteSettings>) {
+  /** @param scope - the bound config form for the `remote-web-ui` namespace. */
+  constructor(scope: ConfigForm<RemoteSettings>) {
     this.form = new CardForm(scope, [
       booleanField('enabled'),
       numberField('tokenTtlMs'),
@@ -111,19 +111,21 @@ export class RemoteSettingsCardController {
 
 /** Props the renderer binds for the remote-control card. */
 export type RemoteSettingsCardProps =
-  PropsRuntime<'settings.plugins.tab'>
+  PropsRuntime<'plugins.item'>
   & PropsLocale<'remote'>
   & InjectFace<RemoteSettingsCardFace>
 
 /**
- * Render the remote-control card.
- * @param props - locale copy, the card snapshot, and its form actions.
- * @returns the card.
+ * Render the remote-control card: the page's one-liner in the summary view,
+ * the settings form in the page view.
+ * @param props - the view asked for, locale copy, the card snapshot, and its form actions.
+ * @returns the one-liner, or the card.
  */
 export function RemoteSettingsCard(props: RemoteSettingsCardProps) {
   const { t } = props
   const [state, setState] = useState<RemoteSettingsCardState>(() => props.store.getSnapshot())
   useEffect(() => props.store.subscribe(() => setState(props.store.getSnapshot())), [props.store])
+  if (props.view === 'summary') return t('settings.description')
   const disabled = !state.writable
   const fieldProps = {
     overriddenLabel: t('settings.overridden'),
@@ -136,7 +138,7 @@ export function RemoteSettingsCard(props: RemoteSettingsCardProps) {
       t={t}
       titleKey="settings.title"
       descriptionKey="settings.description"
-      defaultOpen={false}
+      hideHeader
       state={state}
       onSave={props.save}
       onDiscard={props.discard}

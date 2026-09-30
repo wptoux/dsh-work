@@ -6,7 +6,7 @@
  * each plugin's client bundle; mirrors the official ui-plugin-config
  * card-store pattern.
  */
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
 import { type SnapshotStore } from '@deepseek-ai/dsh-client-store';
 /** The write one field's staged text performs when the card is saved. */
 export type FieldWrite = {
@@ -124,8 +124,8 @@ export declare class CardForm<T> {
     private saving;
     private failed;
     private failedReason;
-    /** @param scope - the bound settings scope for this card's namespace. */
-    constructor(scope: SettingsScope<T>, specs: FieldSpec[]);
+    /** @param scope - the bound config form for this card's namespace. */
+    constructor(scope: ConfigForm<T>, specs: FieldSpec[]);
     /**
      * Release the scope subscription and every bound store listener. The card
      * must call this on teardown; later calls are no-ops.

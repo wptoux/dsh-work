@@ -19,6 +19,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { IWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
+// Type-only: the ui-workspace Context merge (ctx.uiWorkspace). DSH 0.2.0 moved
+// Session navigation off ISessions onto the workspace view service.
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
+import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { acceptPair, readPairParams } from './pair-api.ts'
 
 /** sessionStorage key for the failed-pair notice. */
@@ -114,14 +118,15 @@ async function runDeepLink(ctx: Context, workspaceId: string, page: PageSurface)
   while (Date.now() < deadline) {
     const workspaces = ctx.get('workspaces') as IWorkspaces | undefined
     const sessions = ctx.get('sessions') as ISessions | undefined
-    if (workspaces !== undefined && sessions !== undefined) {
+    const uiWorkspace = ctx.get('uiWorkspace') as UiWorkspace | undefined
+    if (workspaces !== undefined && sessions !== undefined && uiWorkspace !== undefined) {
       const items = workspaces.list.getSnapshot().items
       if (items.some(item => item.workspaceId === target)) {
         try {
           // Create-or-adopt the workspace's blank session, then select it.
           // The QR's workspace target is explicit user intent and must win.
           const sessionId = await sessions.create({ workspaceId: target })
-          sessions.open(sessionId)
+          uiWorkspace.openSession(sessionId)
         } catch {
           // Unknown workspace or a failed connect: fall through to the
           // runtime's own default initial selection.
