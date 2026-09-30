@@ -617,8 +617,10 @@ window.__ModuleLoader__.load({
 				});
 			}, [providerChoices, providersLoaded]);
 
+			// The badge is visible while the panel is closed, so usage and
+			// provider data load on mount and refresh on a timer regardless of
+			// `open`; opening the panel only forces an immediate refresh.
 			react.useEffect(() => {
-				if (!open) return;
 				loadUsage();
 				loadProviders();
 				const usageTimer = window.setInterval(loadUsage, 60000);
@@ -627,6 +629,14 @@ window.__ModuleLoader__.load({
 					window.clearInterval(usageTimer);
 					window.clearInterval(providerTimer);
 				};
+			}, [loadUsage, loadProviders]);
+
+			// Opening the panel refreshes immediately; the timers above keep the
+			// closed-sidebar badge live in between.
+			react.useEffect(() => {
+				if (!open) return;
+				loadUsage();
+				loadProviders();
 			}, [open, loadUsage, loadProviders]);
 
 			// Fetch the selected account for BOTH the panel and the collapsed
