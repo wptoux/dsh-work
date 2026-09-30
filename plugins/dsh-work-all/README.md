@@ -26,7 +26,7 @@ EOF
 然后：
 
 ```sh
-dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-work-all'
+dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-work-all'
 dsh web   # 重启生效
 ```
 

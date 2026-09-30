@@ -15,11 +15,11 @@
     }
   },
   "dependencies": {
-    "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager",
-    "dsh-better-sidebar": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar",
-    "dsh-remote-web-ui": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui",
-    "dsh-ui-tweaks": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks",
-    "dsh-usage-stats": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats",
-  "dsh-model-sync": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync"
+    "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager",
+    "dsh-better-sidebar": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar",
+    "dsh-remote-web-ui": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui",
+    "dsh-ui-tweaks": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks",
+    "dsh-usage-stats": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats",
+  "dsh-model-sync": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync"
   }
 }

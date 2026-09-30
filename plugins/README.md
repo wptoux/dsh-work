@@ -102,7 +102,7 @@ profile dir + reconcile 安装态）。
 2. 安装整合包（spec 里含 `&`，记得加引号）：
 
    ```sh
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-work-all'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-work-all'
    ```
 
 3. 重启 dsh。
@@ -129,12 +129,12 @@ profile dir + reconcile 安装态）。
 2. 安装（spec 里含 `&`，记得加引号）：
 
    ```sh
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks'
+   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync'
    ```
 
 3. 重启 dsh。
@@ -147,12 +147,12 @@ profile dir + reconcile 安装态）。
 > ```json
 > // ~/.dsh/profiles/web/package.json
 > "dependencies": {
->   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-remote-web-ui",
->   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-better-sidebar",
->   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-usage-stats",
->   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-archive-manager",
->   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-ui-tweaks",
->   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.1&path:plugins/dsh-model-sync"
+>   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui",
+>   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar",
+>   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats",
+>   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager",
+>   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks",
+>   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync"
 > }
 > ```
 >
