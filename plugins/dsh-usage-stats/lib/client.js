@@ -746,7 +746,7 @@ window.__ModuleLoader__.load({
 									react_jsx_runtime.jsxs("div", {
 										className: S.headerLeft,
 										children: [
-											react_jsx_runtime.jsx(primitives.IconDataOutline16, { size: 16 }),
+											react_jsx_runtime.jsx(primitives.IconDataOutlineRegular, { size: 16 }),
 											react_jsx_runtime.jsx("span", { className: S.title, children: translate("panel.title") })
 										]
 									}),
@@ -762,7 +762,7 @@ window.__ModuleLoader__.load({
 													className: S.iconButton,
 													"aria-label": translate("action.refresh"),
 													onClick: retry,
-													children: react_jsx_runtime.jsx(primitives.IconRefreshOutline14, { size: 14 })
+													children: react_jsx_runtime.jsx(primitives.IconRefreshOutlineRegular, { size: 14 })
 												})
 											}),
 											react_jsx_runtime.jsx(primitives.Tooltip, {
@@ -774,7 +774,7 @@ window.__ModuleLoader__.load({
 													className: S.iconButton,
 													"aria-label": translate("action.close"),
 													onClick: () => setOpen(false),
-													children: react_jsx_runtime.jsx(primitives.IconCloseOutline16, { size: 14 })
+													children: react_jsx_runtime.jsx(primitives.IconCloseOutlineRegular, { size: 14 })
 												})
 											})
 										]
@@ -865,7 +865,7 @@ window.__ModuleLoader__.load({
 																		className: S.navButton,
 																		"aria-label": translate("action.prevMonth"),
 																		onClick: () => setViewMonth((month) => shiftMonth(month, -1)),
-																		children: react_jsx_runtime.jsx(primitives.IconChevronLeftOutline14, { size: 12 })
+																		children: react_jsx_runtime.jsx(primitives.IconChevronLeftOutlineRegular, { size: 12 })
 																	}),
 																	react_jsx_runtime.jsx("span", { className: S.monthTitle, children: monthLabelOf(viewMonth, translate) }),
 																	react_jsx_runtime.jsx("button", {
@@ -874,7 +874,7 @@ window.__ModuleLoader__.load({
 																		"aria-label": translate("action.nextMonth"),
 																		disabled: viewMonth >= currentMonthKey(),
 																		onClick: () => setViewMonth((month) => shiftMonth(month, 1)),
-																		children: react_jsx_runtime.jsx(primitives.IconChevronRightOutline14, { size: 12 })
+																		children: react_jsx_runtime.jsx(primitives.IconChevronRightOutlineRegular, { size: 12 })
 																	}),
 																	viewMonth !== currentMonthKey() && react_jsx_runtime.jsx("button", {
 																		type: "button",
@@ -937,7 +937,7 @@ window.__ModuleLoader__.load({
 							"aria-expanded": open,
 							onClick: () => setOpen((value) => !value),
 							children: [
-								react_jsx_runtime.jsx(primitives.IconDataOutline16, { size: wide ? 14 : 18 }),
+								react_jsx_runtime.jsx(primitives.IconDataOutlineRegular, { size: wide ? 14 : 18 }),
 								wide && react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
 									children: [
 										react_jsx_runtime.jsx("span", { className: S.badgeLabel, children: badgeLabel }),
@@ -1175,7 +1175,7 @@ window.__ModuleLoader__.load({
 								className: S.back,
 								"aria-label": translate("usage.back"),
 								onClick: onBack,
-								children: react_jsx_runtime.jsx(primitives.IconChevronLeftOutline14, { size: 14 })
+								children: react_jsx_runtime.jsx(primitives.IconChevronLeftOutlineRegular, { size: 14 })
 							}),
 							react_jsx_runtime.jsx("span", { className: S.detailDate, children: dayLabel(day.date, translate) }),
 							react_jsx_runtime.jsx("span", { className: S.detailHit, children: `${translate("usage.hitRate")} ${fmtHit(day.cacheHitRate)}` })
