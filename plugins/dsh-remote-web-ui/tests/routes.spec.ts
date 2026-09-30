@@ -419,7 +419,7 @@ describe('/api/pair routes', () => {
     }
   })
 })
-describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
+describe('/api/pair/open bootstrap hop (DSH 0.2.0 browser auth)', () => {
   /** GET one phone-facing link: captures status, Location, cookies, raw body. */
   async function openLink(
     port: number,
@@ -463,11 +463,11 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
     try {
       const issued = await call(port, 'POST', '/api/pair/issue', {})
       expect(issued.body.url).toBe('http://192.168.1.5:3080/api/pair/open?token=tok-1')
-      // The phone opens the link: the device cookie is set and the native
-      // auth URL (base/?token=<launch>) is handed back as a 303 bootstrap.
+      // The phone opens the link: the device cookie is set and a same-origin
+      // interstitial hands back the native auth URL (base/?token=<launch>).
       const first = await openLink(port, '/api/pair/open?token=tok-1', { host: '192.168.1.5:3080' })
-      expect(first.status).toBe(303)
-      expect(first.location).toBe('http://192.168.1.5:3080/?token=test-launch')
+      expect(first.status).toBe(200)
+      expect(first.body).toContain('location.replace("http://192.168.1.5:3080/?token=test-launch")')
       expect(first.cookies).toEqual(['dsh_pair=tok-1; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000'])
       // The token is consumed: the in-SPA accept would now see 'used'.
       const reused = await call(port, 'POST', '/api/pair/accept', { host: '192.168.1.5:3080', body: { token: 'tok-1' } })
@@ -492,13 +492,13 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
       const issued = await call(port, 'POST', '/api/pair/issue', {})
       expect(issued.body.url).toBe('https://phone.example.com/api/pair/open?token=tok-1')
       const tunneled = await openLink(port, '/api/pair/open?token=tok-1', { host: 'phone.example.com' })
-      expect(tunneled.status).toBe(303)
-      expect(tunneled.location).toBe('https://phone.example.com/?token=test-launch')
-      // The same token opened through a LAN host redirects over plain http.
+      expect(tunneled.status).toBe(200)
+      expect(tunneled.body).toContain('location.replace("https://phone.example.com/?token=test-launch")')
+      // The same token opened through a LAN host bootstraps over plain http.
       await call(port, 'POST', '/api/pair/issue', {})
       const lan = await openLink(port, '/api/pair/open?token=tok-1', { host: '192.168.1.5:3080' })
-      expect(lan.status).toBe(303)
-      expect(lan.location).toBe('http://192.168.1.5:3080/?token=test-launch')
+      expect(lan.status).toBe(200)
+      expect(lan.body).toContain('location.replace("http://192.168.1.5:3080/?token=test-launch")')
     } finally {
       await close()
     }
@@ -514,11 +514,11 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
     try {
       await call(port, 'POST', '/api/pair/issue', {})
       const first = await openLink(port, '/api/pair/open?token=tok-1', { host: '192.168.1.5:3080' })
-      expect(first.status).toBe(303)
+      expect(first.status).toBe(200)
       // Re-opening the same (now consumed) link with the live cookie re-enters.
       const again = await openLink(port, '/api/pair/open?token=tok-1', { host: '192.168.1.5:3080', cookie: 'dsh_pair=tok-1' })
-      expect(again.status).toBe(303)
-      expect(again.location).toBe('http://192.168.1.5:3080/?token=test-launch')
+      expect(again.status).toBe(200)
+      expect(again.body).toContain('location.replace("http://192.168.1.5:3080/?token=test-launch")')
       // A dead link without a live cookie is refused.
       const dead = await openLink(port, '/api/pair/open?token=nope', { host: '192.168.1.5:3080' })
       expect(dead.status).toBe(404)
@@ -570,7 +570,8 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
         host: '192.168.1.5:3080',
         headers: { origin: 'null' },
       })
-      expect(opened.status).toBe(303)
+      expect(opened.status).toBe(200)
+      expect(opened.body).toContain('location.replace("http://192.168.1.5:3080/?token=test-launch")')
       expect(opened.cookies[0]).toMatch(/^dsh_pair=tok-1; Path=\//)
       // The same opaque origin with an explicit cross-site marker on
       // non-navigation traffic (no navigate/document) is refused.
@@ -593,7 +594,7 @@ describe('/api/pair/open bootstrap hop (DSH 0.1.5 browser auth)', () => {
           'sec-fetch-dest': 'document',
         },
       })
-      expect(scanned.status).toBe(303)
+      expect(scanned.status).toBe(200)
       expect(scanned.cookies[0]).toMatch(/^dsh_pair=tok-1; Path=\//)
     } finally {
       await close()

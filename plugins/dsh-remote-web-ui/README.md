@@ -53,7 +53,12 @@ actions.
   `Sec-Fetch-Mode: navigate` / `Sec-Fetch-Dest: document`). The pairing fence
   admits that navigation — the one-time URL token, not a cookie, is the
   credential and the same-origin redirect is unreadable to the initiator —
-  while still refusing every cross-site subresource or fetch.
+  while still refusing every cross-site subresource or fetch. The bootstrap hop
+  then serves a same-origin interstitial that performs the launch-token
+  exchange instead of a 303: a cross-site redirect chain would carry the
+  scanner's initiator into the final index request, where the harness's
+  `SameSite=Strict` browser cookie is withheld and the phone lands on
+  "dsh web authentication required".
 - **Live status**: the desktop panel mirrors the pairing state in real time
   (waiting → connected → disconnected) over an SSE stream, including the
   authorized-device list.

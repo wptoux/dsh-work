@@ -248,6 +248,12 @@ profile dir + reconcile 安装态）。
     `Sec-Fetch-Dest: document`），旧围栏一律拒绝 → 手机只见 `forbidden`（桌面无痕因
     `Sec-Fetch-Site: none` 反而正常）。`isTrustedApiRequest` 现对顶级导航跳过发起方标记
     （凭据是一次性 URL 令牌而非 cookie，跳转对发起方不可读），跨站子资源/请求仍全部拒绝。
+  - **引导跳改同源中间页（2026-09-30，本地修复）**：围栏放行后手机改报 harness 的
+    「dsh web authentication required」——`/api/pair/open` 的 303 重定向链把扫码方的
+    跨站 initiator 带到最后的 index 请求，浏览器扣下 harness 的 `SameSite=Strict`
+    浏览器 cookie。现改为返回 200 同源中间页，由页内 `location.replace(<launch URL>)`
+    发起**同源**导航，Strict cookie 正常携带（Chromium 无头 + 跨站 initiator 复现并验证：
+    303 链 → 401，中间页 → 正常进 GUI）。
   - **DSH 0.2.0 适配（本地自持，2026-09-30，版本 0.4.1）**：按用户决策**不再跟随上游**，
     直接在本地源码上迁移。① 宿主 `Config` 改用 `@deepseek-ai/schemastery` 且每个字段
     `.volatile()`；`apply` 经 `readConfig()` 读 `Volatile.get()`，删除

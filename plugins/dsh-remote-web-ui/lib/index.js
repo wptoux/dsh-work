@@ -844,6 +844,29 @@ function requestOriginBase(req, service) {
 	} catch {}
 	return `http://${host}`;
 }
+/**
+* The same-origin bootstrap page for the QR link. It replaces itself with the
+* harness launch-token URL, so the token exchange is a SAME-ORIGIN navigation:
+* a camera scanner or in-app browser opens the link from another app, and a
+* redirect chain would otherwise carry that cross-site initiator into the
+* final index request, where the harness's `SameSite=Strict` browser cookie
+* is withheld and the phone lands on "dsh web authentication required".
+* @param target - the harness launch-token URL to navigate to.
+* @returns a minimal HTML document that immediately navigates to `target`.
+*/
+function pairBootstrapPage(target) {
+	return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<title>Pairing…</title>
+<script>location.replace(${JSON.stringify(target)})<\/script>
+</head>
+<body><noscript><a href="${target.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}">Continue</a></noscript></body>
+</html>
+`;
+}
 /** One minimal plain-text response (bootstrap-hop error pages). */
 function writeText(res, status, text) {
 	res.writeHead(status, {
@@ -982,12 +1005,12 @@ function makeRoutes(deps) {
 	};
 	/**
 	* The QR bootstrap hop (GET /api/pair/open?token=…). A fresh phone opens
-	* this: the one-time token is consumed, the device cookie is set, and the
-	* browser is redirected to the native launch-token URL (`base/?token=…`) —
-	* DSH 0.1.5's index auth exchange then mints the browser cookie and lands
-	* the device on the full Web GUI with both credentials. A dead link with a
-	* live paired cookie still re-opens the GUI (idempotent re-entry); with no
-	* live cookie it is refused.
+	* this: the one-time token is consumed, the device cookie is set, and a
+	* same-origin interstitial navigates to the native launch-token URL
+	* (`base/?token=…`) — DSH 0.2.0's index auth exchange then mints the browser
+	* cookie and lands the device on the full Web GUI with both credentials.
+	* A dead link with a live paired cookie still re-opens the GUI (idempotent
+	* re-entry); with no live cookie it is refused.
 	*/
 	const handleOpen = (req, res) => {
 		if (!requireMethod(req, res, "GET")) return;
@@ -1013,12 +1036,13 @@ function makeRoutes(deps) {
 			writeText(res, 400, "missing Host header");
 			return;
 		}
-		res.writeHead(303, {
-			"location": deps.authenticatedUrl(base),
+		res.writeHead(200, {
+			"content-type": "text/html; charset=utf-8",
 			"cache-control": "no-store",
+			"referrer-policy": "no-referrer",
 			"set-cookie": [deviceSessionCookie(service, cookieId)]
 		});
-		res.end();
+		res.end(pairBootstrapPage(deps.authenticatedUrl(base)));
 	};
 	const handleStop = async (req, res) => {
 		if (!requireMethod(req, res, "POST")) return;
