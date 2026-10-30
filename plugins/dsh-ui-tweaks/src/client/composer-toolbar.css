@@ -48,28 +48,29 @@
 }
 
 /**
- * Session stats row above the composer (host slot
- * `conversation.composer.dock`, class FJxK0a_*): the host lays five
- * `a | b` segments — turns, LLM/tool time, TTFT, token rate, token
- * usage — on one centered nowrap line (max-width 748px). On phones the
- * line overflows the dock width and reads as clipped text running off
- * the screen, and it eats valuable viewport space above the input; the
- * dock stats are redundant with the per-message hover info, so on
- * phones we hide the whole row.
+ * Composer dock above the input (host slot `conversation.composer.dock`):
+ * DSH 0.2.x renders the turn/token-rate/usage stats plus the context-usage
+ * gauge inside `[data-composer-dock]` (0.1.x used the hashed `.FJxK0a_root`
+ * row). Only some pills carry `data-composer-stat`, so hide the dock itself
+ * on phones — the row costs viewport space above the input and is redundant
+ * with the per-message actions. The composer card and its toolbar are
+ * outside the dock and stay intact.
  *
- * Message hover info in the action rows (class p-xYUq_*): the host
- * shows the message time (`p-xYUq_timeStart`) and the assistant-turn
- * summary `time · Ran for … · TTFT …` (`p-xYUq_timeEnd`) on hover —
- * an interaction phones don't have, and their wide text overflows the
- * narrow viewport. Hidden on phones; the action buttons stay.
+ * Message hover info in the action rows: the host shows the message time
+ * (`*_timeStart`) and the assistant-turn summary `time · Ran for … ·
+ * TTFT …` (`*_timeEnd`) on hover — an interaction phones don't have, and
+ * their wide text overflows the narrow viewport. 0.2.x renamed the hashed
+ * prefixes (`xzv4MW_*` replacing `p-xYUq_*`), so match the stable class
+ * suffix instead of one build's hash. Hidden on phones; the action buttons
+ * stay.
  */
 @media (max-width: 767px) {
-  .FJxK0a_root {
+  [data-composer-dock] {
     display: none !important;
   }
 
-  .p-xYUq_timeStart,
-  .p-xYUq_timeEnd {
+  [class*='_timeStart'],
+  [class*='_timeEnd'] {
     display: none !important;
   }
 }

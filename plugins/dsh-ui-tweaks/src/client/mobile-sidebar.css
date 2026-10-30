@@ -68,27 +68,35 @@ body:has([data-sidebar-right-open]) [data-dsh-mobile-trigger] {
   display: block;
 }
 
-/* Soft fade under the top edge: with the session header hidden the flow
-   scrolls flush to the screen edge; this translucent gradient (the host's
-   page-background token, light #fff / dark #151517) gives the top a
-   gentle boundary — content sinks beneath it as it scrolls — without
-   blocking any interaction. The gradient follows the host theme through
-   --dsw-alias-bg-base (the host flips `color-scheme` and the
-   --dsw-alias-* tokens with prefers-color-scheme), and color-mix builds
-   the 85% stop so no hardcoded white survives in dark mode. The first
-   declaration is the pre-color-mix fallback for older engines.
-   z-index 35: above the app's in-flow content (auto), but below the
-   better-sidebar overlay layer (data-dsh-panel-host, z 40) so the
-   panel's top buttons/sidebar are never washed out, and below the
-   scrim (59), the drawer (60) and the trigger (61). Hidden on desktop
-   together with the root. */
+/* DSH 0.2.x's drawer keeps its own brand row and native "Collapse sidebar"
+   control at the drawer's top-right, so the floating trigger would sit on
+   top of the whale wordmark. Hide it while the drawer is open: the native
+   control and the scrim both close it. */
+[data-dsh-mobile-sidebar-root][data-dsh-mobile-open='true'] [data-dsh-mobile-trigger] {
+  display: none;
+}
+
+/* Soft fade under the header: DSH 0.2.x keeps a native 40px header row (we
+   hide its title/tabs but keep the right-sidebar corner toggle), so the
+   flow no longer scrolls flush to the screen edge. Start the translucent
+   gradient below that row so it cannot wash out the corner control; it
+   still gives the scroll area a gentle top boundary without blocking any
+   interaction. The gradient follows the host theme through
+   --dsw-alias-bg-base (the host flips `color-scheme` and the --dsw-alias-*
+   tokens with prefers-color-scheme), and color-mix builds the 85% stop so
+   no hardcoded white survives in dark mode. The first declaration is the
+   pre-color-mix fallback for older engines.
+   z-index 10: above the app's in-flow content (auto), below the shell
+   overlay layer (z 20), the rightbar float layer (z 40), the scrim (59),
+   the drawer (60) and the trigger (61). Hidden on desktop together with the
+   root. */
 [data-dsh-mobile-top-fade] {
   position: fixed;
-  top: 0;
+  top: 40px;
   left: 0;
   right: 0;
-  height: calc(72px + env(safe-area-inset-top, 0px));
-  z-index: 35;
+  height: 28px;
+  z-index: 10;
   pointer-events: none;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.85) 38%, rgba(255, 255, 255, 0) 100%);
   background: linear-gradient(to bottom, var(--dsw-alias-bg-base, #ffffff) 0%, color-mix(in srgb, var(--dsw-alias-bg-base, #ffffff) 85%, transparent) 38%, transparent 100%);
@@ -150,23 +158,50 @@ body:has([data-sidebar-right-open]) [data-dsh-mobile-trigger] {
     animation: dsh-mobile-drawer-in 220ms var(--ds-ease-in-out, ease) forwards;
   }
 
-  /* The whole session header — title crumb, mode, the "Session log"
-     utility and the Chat/Trajectory tabs (host wSkVaW_header, reached
-     through its display:contents slot wrapper; the slot is the stable
-     seam) — is hidden on phones: it is pure chrome, the tabs have no
-     touch context, and it frees ~76px at the top for the message flow.
-     The floating whale trigger takes over the corner. The slot carries
-     an inline `display: contents` from the host, so the override needs
-     !important. */
-  [data-slot='conversation.session.header'] {
+  /* The session header chrome — title crumb, mode, the "Session log"
+     utility and the Chat/Trajectory tabs — is hidden on phones: it is pure
+     chrome and the tabs have no touch context. DSH 0.2.x keeps the header
+     row itself (and the native right-sidebar toggle in
+     `conversation.session.header.corner`), so hide only the title row's
+     other occupants plus the tab strip; the corner control stays reachable.
+     The slot wrappers carry an inline `display: contents` from the host, so
+     the override needs !important. */
+  [data-slot='conversation.session.header'] > * > :not([data-conversation-header-corner]) {
     display: none !important;
   }
 
-  /* Top clearance for the trigger at the very top of the flow: padding on
-     the scroll CONTENT (not the scroller) so it scrolls away — full
-     clearance only while scrollTop is 0, a normal gap otherwise. */
-  [data-dsh-mobile-frame] [data-chat-flow] {
-    padding-top: 56px;
+  [data-conversation-tabs] {
+    display: none !important;
+  }
+
+  /* With the tabs gone the host header still reserves its 76px min-height,
+     and the corner control loses the title cluster that used to push it
+     right (`margin-left: auto` is overridden by the host's later
+     `margin-left: 8px` rule). Collapse the row to 40px and re-anchor the
+     native right-sidebar toggle to the trailing edge so it clears the
+     floating whale trigger. */
+  [data-slot='conversation.header'] > header {
+    min-height: 40px !important;
+    padding-bottom: 0 !important;
+  }
+
+  [data-slot='conversation.session.header'] > div {
+    height: 30px !important;
+    min-height: 30px !important;
+  }
+
+  [data-conversation-header-corner] {
+    margin-left: auto !important;
+  }
+
+  /* Top clearance for the trigger: padding on the scroll CONTENT (not the
+     scroller) so it scrolls away — full clearance only while scrollTop is
+     0, a normal gap otherwise. DSH 0.2.x renamed the old `data-chat-flow`
+     content node to `data-conversation-content`; the native header row
+     already supplies 40px, so only the trigger's remaining overlap needs
+     padding. */
+  [data-dsh-mobile-frame] [data-conversation-content] {
+    padding-top: 16px;
   }
 }
 

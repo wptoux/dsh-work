@@ -10,10 +10,12 @@
  *
  * Pure DOM + CSS against host facts — no harness changes:
  * - the AppFrame is stamped with plugin-owned data attributes once it
- *   appears (the frame carries `data-sidebar-collapsed` /
- *   `data-details-collapsed` or an inline three-track
- *   `gridTemplateColumns`; its grid children in DOM order are the sidebar,
- *   center, and details columns — verified against the served shell markup),
+ *   appears. DSH 0.2.x marks the frame with `data-sidebar-collapsed` /
+ *   `data-rightbar-collapsed` (0.1.x called the details column
+ *   `data-details-collapsed`), and always renders the three columns in DOM
+ *   order: sidebar, center, rightbar. The rightbar column carries the stable
+ *   `data-rightbar-col` marker, so stamping anchors on it instead of
+ *   assuming the sidebar is `children[0]`,
  * - every visual rule lives in `mobile-sidebar.css`, scoped to the stamped
  *   attributes + the frame's own `data-sidebar-collapsed` state and gated
  *   by a `max-width: 767px` media query (the same breakpoint
@@ -31,11 +33,11 @@ import './mobile-sidebar.css'
 
 /** Marker stamped onto the host layout frame once (idempotent). */
 export const MOBILE_FRAME_ATTR = 'data-dsh-mobile-frame'
-/** Marker stamped onto the frame's first child, the sidebar column. */
+/** Marker stamped onto the frame's sidebar column. */
 export const MOBILE_SIDEBAR_COL_ATTR = 'data-dsh-mobile-sidebar-col'
 /** Marker stamped onto the center (conversation) column. */
 export const MOBILE_CENTER_COL_ATTR = 'data-dsh-mobile-center-col'
-/** Marker stamped onto the details column. */
+/** Marker stamped onto the rightbar (0.1.x: details) column. */
 export const MOBILE_DETAILS_COL_ATTR = 'data-dsh-mobile-details-col'
 /** The trigger/scrim host appended to <body>. */
 export const MOBILE_ROOT_ATTR = 'data-dsh-mobile-sidebar-root'
@@ -52,17 +54,19 @@ export const NARROW_MAX_WIDTH = 767
 /** Selectors identifying the live AppFrame element by its own attributes. */
 const FRAME_ATTRIBUTE_SELECTORS = [
   '[data-sidebar-collapsed]',
+  '[data-rightbar-collapsed]',
   '[data-details-collapsed]',
   '[data-dragging]',
 ] as const
 
 /**
  * The AppFrame is the only element with an inline three-track grid matching
- * `<px> minmax(0, 1fr) <px>` (fallback when no collapse attribute is set —
- * e.g. details open on the desktop, which never happens on a phone width).
+ * `<px> minmax(0, 1fr) ...`. DSH 0.2.x writes `minmax(0px, 1fr)`, 0.1.x
+ * wrote `minmax(0, 1fr)`; accept both (fallback when no collapse attribute
+ * is set — e.g. rightbar open on the desktop, never on a phone width).
  */
 export function isFrameGrid(style: CSSStyleDeclaration): boolean {
-  return /px\s+minmax\(0,\s*1fr\)/.test(style.gridTemplateColumns)
+  return /\d+px\s+minmax\(0(?:px)?,\s*1fr\)/.test(style.gridTemplateColumns)
 }
 
 /** Find the live AppFrame element (the layout div, not #root). */
@@ -93,14 +97,22 @@ export function stampMobileFrame(): boolean {
   const frame = findMobileFrame()
   if (frame === undefined) return false
   frame.setAttribute(MOBILE_FRAME_ATTR, '')
-  const columns = [MOBILE_SIDEBAR_COL_ATTR, MOBILE_CENTER_COL_ATTR, MOBILE_DETAILS_COL_ATTR]
-  // DOM order of the frame's grid children (verified against the served
-  // shell): sidebar column, center column, details column — React fragments
-  // add no wrapper node; the overlay layer and drag handles that follow are
-  // absolute and stay out of the grid flow.
-  for (let index = 0; index < columns.length; index += 1) {
-    const node = frame.children[index]
-    if (node instanceof HTMLElement) node.setAttribute(columns[index], '')
+  // The frame's grid children in DOM order are sidebar, center, rightbar
+  // (React fragments add no wrapper; the bottom row, overlay layer and drag
+  // handles that follow are absolute / outside the column tracks). Anchor on
+  // the rightbar's stable marker and walk back so an extra leading node
+  // (e.g. a rendered DocumentTitle portal) cannot shift the stamp targets.
+  const children = [...frame.children].filter((node): node is HTMLElement => node instanceof HTMLElement)
+  const rightbar = children.find(node => node.hasAttribute('data-rightbar-col')) ?? children[2]
+  const center = rightbar?.previousElementSibling ?? children[1]
+  const sidebar = center?.previousElementSibling ?? children[0]
+  const columns: Array<[string, Element | undefined]> = [
+    [MOBILE_SIDEBAR_COL_ATTR, sidebar ?? undefined],
+    [MOBILE_CENTER_COL_ATTR, center ?? undefined],
+    [MOBILE_DETAILS_COL_ATTR, rightbar ?? undefined],
+  ]
+  for (const [attribute, node] of columns) {
+    if (node instanceof HTMLElement) node.setAttribute(attribute, '')
   }
   return true
 }

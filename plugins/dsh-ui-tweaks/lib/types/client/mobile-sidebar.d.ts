@@ -1,11 +1,11 @@
 import './mobile-sidebar.css';
 /** Marker stamped onto the host layout frame once (idempotent). */
 export declare const MOBILE_FRAME_ATTR = "data-dsh-mobile-frame";
-/** Marker stamped onto the frame's first child, the sidebar column. */
+/** Marker stamped onto the frame's sidebar column. */
 export declare const MOBILE_SIDEBAR_COL_ATTR = "data-dsh-mobile-sidebar-col";
 /** Marker stamped onto the center (conversation) column. */
 export declare const MOBILE_CENTER_COL_ATTR = "data-dsh-mobile-center-col";
-/** Marker stamped onto the details column. */
+/** Marker stamped onto the rightbar (0.1.x: details) column. */
 export declare const MOBILE_DETAILS_COL_ATTR = "data-dsh-mobile-details-col";
 /** The trigger/scrim host appended to <body>. */
 export declare const MOBILE_ROOT_ATTR = "data-dsh-mobile-sidebar-root";
@@ -18,8 +18,9 @@ export interface MobileLayoutFace {
 export declare const NARROW_MAX_WIDTH = 767;
 /**
  * The AppFrame is the only element with an inline three-track grid matching
- * `<px> minmax(0, 1fr) <px>` (fallback when no collapse attribute is set —
- * e.g. details open on the desktop, which never happens on a phone width).
+ * `<px> minmax(0, 1fr) ...`. DSH 0.2.x writes `minmax(0px, 1fr)`, 0.1.x
+ * wrote `minmax(0, 1fr)`; accept both (fallback when no collapse attribute
+ * is set — e.g. rightbar open on the desktop, never on a phone width).
  */
 export declare function isFrameGrid(style: CSSStyleDeclaration): boolean;
 /** Find the live AppFrame element (the layout div, not #root). */

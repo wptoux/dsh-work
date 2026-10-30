@@ -1,7 +1,7 @@
 {
   "name": "dsh-ui-tweaks",
-  "description": "Desktop web UI tweaks for narrow screens: phone-viewport left-sidebar drawer and a single-line composer toolbar.",
-  "version": "0.1.0",
+  "description": "Desktop web UI tweaks for narrow screens: phone-viewport left-sidebar drawer, condensed header, and a single-line composer toolbar.",
+  "version": "0.2.0",
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "engines": {
@@ -32,7 +32,7 @@
   "license": "Apache-2.0",
   "dsh": {
     "engines": {
-      "dsh": ">=0.1.5-rc.1"
+      "dsh": ">=0.2.0-rc.1 <0.3.0-0"
     },
     "bundle": {
       "patch": "./cordis.patch.yml"

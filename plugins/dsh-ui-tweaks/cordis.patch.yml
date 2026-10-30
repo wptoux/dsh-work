@@ -2,7 +2,8 @@
 #
 # Mounts the host half of the plugin into the dsh web profile. The client
 # half (lib/client.js, discovered through the `dsh.client` package field)
-# runs in the browser and implements the UI tweaks (completed-turn folding).
+# runs in the browser and implements the narrow-screen UI tweaks (mobile
+# sidebar drawer, condensed header, single-line composer).
 - insert:
     - id: ui-tweaks
       name: 'dsh-ui-tweaks'
