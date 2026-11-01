@@ -56,9 +56,11 @@ export class Sessions {
     if (known !== undefined && await this.host.session.resolve(known)) return known
     const workspaceId = await this.ensureWorkspace()
     const sessionId = `mini-hub-${randomBytes(4).toString('hex')}`
+    // Record the id BEFORE creating: `session.create` publishes the live agent (and
+    // fires `agent/created`) before it resolves, so the role lookup must already see it.
+    this.host.store.setMeta('hub_session', sessionId)
     await this.host.session.create({ sessionId, workspaceId, agentPreset: this.host.workerPreset })
     await this.host.session.rename({ sessionId, title: 'SuperAgent' })
-    this.host.store.setMeta('hub_session', sessionId)
     return sessionId
   }
 

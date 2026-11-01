@@ -76,6 +76,19 @@ describe('Sessions', () => {
     expect(store.meta('hub_session')).toBe(first)
   })
 
+  it('records the hub id before creating it, so agent/created sees the role', async () => {
+    const f = fakeHost()
+    let metaAtCreate: string | undefined
+    const create = f.host.session.create
+    f.host.session.create = async (request: { sessionId: string }) => {
+      metaAtCreate = store.meta('hub_session')
+      await create(request)
+    }
+    const sessions = new Sessions(f.host)
+    const hub = await sessions.ensureHub()
+    expect(metaAtCreate).toBe(hub)
+  })
+
   it('replaces a stored hub id that no longer resolves', async () => {
     store.setMeta('hub_session', 'mini-hub-deadbeef')
     const f = fakeHost()
