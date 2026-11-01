@@ -49,6 +49,9 @@ describe('roles', () => {
     expect(text).toContain(ticket().request)
     expect(text).toContain('work/t-1a2b3c4d')
     expect(text).toContain('/tmp/mini/superagent')
+    // A shell `cd` does not persist across bash tool calls, so the prefix must be per command.
+    expect(text).toContain('每条命令都带上该前缀')
+    expect(text).not.toContain('先 cd 进去')
     expect(text).toContain('report({ state: "ended"')
     expect(text).toContain('report({ state: "waiting"')
     expect(text).toContain('report({ state: "blocked"')

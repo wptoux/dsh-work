@@ -34,6 +34,22 @@ describe('Store', () => {
     expect(() => store.insertAssignment(assignment({ id: 'a-00000003', attempt: 3 }))).not.toThrow()
   })
 
+  it('keeps dispatch FIFO when tickets share one creation millisecond', () => {
+    const createdAt = '2026-11-01T00:00:00.000Z'
+    store.insertTicket(ticket({ id: 't-bbbbbbbb', createdAt }))
+    store.insertTicket(ticket({ id: 't-aaaaaaaa', createdAt }))
+    // Insertion order (rowid), not the random id, decides the tie.
+    expect(store.oldestQueued()?.id).toBe('t-bbbbbbbb')
+  })
+
+  it('looks up the newest assignment when start times tie', () => {
+    const startedAt = '2026-11-01T00:00:01.000Z'
+    store.insertTicket(ticket())
+    store.insertAssignment(assignment({ id: 'a-00000001', attempt: 1, state: 'ended', startedAt }))
+    store.insertAssignment(assignment({ id: 'a-00000002', attempt: 2, startedAt }))
+    expect(store.assignmentBySession('worker-t-1a2b3c4d')?.id).toBe('a-00000002')
+  })
+
   it('rolls a transaction back when the callback throws', () => {
     expect(() => store.tx(() => { store.insertTicket(ticket()); throw new Error('boom') })).toThrow('boom')
     expect(store.ticket('t-1a2b3c4d')).toBeUndefined()

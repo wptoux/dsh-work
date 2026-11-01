@@ -11,7 +11,7 @@ export function mandateFor(ticket: Ticket, workspaceDir: string, recoveryNote?: 
   return [
     `你是 mini-superagent 的 worker，只负责票据 ${ticket.id}。`,
     '', '请求：', ticket.request, '',
-    `工作目录：${ticket.workDir}（相对 ${workspaceDir}，先 cd 进去或用该前缀）`, '',
+    `工作目录：${ticket.workDir}（相对 ${workspaceDir}，每条命令都带上该前缀）`, '',
     '规则：',
     '- 只在该子目录内改动；不要创建或管理工作项。',
     '- 有结论时调用 report({ state: "ended", summary: "做了什么、验证了什么" })。',

@@ -109,7 +109,9 @@ export class Store {
   }
 
   oldestQueued(): Ticket | undefined {
-    const row = this.db.prepare("SELECT * FROM tickets WHERE state = 'queued' ORDER BY created_at, id LIMIT 1").get() as TicketRow | undefined
+    // rowid breaks same-millisecond ties by insertion order, keeping dispatch FIFO
+    // instead of falling back to a random ticket id.
+    const row = this.db.prepare("SELECT * FROM tickets WHERE state = 'queued' ORDER BY created_at, rowid LIMIT 1").get() as TicketRow | undefined
     return row === undefined ? undefined : toTicket(row)
   }
 
@@ -132,7 +134,9 @@ export class Store {
   }
 
   assignmentBySession(sessionId: string): Assignment | undefined {
-    const row = this.db.prepare('SELECT * FROM assignments WHERE session_id = ? ORDER BY started_at DESC LIMIT 1').get(sessionId) as AssignmentRow | undefined
+    // rowid breaks same-millisecond ties by insertion order: the newest attempt wins,
+    // so a session that was retried twice cannot report against the older attempt.
+    const row = this.db.prepare('SELECT * FROM assignments WHERE session_id = ? ORDER BY started_at DESC, rowid DESC LIMIT 1').get(sessionId) as AssignmentRow | undefined
     return row === undefined ? undefined : toAssignment(row)
   }
 

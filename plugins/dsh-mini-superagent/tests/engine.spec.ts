@@ -88,4 +88,20 @@ describe('Engine', () => {
     expect(stopped.ticket.outcome).toBe('stopped')
     expect(stopped.sessionId).toBe(`worker-${t.id}`)
   })
+
+  it('fails a dispatched ticket with the launch error in its summary', () => {
+    const t = create()
+    engine.dispatchNext()
+    const failed = engine.failDispatch(t.id, 'no session')
+    expect(failed.state).toBe('failed')
+    expect(failed.summary).toContain('no session')
+    expect(store.runningAssignment(t.id)).toBeUndefined()
+  })
+
+  it('refuses to fail-dispatch a ticket that already ended', () => {
+    const t = create()
+    engine.stop(t.id)
+    expect(errorOf(() => engine.failDispatch(t.id, 'too late')).code).toBe('ticket/not-open')
+    expect(store.ticket(t.id)?.state).toBe('ended')
+  })
 })

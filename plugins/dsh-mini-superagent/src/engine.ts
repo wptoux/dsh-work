@@ -89,6 +89,7 @@ export class Engine {
     return this.store.tx(() => {
       const ticket = this.store.ticket(ticketId)
       if (ticket === undefined) throw new MiniError('ticket/not-found', ticketId)
+      if (ticket.state === 'ended') throw new MiniError('ticket/not-open', ticketId)
       const running = this.store.runningAssignment(ticketId)
       if (running !== undefined) this.store.endAssignment(running.id, 'interrupted')
       this.store.updateTicket(ticketId, { state: 'failed', summary: `派发失败：${message}`, revision: ticket.revision + 1, updatedAt: now() })
