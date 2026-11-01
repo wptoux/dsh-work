@@ -231,8 +231,11 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 | GET | `/mini-superagent/api/hub` | `{ hubSessionId, tickets: TicketView[] }`，必要时先创建 hub 会话与 workspace |
 | GET | `/mini-superagent/api/health` | `{ ok, schemaVersion, running, queued }` |
 
-鉴权沿用 DSH 的本地栅栏（Host 头 127.0.0.1/localhost），不做额外令牌——与
-`dsh-archive-manager` 的做法一致。
+路由自带 `Host` / 代理栅栏：处理器在做事之前检查 `Host` 头，必须是 `127.0.0.1`、
+`localhost` 或 `[::1]`（可带端口），并拒绝带 `X-Forwarded-*` / `Forwarded` /
+`CF-Connecting-IP` 的请求（cloudflared 快隧道会把 `Host` 改写成源站），任一命中
+一律 403。这两条路由位于 web server 的 `/api` 连接栅栏之外，profile 开着 tunnel
+时也不会被远程读取；除此之外不做令牌鉴权。
 
 ## 回推
 

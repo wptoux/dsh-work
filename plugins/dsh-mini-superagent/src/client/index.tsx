@@ -73,7 +73,9 @@ export async function fetchHub(fetchImpl: typeof fetch = fetch, signal?: AbortSi
   if (!response.ok) throw new Error(`hub request failed: ${response.status}`)
   const payload = await response.json() as { hubSessionId?: unknown; tickets?: unknown }
   if (typeof payload.hubSessionId !== 'string') throw new Error('hub payload is missing hubSessionId')
-  const rows = Array.isArray(payload.tickets) ? payload.tickets as HubTicketRow[] : []
+  const rows = Array.isArray(payload.tickets)
+    ? payload.tickets.filter((row): row is HubTicketRow => typeof row === 'object' && row !== null)
+    : []
   return { hubSessionId: payload.hubSessionId, tickets: rows.map(toTicketView) }
 }
 
@@ -114,16 +116,23 @@ export function TicketTable({ tickets }: { tickets: TicketView[] }): ReactElemen
 
 /**
  * Start the panel's polling loop: one immediate load, then `load` every
- * `intervalMs`. Failures are the loader's business (the panel renders them);
- * they never break the timer.
+ * `intervalMs`. A tick that fires while the previous request is still pending
+ * is skipped, so a slow host cannot pile up requests. Failures are the
+ * loader's business (the panel renders them); they never break the timer.
  * @param load - one refresh attempt.
  * @param intervalMs - refresh cadence.
  * @returns idempotent stop function (clears the timer).
  */
 export function pollHub(load: () => Promise<void>, intervalMs: number = HUB_REFRESH_MS): () => void {
+  let pending = false
   const tick = (): void => {
-    try { void load().catch(() => {}) }
-    catch { /* a synchronous throw must not kill the interval */ }
+    if (pending) return
+    pending = true
+    try {
+      load().catch(() => {}).finally(() => { pending = false })
+    } catch {
+      pending = false /* a synchronous throw must not kill the interval */
+    }
   }
   tick()
   const timer = setInterval(tick, intervalMs)
@@ -171,7 +180,7 @@ export function Panel({ openSession }: PanelProps): ReactElement {
         打开主会话
       </button>
       {error === undefined ? null : <p role="alert">{error}</p>}
-      <TicketTable tickets={data?.tickets ?? []} />
+      {data === undefined ? null : <TicketTable tickets={data.tickets} />}
     </div>
   )
 }
@@ -210,7 +219,8 @@ interface KeyedEntryOptions {
 /** The `ctx.slots` face: declaration-aware registration used by the client runtime. */
 interface SlotsFace {
   inject(key: string, setup: () => () => void): () => void
-  register(options: ListEntryOptions | KeyedEntryOptions, component: (props: never) => ReactElement): () => void
+  register(options: ListEntryOptions, component: (props: PanelIconProps) => ReactElement): () => void
+  register(options: KeyedEntryOptions, component: () => ReactElement): () => void
 }
 
 /** The `ctx.uiWorkspace` face: select a session and open its conversation. */

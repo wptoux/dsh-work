@@ -33,7 +33,12 @@ HTTP（只读）：
 | GET | `/mini-superagent/api/hub` | `{ hubSessionId, tickets }`，首次访问会先建 hub 会话 |
 | GET | `/mini-superagent/api/health` | `{ ok, running, queued }` |
 
-鉴权沿用 DSH 的本地访问栅栏（Host 为 127.0.0.1/localhost），不加额外令牌。
+这些路由只接受本机直连：处理器在做事之前检查 `Host` 头（必须是 `127.0.0.1`、
+`localhost` 或 `[::1]`，可带端口），并拒绝带 `X-Forwarded-*` / `Forwarded` /
+`CF-Connecting-IP` 的请求——cloudflared 快隧道会把 `Host` 改写成源站，只查 Host
+不足以挡住隧道。两者任一命中都返回 403。这些路由位于 web server 的 `/api` 连接
+栅栏之外，也没有令牌，因此**面板与接口刻意不通过 remote / tunnel UI 暴露**；从远端
+访问只会拿到 403。
 
 ## 安装（profile 内）
 
