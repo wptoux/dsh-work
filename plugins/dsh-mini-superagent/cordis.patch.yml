@@ -1,0 +1,4 @@
+# dsh-mini-superagent bundle layer: inserts the plugin; the profile supplies stateDir.
+- insert:
+    - id: mini-superagent
+      name: dsh-mini-superagent
