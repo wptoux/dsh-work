@@ -21,7 +21,7 @@ describe('Store', () => {
   it('round-trips an assignment and finds it by session', () => {
     store.insertTicket(ticket())
     store.insertAssignment(assignment())
-    expect(store.assignmentBySession('worker-t-1a2b3c4d')?.id).toBe('a-00000001')
+    expect(store.assignmentBySession('worker-t-1a2b3c4d-a1')?.id).toBe('a-00000001')
     expect(store.runningAssignment('t-1a2b3c4d')?.attempt).toBe(1)
   })
 
@@ -46,8 +46,10 @@ describe('Store', () => {
     const startedAt = '2026-11-01T00:00:01.000Z'
     store.insertTicket(ticket())
     store.insertAssignment(assignment({ id: 'a-00000001', attempt: 1, state: 'ended', startedAt }))
+    // The Engine now issues one session id per attempt; this stays as a guard for
+    // legacy rows where a retry reused the same session id.
     store.insertAssignment(assignment({ id: 'a-00000002', attempt: 2, startedAt }))
-    expect(store.assignmentBySession('worker-t-1a2b3c4d')?.id).toBe('a-00000002')
+    expect(store.assignmentBySession('worker-t-1a2b3c4d-a1')?.id).toBe('a-00000002')
   })
 
   it('rolls a transaction back when the callback throws', () => {

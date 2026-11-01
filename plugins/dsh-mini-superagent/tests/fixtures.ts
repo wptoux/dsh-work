@@ -8,5 +8,5 @@ export const ticket = (over: Partial<Ticket> = {}): Ticket => ({
 
 export const assignment = (over: Partial<Assignment> = {}): Assignment => ({
   id: 'a-00000001', ticketId: 't-1a2b3c4d', attempt: 1, state: 'running',
-  sessionId: 'worker-t-1a2b3c4d', startedAt: '2026-11-01T00:00:01.000Z', ...over,
+  sessionId: 'worker-t-1a2b3c4d-a1', startedAt: '2026-11-01T00:00:01.000Z', ...over,
 })

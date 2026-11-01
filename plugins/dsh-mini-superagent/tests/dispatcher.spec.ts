@@ -70,12 +70,13 @@ describe('Dispatcher', () => {
     expect(store.runningAssignment(t.id)).toBeUndefined()
   })
 
-  it('runs a tick on kick', async () => {
+  it('does not dispatch after stop', async () => {
     const dispatcher = dispatcherFor(okay)
-    create('a')
-    dispatcher.kick()
-    await new Promise(resolve => { setTimeout(resolve, 0) })
-    expect(launched).toHaveLength(1)
+    dispatcher.stop()
+    const t = create('a')
+    await dispatcher.tick()
+    expect(launched).toEqual([])
+    expect(store.ticket(t.id)?.state).toBe('queued')
   })
 
   it('polls on its interval until stopped', async () => {

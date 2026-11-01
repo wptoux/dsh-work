@@ -23,16 +23,11 @@ export class Dispatcher {
 
   constructor(private readonly deps: DispatcherDeps) {}
 
-  /** Schedule one tick on the microtask queue; safe to call from synchronous event handlers. */
-  kick(): void {
-    queueMicrotask(() => { void this.tick().catch(error => { this.deps.logger.warn(`dispatch tick failed: ${messageOf(error)}`) }) })
-  }
-
   async tick(): Promise<void> {
     if (this.inflight || this.stopped) return
     this.inflight = true
     try {
-      let running = this.deps.engine.listTickets(200).filter(ticket => ticket.state === 'working').length
+      let running = this.deps.engine.runningCount()
       while (!this.stopped && running < this.deps.maxWorkers) {
         const claim = this.deps.engine.dispatchNext()
         if (claim === undefined) break

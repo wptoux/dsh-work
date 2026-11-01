@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS assignments (
   ticket_id     TEXT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
   attempt       INTEGER NOT NULL,   -- 从 1 开始
   state         TEXT NOT NULL CHECK (state IN ('running','ended','interrupted')),
-  session_id    TEXT NOT NULL,      -- 'worker-<ticket id>'
+  session_id    TEXT NOT NULL,      -- 'worker-<ticket id>-a<attempt>'
   recovery_note TEXT,               -- 本次尝试为什么被拉起
   started_at    TEXT NOT NULL,
   ended_at      TEXT,
@@ -166,7 +166,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS assignments_one_running
 ```
 workspace 目录 : <stateDir>/superagent
 hub 会话 id    : mini-hub-<8 hex>        （首次打开入口时创建，写入 meta.hub_session）
-worker 会话 id : worker-<ticket id>       （例：worker-t-3f2a9c1b）
+worker 会话 id : worker-<ticket id>-a<attempt>  （例：worker-t-3f2a9c1b-a1；每次尝试新建）
 所有会话 cwd   : <stateDir>/superagent      （同一 workspace → 侧边栏只有一组）
 票据工作目录   : <stateDir>/superagent/work/<ticket id>   （由 mandate 指定，见下）
 preset         : hub 与 worker 都用内核 standard（M1）
@@ -191,6 +191,7 @@ preset         : hub 与 worker 都用内核 standard（M1）
 
 - 只注册 `report`。
 - 上下文从零开始：首条消息是 mandate。
+- 每次尝试都是新会话（id 带 attempt），重试不继承上一次的历史。
 - 失败不自动重试（避免错误风暴），由人 `retry`。
 
 ### mandate 模板
@@ -232,9 +233,9 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 | GET | `/mini-superagent/api/health` | `{ ok, schemaVersion, running, queued }` |
 
 路由自带 `Host` / 代理栅栏：处理器在做事之前检查 `Host` 头，必须是 `127.0.0.1`、
-`localhost` 或 `[::1]`（可带端口），并拒绝带 `X-Forwarded-*` / `Forwarded` /
-`CF-Connecting-IP` 的请求（cloudflared 快隧道会把 `Host` 改写成源站），任一命中
-一律 403。这两条路由位于 web server 的 `/api` 连接栅栏之外，profile 开着 tunnel
+`localhost` 或 `[::1]`（可带端口），并拒绝带 `Forwarded`、`X-Forwarded-For`、
+`X-Forwarded-Host`、`X-Forwarded-Proto` 或 `CF-Connecting-IP` 的请求（cloudflared
+快隧道会把 `Host` 改写成源站），任一命中一律 403。这两条路由位于 web server 的 `/api` 连接栅栏之外，profile 开着 tunnel
 时也不会被远程读取；除此之外不做令牌鉴权。
 
 ## 回推
@@ -250,7 +251,8 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 ```
 
 - `progress` 不发（避免噪音）；其余终态都发，因为之后不会自己继续。
-- 发送失败只记日志，不影响票据状态；hub 会话不存在（被删）时静默跳过。
+- 发送失败先重试一次 `meta.hub_session`（origin 会话被删时的兜底）；两者都失败才记日志，
+  不影响票据状态。
 - 消息会唤醒 hub 会话的一个回合——这是有意的，等价于 superagent 的 notice。
 
 ## 状态机
@@ -291,7 +293,7 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 | `failDispatch` | `ticketId, error` | `Ticket` | 票 → failed，running 作业 → interrupted，summary 写错误 | 仅 Dispatcher 调用 |
 | `recover` | — | `number` | 所有 running → interrupted；对应票回 queued | 只在启动调用一次 |
 | `interruptAll` | — | `number` | 退出路径：所有 running → interrupted，票回 queued | 幂等 |
-| `listTickets` | `limit?` | `TicketView[]` | 未结束票 + 最近 10 张已结束票 | 只读 |
+| `listTickets` | `limit?` | `TicketView[]` | 最多 `limit` 张：未结束票优先，剩余名额给最近已结束票（至多 10 张） | 只读 |
 
 错误是带 code 的类型化错误：`ticket/not-found`、`ticket/not-open`、`ticket/not-retryable`、
 `assignment/not-running`、`report/terminal-twice`、`report/unknown-state`。
@@ -301,7 +303,7 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 | 工具 | 注册范围 | schema | 行为 |
 |---|---|---|---|
 | `request_work` | 仅 hub | `{ title: string(1..120), request: string(1..8000) }` | 建票，返回 ticket id、work_dir 与队列位置 |
-| `list_tickets` | 仅 hub | `{ limit?: 1..50 }` | 列出未结束票 + 最近 10 张已结束票 |
+| `list_tickets` | 仅 hub | `{ limit?: 1..50 }` | 列出未结束票 + 最近已结束票（总数为 limit，未结束优先） |
 | `ticket_control` | 仅 hub | `{ action: "retry"\|"stop", ticket_id }` | 调 Engine.retry / stop；stop 后中断对应会话 |
 | `report` | 仅 worker | `{ state: "progress"\|"waiting"\|"blocked"\|"failed"\|"ended", summary: string(1..4000) }` | 调 Engine.report；返回票状态与"不要再 report"提示 |
 

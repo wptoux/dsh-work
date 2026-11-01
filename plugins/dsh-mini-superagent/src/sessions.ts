@@ -39,6 +39,9 @@ export interface SessionsHost {
 }
 
 export class Sessions {
+  private workspacePromise: Promise<string> | undefined
+  private hubPromise: Promise<string> | undefined
+
   constructor(private readonly host: SessionsHost) {}
 
   get workspaceDir(): string { return `${this.host.stateDir}/superagent` }
@@ -46,6 +49,13 @@ export class Sessions {
   async ensureWorkspace(): Promise<string> {
     const known = this.host.store.meta('workspace')
     if (known !== undefined) return known
+    if (this.workspacePromise === undefined) {
+      this.workspacePromise = this.createWorkspace().finally(() => { this.workspacePromise = undefined })
+    }
+    return this.workspacePromise
+  }
+
+  private async createWorkspace(): Promise<string> {
     const workspace = await this.host.workspace.create(this.workspaceDir)
     this.host.store.setMeta('workspace', workspace.id)
     return workspace.id
@@ -54,6 +64,13 @@ export class Sessions {
   async ensureHub(): Promise<string> {
     const known = this.host.store.meta('hub_session')
     if (known !== undefined && await this.host.session.resolve(known)) return known
+    if (this.hubPromise === undefined) {
+      this.hubPromise = this.createHub().finally(() => { this.hubPromise = undefined })
+    }
+    return this.hubPromise
+  }
+
+  private async createHub(): Promise<string> {
     const workspaceId = await this.ensureWorkspace()
     const sessionId = `mini-hub-${randomBytes(4).toString('hex')}`
     // Record the id BEFORE creating: `session.create` publishes the live agent (and

@@ -39,7 +39,7 @@ describe('hub tools', () => {
   it('refuses calls from a worker session', async () => {
     const s = setup()
     const tool = toolNamed(hubTools({ ...s.deps, hubSessionId: () => 'mini-hub-1' }), 'request_work')
-    await expect(run(tool, { title: 'x', request: 'y', __session: 'worker-t-1' })).rejects.toThrow(/hub/i)
+    await expect(run(tool, { title: 'x', request: 'y', __session: 'worker-t-1-a1' })).rejects.toThrow(/hub/i)
     s.done()
   })
 
@@ -71,6 +71,7 @@ describe('hub tools', () => {
     const tool = toolNamed(hubTools(s.deps), 'ticket_control')
     const result = await run(tool, { action: 'retry', ticket_id: ticket.id, __session: 'mini-hub-1' }) as { ticket: string; state: string }
     expect(result.state).toBe('queued')
+    expect(s.terminal).toEqual([])
     s.done()
   })
 
@@ -89,18 +90,22 @@ describe('hub tools', () => {
 })
 
 describe('worker tools', () => {
-  it('reports and pushes a terminal line through onTerminal', async () => {
-    const s = setup()
-    const t = s.engine.createTicket({ title: 'x', request: 'y', originSessionId: 'mini-hub-1' })
-    const claim = s.engine.dispatchNext()!
-    const tool = toolNamed(workerTools(s.deps), 'report')
-    const result = await run(tool, { state: 'ended', summary: 'done', __session: claim.assignment.sessionId }) as { state: string }
-    expect(result.state).toBe('ended')
-    expect(s.terminal).toHaveLength(1)
-    expect(s.terminal[0]!.ticket).toBe(t.id)
-    expect(s.terminal[0]!.line).toContain('done')
-    s.done()
-  })
+  it.each(['waiting', 'blocked', 'failed', 'ended'] as const)(
+    'reports %s as terminal and pushes one line through onTerminal',
+    async (state) => {
+      const s = setup()
+      const t = s.engine.createTicket({ title: 'x', request: 'y', originSessionId: 'mini-hub-1' })
+      const claim = s.engine.dispatchNext()!
+      const tool = toolNamed(workerTools(s.deps), 'report')
+      const result = await run(tool, { state, summary: 'done', __session: claim.assignment.sessionId }) as { state: string; terminal: boolean }
+      expect(result.terminal).toBe(true)
+      expect(result.state).toBe(state)
+      expect(s.terminal).toHaveLength(1)
+      expect(s.terminal[0]!.ticket).toBe(t.id)
+      expect(s.terminal[0]!.line).toContain('done')
+      s.done()
+    },
+  )
 
   it('does not notify on a progress report', async () => {
     const s = setup()

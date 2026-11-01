@@ -19,7 +19,7 @@ import { hubTools, workerTools, type Tool, type ToolDeps } from './tools.ts'
 import type { Ticket } from './types.ts'
 
 export const name = 'mini-superagent'
-export const inject = ['agents', 'sessionController', 'workspaceRegistry', 'tools', 'webServer']
+export const inject = ['sessionController', 'workspaceRegistry', 'tools', 'webServer']
 export { Config }
 
 /** Request shapes re-used from the real services instead of restating their branded ids. */
@@ -66,8 +66,7 @@ export async function apply(ctx: Context, config: MiniConfig): Promise<void> {
     try { engine.interruptAll() }
     catch (error) { ctx.logger.warn(`mini-superagent could not interrupt assignments: ${messageOf(error)}`) }
     for (const off of routes.splice(0)) off()
-    store.close()
-    await release()
+    try { store.close() } finally { await release() }
   }
 
   try {
@@ -121,8 +120,21 @@ export async function apply(ctx: Context, config: MiniConfig): Promise<void> {
     })
 
     const notify = async (ticket: Ticket, line: string): Promise<void> => {
-      try { await sessions.send(ticket.originSessionId, `[minisuperagent] ${ticket.id} ${line}`) }
-      catch (error) { ctx.logger.warn(`mini-superagent notice failed for ${ticket.id}: ${messageOf(error)}`) }
+      const text = `[minisuperagent] ${ticket.id} ${line}`
+      try {
+        await sessions.send(ticket.originSessionId, text)
+        return
+      } catch (first) {
+        // The origin session may have been deleted; the hub is the durable fallback.
+        const hub = store.meta('hub_session')
+        if (hub === undefined || hub === ticket.originSessionId) {
+          ctx.logger.warn(`mini-superagent notice failed for ${ticket.id}: ${messageOf(first)}`)
+          return
+        }
+        try { await sessions.send(hub, text) } catch (second) {
+          ctx.logger.warn(`mini-superagent notice failed for ${ticket.id}: ${messageOf(first)}; hub retry failed: ${messageOf(second)}`)
+        }
+      }
     }
 
     const toolDeps: ToolDeps = {

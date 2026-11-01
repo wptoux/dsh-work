@@ -8,7 +8,8 @@
 ## 三条不变量
 
 1. **工作项是持久的**：票在 SQLite 里，不在会话里。进程重启后票还在。
-2. **执行是隔离的**：每张票一个独立 `worker-<id>` 顶层会话，上下文只有 mandate。
+2. **执行是隔离的**：每张票每次尝试一个独立的 `worker-<ticket>-a<attempt>` 顶层会话，
+   上下文只有 mandate；重试新建会话，不继承上一次的历史。
 3. **重启可恢复**：进程死了再起来，知道刚才在跑什么；运行中的作业标记为
    interrupted、票回到 `queued`，下一次派发带恢复说明。
 
@@ -17,7 +18,8 @@
 - **hub 会话**：`mini-hub-*`。只有它注册 `request_work` / `list_tickets` /
   `ticket_control` 三个工具，普通会话零污染。派活 = 在 hub 里说一句，模型调用
   `request_work` 建票。
-- **worker 会话**：`worker-*`，只注册 `report` 工具；由 Dispatcher 单飞领取
+- **worker 会话**：`worker-<ticket>-a<attempt>`（每次尝试一个新会话），只注册
+  `report` 工具；由 Dispatcher 单飞领取
   `queued` 票后创建（默认并发 1，可配 `maxWorkers`），投喂 mandate 后开跑。
 - **终态回推**：`ended` / `blocked` / `failed` / `waiting` 时向 hub 发一行
   `[minisuperagent] <ticket> <摘要>`；`progress` 不发。
@@ -31,14 +33,14 @@ HTTP（只读）：
 | 方法 | 路径 | 返回 |
 |---|---|---|
 | GET | `/mini-superagent/api/hub` | `{ hubSessionId, tickets }`，首次访问会先建 hub 会话 |
-| GET | `/mini-superagent/api/health` | `{ ok, running, queued }` |
+| GET | `/mini-superagent/api/health` | `{ ok, schemaVersion, running, queued }` |
 
 这些路由只接受本机直连：处理器在做事之前检查 `Host` 头（必须是 `127.0.0.1`、
-`localhost` 或 `[::1]`，可带端口），并拒绝带 `X-Forwarded-*` / `Forwarded` /
-`CF-Connecting-IP` 的请求——cloudflared 快隧道会把 `Host` 改写成源站，只查 Host
-不足以挡住隧道。两者任一命中都返回 403。这些路由位于 web server 的 `/api` 连接
-栅栏之外，也没有令牌，因此**面板与接口刻意不通过 remote / tunnel UI 暴露**；从远端
-访问只会拿到 403。
+`localhost` 或 `[::1]`，可带端口），并拒绝带 `Forwarded`、`X-Forwarded-For`、
+`X-Forwarded-Host`、`X-Forwarded-Proto` 或 `CF-Connecting-IP` 的请求——cloudflared
+快隧道会把 `Host` 改写成源站，只查 Host 不足以挡住隧道。两者任一命中都返回 403。
+这些路由位于 web server 的 `/api` 连接栅栏之外，也没有令牌，因此**面板与接口刻意不
+通过 remote / tunnel UI 暴露**；从远端访问只会拿到 403。
 
 ## 安装（profile 内）
 
@@ -84,6 +86,9 @@ worker 会话以**操作者本人身份**、按 profile 的默认权限运行（
 workspace 与 `workDir` 只是约定，**不是沙箱**；`report` 的参数校验只防误用，不防
 恶意。需要真隔离时，把整个 DSH 进程跑在独立 OS 账户/容器里。
 
+Host 栅栏假设服务只绑 loopback；若把 DSH 绑到 LAN 地址，需在处理器里补
+`req.socket.remoteAddress` 检查（不能只信 `Host`）。
+
 ## 运行运维
 
 - **锁的 30s 过期窗口**：`stateDir` 用 30 秒 stale 锁。`kill -9` 之后若在约 30 秒
@@ -112,7 +117,7 @@ dsh --profile web --dump-config | grep -n "mini-superagent"
 
 1. 侧边栏出现 SuperAgent 入口，点开是票据面板与「打开主会话」。
 2. hub 会话里有 `request_work`；普通会话里没有。
-3. 派活后约 1 秒出现 `worker-<ticket>` 会话，位于 `superagent` 分组。
+3. 派活后约 1 秒出现 `worker-<ticket>-a<attempt>` 会话，位于 `superagent` 分组。
 4. worker 上下文只有 mandate，看不到 hub 的对话历史。
 5. 终态 `report` 后 hub 收到一行 `[minisuperagent] …`。
 6. worker 回合中 `kill -9` → 重启后该票回到 `queued`，第 2 次尝试带恢复说明。

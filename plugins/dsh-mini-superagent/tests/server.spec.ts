@@ -67,7 +67,7 @@ describe('routes', () => {
     engine.dispatchNext()
     const response = await call(routes.get('/mini-superagent/api/health')!)
     expect(response.status).toBe(200)
-    expect(response.json).toEqual({ ok: true, running: 1, queued: 1 })
+    expect(response.json).toEqual({ ok: true, schemaVersion: 1, running: 1, queued: 1 })
   })
 
   it('removes both routes when disposed', () => {

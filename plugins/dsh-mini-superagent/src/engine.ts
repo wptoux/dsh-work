@@ -30,9 +30,12 @@ export class Engine {
       const recoveryNote = previous?.state === 'interrupted'
         ? `上一次尝试（attempt ${previous.attempt}）在进程重启或停止时被中断；先检查工作目录里已有的改动。`
         : undefined
+      const attempt = (previous?.attempt ?? 0) + 1
       const assignment: Assignment = {
-        id: id('a'), ticketId: next.id, attempt: (previous?.attempt ?? 0) + 1, state: 'running',
-        sessionId: `worker-${next.id}`, startedAt: now(), ...(recoveryNote === undefined ? {} : { recoveryNote }),
+        id: id('a'), ticketId: next.id, attempt, state: 'running',
+        // A fresh session per attempt: reusing one id would resume the old worker
+        // history when the kernel mints a new id for a non-blank session.
+        sessionId: `worker-${next.id}-a${attempt}`, startedAt: now(), ...(recoveryNote === undefined ? {} : { recoveryNote }),
       }
       this.store.insertAssignment(assignment)
       this.store.updateTicket(next.id, { state: 'working', revision: next.revision + 1, updatedAt: now() })
@@ -113,7 +116,16 @@ export class Engine {
 
   interruptAll(): number { return this.recover() }
 
+  get schemaVersion(): number { return this.store.schemaVersion }
+
+  runningCount(): number { return this.store.runningAssignments().length }
+
+  queuedCount(): number { return this.store.openTickets().filter(ticket => ticket.state === 'queued').length }
+
+  /** Open tickets first, then recent ended ones, never exceeding `limit` in total. */
   listTickets(limit = 50): Ticket[] {
-    return [...this.store.openTickets(), ...this.store.recentEnded(Math.min(10, limit))]
+    const open = this.store.openTickets()
+    if (open.length >= limit) return open.slice(0, limit)
+    return [...open, ...this.store.recentEnded(Math.min(10, limit - open.length))]
   }
 }

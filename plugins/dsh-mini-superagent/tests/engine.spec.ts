@@ -71,6 +71,29 @@ describe('Engine', () => {
     expect(claim.assignment.recoveryNote).toContain('中断')
   })
 
+  it('gives every attempt of one ticket a distinct worker session id', () => {
+    const t = create()
+    const first = engine.dispatchNext()!
+    engine.recover()
+    const second = engine.dispatchNext()!
+    expect(first.assignment.sessionId).toBe(`worker-${t.id}-a1`)
+    expect(second.assignment.sessionId).toBe(`worker-${t.id}-a2`)
+    expect(second.assignment.sessionId).not.toBe(first.assignment.sessionId)
+  })
+
+  it('caps listTickets at the requested total, open tickets first', () => {
+    const first = create()
+    const second = create()
+    const third = create()
+    engine.stop(first.id)
+    const capped = engine.listTickets(2)
+    expect(capped).toHaveLength(2)
+    expect(capped.map(ticket => ticket.id).sort()).toEqual([second.id, third.id].sort())
+    const all = engine.listTickets(10)
+    expect(all).toHaveLength(3)
+    expect(all.at(-1)?.id).toBe(first.id)
+  })
+
   it('rejects retry from a non-retryable state and allows it from blocked', () => {
     const t = create()
     const claim = engine.dispatchNext()!
@@ -86,7 +109,7 @@ describe('Engine', () => {
     const stopped = engine.stop(t.id)
     expect(stopped.ticket.state).toBe('ended')
     expect(stopped.ticket.outcome).toBe('stopped')
-    expect(stopped.sessionId).toBe(`worker-${t.id}`)
+    expect(stopped.sessionId).toBe(`worker-${t.id}-a1`)
   })
 
   it('fails a dispatched ticket with the launch error in its summary', () => {

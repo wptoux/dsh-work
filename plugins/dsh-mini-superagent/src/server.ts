@@ -72,11 +72,11 @@ export function registerRoutes(ctx: Context, deps: RouteDeps): (() => void)[] {
   }
   const health = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (fenced(req, res)) return
-    const tickets = deps.engine.listTickets(200)
     writeJson(res, 200, {
       ok: true,
-      running: tickets.filter(ticket => ticket.state === 'working').length,
-      queued: tickets.filter(ticket => ticket.state === 'queued').length,
+      schemaVersion: deps.engine.schemaVersion,
+      running: deps.engine.runningCount(),
+      queued: deps.engine.queuedCount(),
     })
   }
   return [

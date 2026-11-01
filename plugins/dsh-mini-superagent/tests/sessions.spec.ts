@@ -40,7 +40,7 @@ const fakeHost = () => {
 describe('roles', () => {
   it('classifies hub, worker and other sessions', () => {
     expect(roleOf('mini-hub-abcd', 'mini-hub-abcd')).toBe('hub')
-    expect(roleOf('worker-t-1', 'mini-hub-abcd')).toBe('worker')
+    expect(roleOf('worker-t-1-a1', 'mini-hub-abcd')).toBe('worker')
     expect(roleOf('some-session', 'mini-hub-abcd')).toBe('other')
   })
 
@@ -74,6 +74,42 @@ describe('Sessions', () => {
     expect(first).toMatch(/^mini-hub-[0-9a-f]{8}$/)
     expect(f.created.filter(id => id.startsWith('mini-hub-'))).toHaveLength(1)
     expect(store.meta('hub_session')).toBe(first)
+  })
+
+  it('shares one hub creation between concurrent callers', async () => {
+    const f = fakeHost()
+    let calls = 0
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    const create = f.host.session.create
+    f.host.session.create = async (request: { sessionId: string }) => {
+      calls += 1
+      await gate
+      await create(request)
+    }
+    const sessions = new Sessions(f.host)
+    const first = sessions.ensureHub()
+    const second = sessions.ensureHub()
+    release()
+    const [a, b] = await Promise.all([first, second])
+    expect(a).toBe(b)
+    expect(calls).toBe(1)
+    expect(f.created.filter(id => id.startsWith('mini-hub-'))).toHaveLength(1)
+  })
+
+  it('clears a rejected hub creation so the next call retries', async () => {
+    const f = fakeHost()
+    let calls = 0
+    const create = f.host.session.create
+    f.host.session.create = async (request: { sessionId: string }) => {
+      calls += 1
+      if (calls === 1) throw new Error('boom')
+      await create(request)
+    }
+    const sessions = new Sessions(f.host)
+    await expect(sessions.ensureHub()).rejects.toThrow('boom')
+    await expect(sessions.ensureHub()).resolves.toMatch(/^mini-hub-[0-9a-f]{8}$/)
+    expect(calls).toBe(2)
   })
 
   it('records the hub id before creating it, so agent/created sees the role', async () => {
@@ -113,12 +149,12 @@ describe('Sessions', () => {
     const f = fakeHost()
     const sessions = new Sessions(f.host)
     await sessions.launch(ticket(), assignment())
-    expect(f.created).toContain('worker-t-1a2b3c4d')
+    expect(f.created).toContain('worker-t-1a2b3c4d-a1')
     expect(f.prompted[0]?.text).toContain('票据 t-1a2b3c4d')
     // Tools must exist before the first message, and the decorated timeout must be the 5s contract.
-    expect(f.decorated).toEqual([{ sessionId: 'worker-t-1a2b3c4d', timeoutMs: 5000 }])
-    const decoratedIndex = f.events.indexOf('decorated:worker-t-1a2b3c4d:5000')
-    const promptIndex = f.events.indexOf('prompt:worker-t-1a2b3c4d')
+    expect(f.decorated).toEqual([{ sessionId: 'worker-t-1a2b3c4d-a1', timeoutMs: 5000 }])
+    const decoratedIndex = f.events.indexOf('decorated:worker-t-1a2b3c4d-a1:5000')
+    const promptIndex = f.events.indexOf('prompt:worker-t-1a2b3c4d-a1')
     expect(decoratedIndex).toBeGreaterThanOrEqual(0)
     expect(promptIndex).toBeGreaterThanOrEqual(0)
     expect(decoratedIndex).toBeLessThan(promptIndex)
