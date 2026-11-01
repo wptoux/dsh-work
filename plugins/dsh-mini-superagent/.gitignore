@@ -1,0 +1,2 @@
+# Build artifact: commit only at release time with `git add -f lib`.
+lib/
