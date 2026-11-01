@@ -15,9 +15,10 @@ afterEach(() => { store.close(); rmSync(dir, { recursive: true, force: true }) }
 const fakeHost = () => {
   const created: string[] = []
   const prompted: { requestId: string; sessionId: string; mode: string; text: string }[] = []
+  const decoratedCalls: { sessionId: string; timeoutMs: number }[] = []
   const events: string[] = []
   return {
-    created, prompted, events,
+    created, prompted, decorated: decoratedCalls, events,
     host: {
       stateDir: dir, workerPreset: 'standard', store,
       session: {
@@ -29,7 +30,9 @@ const fakeHost = () => {
         },
       },
       workspace: { create: async () => ({ id: 'ws-1' }) },
-      decorated: async (sessionId: string) => { events.push(`decorated:${sessionId}`) },
+      decorated: async (sessionId: string, timeoutMs: number) => {
+        decoratedCalls.push({ sessionId, timeoutMs }); events.push(`decorated:${sessionId}:${timeoutMs}`)
+      },
     },
   }
 }
@@ -41,10 +44,15 @@ describe('roles', () => {
     expect(roleOf('some-session', 'mini-hub-abcd')).toBe('other')
   })
 
-  it('renders the mandate with the workspace-relative ticket folder', () => {
+  it('renders the mandate with the request, the ticket folder and every report state', () => {
     const text = mandateFor(ticket(), '/tmp/mini/superagent')
+    expect(text).toContain(ticket().request)
     expect(text).toContain('work/t-1a2b3c4d')
+    expect(text).toContain('/tmp/mini/superagent')
     expect(text).toContain('report({ state: "ended"')
+    expect(text).toContain('report({ state: "waiting"')
+    expect(text).toContain('report({ state: "blocked"')
+    expect(text).toContain('report({ state: "failed"')
   })
 
   it('appends the recovery note only when one is supplied', () => {
@@ -91,8 +99,13 @@ describe('Sessions', () => {
     await sessions.launch(ticket(), assignment())
     expect(f.created).toContain('worker-t-1a2b3c4d')
     expect(f.prompted[0]?.text).toContain('票据 t-1a2b3c4d')
-    // Tools must exist before the first message.
-    expect(f.events.indexOf('decorated:worker-t-1a2b3c4d')).toBeLessThan(f.events.indexOf('prompt:worker-t-1a2b3c4d'))
+    // Tools must exist before the first message, and the decorated timeout must be the 5s contract.
+    expect(f.decorated).toEqual([{ sessionId: 'worker-t-1a2b3c4d', timeoutMs: 5000 }])
+    const decoratedIndex = f.events.indexOf('decorated:worker-t-1a2b3c4d:5000')
+    const promptIndex = f.events.indexOf('prompt:worker-t-1a2b3c4d')
+    expect(decoratedIndex).toBeGreaterThanOrEqual(0)
+    expect(promptIndex).toBeGreaterThanOrEqual(0)
+    expect(decoratedIndex).toBeLessThan(promptIndex)
   })
 
   it('sends a prompt with a fresh request id and the requested mode', async () => {
