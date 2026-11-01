@@ -1,7 +1,7 @@
 # dsh-mini-superagent 最小内核设计文档（票据 + 隔离会话 + 入口面板）
 
 日期：2026-11-01
-状态：待用户审阅
+状态：已获用户批准（v2，2026-11-01）
 修订：v2（2026-11-01）加入「SuperAgent 入口面板」「独立工作区分组」「终态回推」；
 v1 的「工具注册到所有非 worker 会话」作废，改为只注册到 hub 会话。
 
@@ -263,7 +263,7 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 | `working` | `report(failed)` | `failed` | 作业结束；等 `retry` |
 | `working` | `report(ended)` | `ended(completed)` | 作业结束 |
 | `blocked`/`failed`/`waiting` | `ticket_control(retry)` | `queued` | 清 summary，attempt +1 |
-| 任意未结束 | `ticket_control(stop)` | `ended(stopped)` | 有 running 作业则中断会话并置 interrupted |
+| 任意未结束 | `ticket_control(stop)` | `ended(stopped)` | 只标记票与作业结束，**不强制中断回合**；要立刻停手由人在 worker 会话里按 DSH 的停止按钮 |
 | `working` | 进程启动恢复 | `queued` | assignment → interrupted，带恢复说明 |
 
 作业（Assignment）：`running → ended`（report 终态或 graceful shutdown）、
@@ -284,7 +284,7 @@ HTTP 路由（host，挂在 `ctx.webServer` 下）：
 | `dispatchNext` | — | `{ticket, assignment} \| undefined` | 取最老 queued → working + 插 assignment(running)；上一次作业是 interrupted 时把说明写入 `recovery_note` | 靠 `one_running` 兜底；调用方单飞 |
 | `report` | `sessionId, state, summary` | `{ticket, notify}` | 按 session 找 running assignment → 更新票与作业；返回是否需要回推 | 终态只接受一次：第二次抛 `report/terminal-twice` |
 | `retry` | `ticketId` | `Ticket` | blocked/failed/waiting → queued | 其余状态抛 `ticket/not-retryable` |
-| `stop` | `ticketId` | `{ticket, sessionId?}` | 未结束 → ended(stopped)；有 running 作业则置 interrupted 并返回 sessionId 供调用方中断 | 已结束抛 `ticket/not-open` |
+| `stop` | `ticketId` | `{ticket, sessionId?}` | 未结束 → ended(stopped)；有 running 作业则置 interrupted 并返回 sessionId（仅用于提示人去停） | 已结束抛 `ticket/not-open` |
 | `failDispatch` | `ticketId, error` | `Ticket` | 票 → failed，running 作业 → interrupted，summary 写错误 | 仅 Dispatcher 调用 |
 | `recover` | — | `number` | 所有 running → interrupted；对应票回 queued | 只在启动调用一次 |
 | `interruptAll` | — | `number` | 退出路径：所有 running → interrupted，票回 queued | 幂等 |
@@ -347,7 +347,7 @@ tick():
 | 会话创建 / prompt 失败 | assignment interrupted，票 failed，summary 带错误；`retry` 可重来 |
 | worker 调 `report` 但没有 running assignment | `assignment/not-running`，工具报错 |
 | 同一 assignment 第二次终态 report | `report/terminal-twice`，工具报错（不静默） |
-| 票已 ended 后 worker 仍在跑（stop 后） | report 被拒；`ticket_control(stop)` 拿到 sessionId 后中断会话 |
+| 票已 ended 后 worker 仍在跑（stop 后） | report 被拒；`stop` 返回 sessionId，回推里提示"去该会话按停止" |
 | 回推失败（hub 会话被删） | 只记日志，票据状态不变 |
 | 数据库损坏 / schema 更新 | 启动失败并打印原因；不自动重建 |
 | 重复实例 | 文件锁失败，插件挂载报错，不降级运行 |

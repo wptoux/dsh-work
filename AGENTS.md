@@ -25,12 +25,16 @@ plugins/
 ├── dsh-usage-stats/      # 用量统计（lib/ 入库，无需构建）
 ├── dsh-archive-manager/  # 会话归档管理（lib/ 入库，无需构建）
 ├── dsh-model-sync/    # 模型列表实时保鲜（src 构建，lib/ 入库）
+├── dsh-mini-superagent/  # 自研实验：本地票据 + 隔离 worker 会话（非上游冻结）
 ├── dsh-work-all/         # 全家桶聚合载具包（无 src/lib/构建，手写维护）
 └── README.md             # 维护手册：流程/回滚/更新上游/恢复已删组件
 ```
 
 每个插件目录自带 `AGENTS.md`（如有：如 `plugins/dsh-remote-web-ui/AGENTS.md`），
 **包级规则优先于本文件**。
+
+其中 `dsh-mini-superagent` 是**自研实验插件**，不属于"上游冻结"范畴：它没有溯源
+commit、不参与上游同步，只按本仓库的构建与提交规则维护。其余目录仍按冻结策略执行。
 
 ## 硬性规则
 
@@ -75,6 +79,7 @@ plugins/
 | `dsh-archive-manager` | 无需构建 | lib/ 已入库 |
 | `dsh-ui-tweaks` | `cd plugins/dsh-ui-tweaks && pnpm build` | `node -e "require('./lib/index.js')"` |
 | `dsh-model-sync` | `cd plugins/dsh-model-sync && pnpm build` | `node -e "require('./lib/index.js')"` + `pnpm test` |
+| `dsh-mini-superagent` | `cd plugins/dsh-mini-superagent && pnpm build` | `node -e "import('./lib/index.js')"` + `pnpm test` |
 | `dsh-work-all` | 无需构建（纯载具，无 lib） | —（`cordis.patch.yml` + `package.json` 手写维护） |
 
 完整验证（声称完成前必须）：
