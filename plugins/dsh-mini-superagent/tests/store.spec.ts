@@ -25,6 +25,15 @@ describe('Store', () => {
     expect(store.runningAssignment('t-1a2b3c4d')?.attempt).toBe(1)
   })
 
+  it('rejects a second running assignment for the same ticket', () => {
+    store.insertTicket(ticket())
+    store.insertAssignment(assignment())
+    expect(() => store.insertAssignment(assignment({ id: 'a-00000002', attempt: 2 })))
+      .toThrow(/UNIQUE constraint failed/)
+    store.endAssignment('a-00000001', 'ended')
+    expect(() => store.insertAssignment(assignment({ id: 'a-00000003', attempt: 3 }))).not.toThrow()
+  })
+
   it('rolls a transaction back when the callback throws', () => {
     expect(() => store.tx(() => { store.insertTicket(ticket()); throw new Error('boom') })).toThrow('boom')
     expect(store.ticket('t-1a2b3c4d')).toBeUndefined()

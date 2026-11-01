@@ -56,7 +56,10 @@ export class Store {
     `)
     const row = this.db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string } | undefined
     if (row === undefined) this.db.prepare("INSERT INTO meta (key, value) VALUES ('schema_version', ?)").run(String(SCHEMA_VERSION))
-    else if (Number(row.value) !== SCHEMA_VERSION) throw new Error(`dsh-mini-superagent: unsupported schema ${row.value}, expected ${SCHEMA_VERSION}`)
+    else if (Number(row.value) !== SCHEMA_VERSION) {
+      this.db.close()
+      throw new Error(`dsh-mini-superagent: unsupported schema ${row.value}, expected ${SCHEMA_VERSION}`)
+    }
   }
 
   get schemaVersion(): number { return Number(this.meta('schema_version') ?? SCHEMA_VERSION) }
@@ -64,7 +67,10 @@ export class Store {
   tx<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE')
     try { const value = fn(); this.db.exec('COMMIT'); return value }
-    catch (error) { this.db.exec('ROLLBACK'); throw error }
+    catch (error) {
+      try { this.db.exec('ROLLBACK') } catch { /* already rolled back */ }
+      throw error
+    }
   }
 
   close(): void { this.db.close() }
@@ -89,6 +95,11 @@ export class Store {
     return row === undefined ? undefined : toTicket(row)
   }
 
+  /**
+   * Persists only `state`, `outcome`, `summary`, `revision`, `updatedAt` and
+   * `endedAt`. Patches to `title`, `request`, `workDir`, `originSessionId` or
+   * `createdAt` are ignored by design.
+   */
   updateTicket(id: string, patch: Partial<Ticket>): void {
     const current = this.ticket(id)
     if (current === undefined) throw new Error(`ticket ${id} not found`)
