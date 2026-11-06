@@ -14,7 +14,7 @@
 | `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `754974a`（tag v0.19.0） | 增强侧边栏。**v0.19.0 为官方 DSH 0.1.5-rc.1 适配版**（原生右栏 `dsh-client-ui-sidebar-right` 表面，own right panel 已退役），**需内核 ≥0.1.5-rc.1**，见「已知本地改动」 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
 | `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
-| `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 窄屏移动端适配：手机侧栏抽屉（≤767px 悬浮鲸鱼图标展开覆盖式抽屉）+ 收敛顶栏 + 输入区单行 + 隐藏 dock 统计/悬停时间。**2026-10-30 适配 DSH 0.2.1-rc.2（版本 0.2.0）**：布局帧改锚 `data-rightbar-col`、会话内容改 `data-conversation-content`、顶栏保留原生右栏开关并隐藏标题/标签、dock 改 `[data-composer-dock]`。**折叠功能已移除**（DSH 0.1.5 原生「对话显示:紧凑」同效且默认开启，见「已知本地改动」） |
+| `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 窄屏移动端适配：手机侧栏抽屉（≤767px 悬浮鲸鱼图标展开覆盖式抽屉）+ 收敛顶栏 + 输入区单行 + 隐藏 dock 统计/悬停时间。**2026-10-30 适配 DSH 0.2.1-rc.2（版本 0.2.0）**：布局帧改锚 `data-rightbar-col`、会话内容改 `data-conversation-content`、顶栏保留原生右栏开关并隐藏标题/标签、dock 改 `[data-composer-dock]`。**折叠功能已移除**（DSH 0.1.5 原生「对话显示:紧凑」同效且默认开启，见「已知本地改动」）。**2026-11-06：DSH 0.2.2 内核自带 `<768px` 侧栏抽屉（layout 的 `data-sidebar-drawer` + 遮罩），与本插件自建抽屉互斥，已从 web profile 停用，源码保留** |
 | `dsh-model-sync/` | `dsh-model-sync` | 本仓库自研（无上游） | — | 模型列表**实时保鲜**：把 pi-ai 静态目录路由就地接管为自维护路由，定时同步最新模型列表（见 `dsh-model-sync/README.md`） |
 | `dsh-work-all/` | `dsh-work-all` | 本仓库自研（无上游） | — | 全家桶**聚合载具包**：汇总其余 6 款插件的挂载行，一条命令装齐全部（见「聚合包」章节） |
 
@@ -38,7 +38,6 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
   "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
   "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats",
   "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager",
-  "dsh-ui-tweaks":           "link:../../../dsh-work/plugins/dsh-ui-tweaks",
   "dsh-model-sync":         "link:../../../dsh-work/plugins/dsh-model-sync"
 }
 ```
@@ -49,9 +48,11 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
 >
 > **本地接线不用聚合包**：`dsh-work-all`（见下）只用于对外分发——它的 dependencies
 > 是 git 子目录引用，link 进 profile 不会安装子包（link: 语义），会破坏"改源码即生效"。
-> 本地开发永远走上面这 6 条直连 `link:`。
+> 本地开发永远走上面这几条直连 `link:`。
 
-`dsh.profile.bundles` 同步列出这 6 个包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
+`dsh.profile.bundles` 同步列出这些包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
+**2026-11-06 起 `dsh-ui-tweaks` 已停用**：DSH 0.2.2 内核原生提供 `<768px` 侧栏抽屉，
+插件自建抽屉会与内核争抢同一列宽度，故从依赖与 bundles 中移除（源码仍在本仓库）。
 
 **依赖模型（重要）**：pnpm 对 `link:` 依赖采用"插件目录自管依赖"——profile 的 lockfile
 只记录 link 本身，**每个插件目录必须自带完整 node_modules**（含原生二进制）。所以：
@@ -283,7 +284,8 @@ profile dir + reconcile 安装态）。
     `mobile-api` / `mobile-pending` / `mobile-pwa`、PWA 资源、`mobileBundle` 构建与
     `mobileEnterToSend` 配置。二维码/配对链接统一为 `/?pair=...`（单一链接，手机与电脑
     共用），面板「手机链接 / 电脑链接」两行合并为「配对链接」一行；手机配对后运行完整
-    Web GUI（非 loopback 走 `/remote` 门控通道），小屏布局由 `dsh-ui-tweaks` 适配。
+    Web GUI（非 loopback 走 `/remote` 门控通道），小屏布局自 DSH 0.2.2 起由内核原生
+    抽屉负责（`dsh-ui-tweaks` 已停用）。
   - **DSH 0.1.5 适配**（本地大改）：host settings 迁移到 `ctx.settings.installSection`
     （`installSettingsSection`/`settingsNamespace` 已删，命名空间改裸字符串）；`inject`
     收窄为 `['webServer','settings']`。**按用户决策退役三组 0.1.1 时代的控制面**：
@@ -321,7 +323,11 @@ profile dir + reconcile 安装态）。
     的 Origin 围栏解析不了直接 403（页面只剩 "forbidden"）。现把 `Origin: null` 视同
     无 Origin（Host 围栏已绑定；`sec-fetch-site: cross-site` 仍拒绝；两枚 cookie 均
     SameSite 受限，跨站请求带不上凭据）。测试 98→99。**需用户重启 dsh web 后生效**。
-- `dsh-ui-tweaks`（本仓库自研）：
+- `dsh-ui-tweaks`（本仓库自研，**2026-11-06 起在 web profile 停用**）：
+  - **停用原因**：DSH 0.2.2 的 `dsh-client-ui-layout` 新增原生窄屏抽屉（`viewport < 768`
+    时给布局帧加 `data-sidebar-drawer`、渲染遮罩、维护 `narrowExpanded`），与本插件
+    "把第一列宽度归零 + 自建悬浮鲸鱼触发器 + 自建遮罩"的实现互斥，同时启用会让移动端
+    布局打架。恢复方式见本节末尾。
   - **DSH 0.2.1-rc.2 适配（2026-10-30，版本 0.2.0）**：0.2.x 重排外壳后旧选择器全部失配
     （`data-details-collapsed` → `data-rightbar-collapsed`、`data-chat-flow` →
     `data-conversation-content`、`.FJxK0a*` / `p-xYUq_*` 哈希全换、会话 header 被拆成
@@ -330,8 +336,12 @@ profile dir + reconcile 安装态）。
     40px 且 corner 重新右对齐；composer dock 整块隐藏（覆盖无 `data-composer-stat`
     的上下文占用 pill）；悬停时间按 `_timeStart` / `_timeEnd` 后缀匹配；抽屉打开时隐藏
     悬浮鲸鱼按钮（避免盖住 0.2.x 抽屉品牌行，关闭走原生 Collapse 按钮/遮罩）。
-    **激活前提：内核 ≥0.2.0-rc.1 <0.3.0；profile `dsh.profile.bundles` 需含
-    `dsh-ui-tweaks`（本次已恢复，需重启 dsh web）**。
+    **激活前提：内核 0.2.0-rc.1 ~ 0.2.1.x；profile `dsh.profile.bundles` 需含
+    `dsh-ui-tweaks`（0.2.2 起停用，见上）**。
+  - **恢复方式（若内核回退到 0.2.1.x 或官方抽屉被关闭）**：在
+    `~/.dsh/profiles/web/package.json` 的 dependencies 加回
+    `"dsh-ui-tweaks": "link:../../../dsh-work/plugins/dsh-ui-tweaks"`、bundles 数组加回
+    `dsh-ui-tweaks`，再 `cd ~/.dsh/profiles/web && pnpm install`，重启 dsh web。
   - **窄屏侧边栏抽屉**（本 fork 定制，保留）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
     彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`
     把侧边栏展开为覆盖式抽屉（带遮罩）；≥768px 保持宿主原生行为。纯 DOM + CSS（自有

@@ -1,6 +1,11 @@
 # dsh-ui-tweaks
 
-桌面端 dsh web GUI 的**窄屏移动端**适配插件，当前适配 **DSH 0.2.1-rc.2**。功能：
+> **状态：自 2026-11-06 起在 web profile 停用。** DSH 0.2.2 的 `dsh-client-ui-layout`
+> 已内置原生窄屏抽屉（`viewport < 768` 时给布局帧加 `data-sidebar-drawer` 并渲染遮罩），
+> 与本插件的自建抽屉实现互斥；同时启用会让移动端布局互相覆盖。源码保留，内核回退到
+> 0.2.1.x 时可按 `plugins/README.md` 的「恢复方式」重新挂载。
+
+桌面端 dsh web GUI 的**窄屏移动端**适配插件，最后适配 **DSH 0.2.1-rc.2**。功能：
 
 - **手机侧栏抽屉**（`mobile-sidebar.tsx`）：<768px 视口下宿主左侧栏（含 56px 图标轨）
   收成悬浮鲸鱼图标，点击展开为覆盖式抽屉；
