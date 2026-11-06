@@ -43,13 +43,13 @@ function makeResponse() {
 	};
 }
 
-function makeContext({ sessions, persistence, routes, settings } = {}) {
+function makeContext({ sessions, persistence, routes, settings, pairing } = {}) {
 	return {
 		logger: { warn: () => {} },
 		credentials: { resolve: async () => void 0 },
 		webServer: { register: (entry) => { routes?.set(entry.path, entry.handler); return () => {}; } },
 		effect: (register) => register(),
-		get: (name) => name === "sessions" ? sessions : name === "sessionPersistence" ? persistence : name === "settings" ? settings : void 0
+		get: (name) => name === "sessions" ? sessions : name === "sessionPersistence" ? persistence : name === "settings" ? settings : name === "remoteWebUiPairing" ? pairing : void 0
 	};
 }
 
@@ -70,6 +70,12 @@ async function testRouteFence(root) {
 	await handler({ method: "GET", headers: { host: "localhost:3080" }, socket: { remoteAddress: "203.0.113.7" } }, foreign);
 	assert.equal(foreign.status, 403, "a spoofed Host must not bypass the peer fence");
 
+	// Tunneled request without remote-web-ui installed: the peer is loopback
+	// (cloudflared) but the Host is public, and nothing vouches for the caller.
+	const tunnelUnpaired = makeResponse();
+	await handler({ method: "GET", headers: { host: "usage.trycloudflare.com" }, socket: { remoteAddress: "127.0.0.1" } }, tunnelUnpaired);
+	assert.equal(tunnelUnpaired.status, 403, "a public Host without a paired cookie must stay refused");
+
 	const head = makeResponse();
 	await handler({ method: "HEAD", headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, head);
 	assert.equal(head.status, 405, "the endpoints are GET-only");
@@ -83,6 +89,52 @@ async function testRouteFence(root) {
 	await routes.get(plugin.ACCOUNT_PATH)({ method: "GET", url: `${plugin.ACCOUNT_PATH}?provider=deepseek-official`, headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, account);
 	assert.equal(account.status, 200);
 	assert.equal(JSON.parse(account.body).account.status, "not-configured");
+}
+
+async function testRemotePairingFence(root) {
+	const plugin = await freshModule("pairing", join(root, "pairing"));
+	const routes = new Map();
+	const liveCookie = "dsh_remote_device=live";
+	const pairing = { isPairedDevice: (request) => request.headers.cookie === liveCookie };
+	const sessions = { list: () => [] };
+	const persistence = { listSnapshots: async () => [], list: async () => [] };
+	await plugin.apply(makeContext({ sessions, persistence, routes, pairing }), {}, { disableBackgroundRefresh: true });
+	const handler = routes.get(plugin.USAGE_PATH);
+	assert.equal(typeof handler, "function");
+
+	// Tunneled paired device: cloudflared dials the server over loopback, so the
+	// peer is 127.0.0.1 while the Host is the public tunnel name.
+	const tunneled = makeResponse();
+	await handler({ method: "GET", headers: { host: "usage.trycloudflare.com", cookie: liveCookie }, socket: { remoteAddress: "127.0.0.1" } }, tunneled);
+	assert.equal(tunneled.status, 200, "a tunneled paired device must pass the fence");
+
+	// Paired LAN device: the peer is the device itself, not a loopback proxy.
+	const lan = makeResponse();
+	await handler({ method: "GET", headers: { host: "192.168.1.20:3080", cookie: liveCookie }, socket: { remoteAddress: "192.168.1.20" } }, lan);
+	assert.equal(lan.status, 200, "a paired LAN device must pass the fence");
+
+	// Revoked or unknown cookie: the sibling service says no, the fence holds.
+	const revoked = makeResponse();
+	await handler({ method: "GET", headers: { host: "usage.trycloudflare.com", cookie: "dsh_remote_device=revoked" }, socket: { remoteAddress: "127.0.0.1" } }, revoked);
+	assert.equal(revoked.status, 403, "a revoked device cookie must stay refused");
+
+	// Pairing is identity, not a method unlock.
+	const pairedPost = makeResponse();
+	await handler({ method: "POST", headers: { host: "usage.trycloudflare.com", cookie: liveCookie }, socket: { remoteAddress: "127.0.0.1" } }, pairedPost);
+	assert.equal(pairedPost.status, 405, "a paired device never unlocks non-GET methods");
+
+	// A broken sibling service must fail closed, never 500.
+	const brokenRoutes = new Map();
+	const brokenPlugin = await freshModule("pairing-broken", join(root, "pairing-broken"));
+	await brokenPlugin.apply(makeContext({
+		sessions,
+		persistence,
+		routes: brokenRoutes,
+		pairing: { isPairedDevice: () => { throw new Error("sibling exploded"); } }
+	}), {}, { disableBackgroundRefresh: true });
+	const broken = makeResponse();
+	await brokenRoutes.get(brokenPlugin.USAGE_PATH)({ method: "GET", headers: { host: "usage.trycloudflare.com", cookie: liveCookie }, socket: { remoteAddress: "127.0.0.1" } }, broken);
+	assert.equal(broken.status, 403, "a throwing pairing service must fail closed");
 }
 
 async function testConfigValidation(root) {
@@ -251,6 +303,7 @@ async function testZeroUsageRowsFiltered(root) {
 const root = await mkdtemp(join(tmpdir(), "dsh-usage-stats-"));
 try {
 	await testRouteFence(root);
+	await testRemotePairingFence(root);
 	await testConfigValidation(root);
 	await testLegacyZaiSubscriptionId(root);
 	await testBackgroundRefresh(root);

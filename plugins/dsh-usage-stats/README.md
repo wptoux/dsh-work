@@ -20,7 +20,7 @@ Provider balances, subscription quotas, and token-usage analytics for the DeepSe
 | 📊 | Token 用量分析 | 今日、本月、累计、缓存命中率、月历热图，以及按日期/供应商/模型下钻 |
 | 🔄 | 后台监测 | 服务端启动即刷新，之后每五分钟更新全部已配置账户与本地 Token 聚合 |
 | 🧩 | 可扩展适配器 | 支持 New API、Sub2API、通用余额模板，以及声明式 JSON Pointer 自定义查询 |
-| 🔒 | 本机安全边界 | 五个端点仅接受回环 GET；凭据只在服务端解析并发往校验后的供应商地址 |
+| 🔒 | 受控访问边界 | 五个端点仅接受 GET：本机回环，或经 `dsh-remote-web-ui` 配对并在线的设备；凭据只在服务端解析并发往校验后的供应商地址 |
 
 界面支持中文和英文。浏览器只请求当前选择的 provider；后台刷新与面板是否打开无关。手动刷新会更新用量、供应商列表，并强制刷新当前账户，不会批量强制请求其他供应商。
 
@@ -223,7 +223,7 @@ https://github.com/Ychris12138/dsh-usage-stats
 Constraints:
 - Resolve DSH_HOME from the environment; otherwise use ~/.dsh.
 - Do not read, print, edit, or request .credentials.yaml, auth.json, cookies, or any API key.
-- Do not expose the plugin through a reverse proxy.
+- Do not expose the plugin through an unauthenticated reverse proxy; paired dsh-remote-web-ui devices are the supported remote path.
 - Do not restart or terminate an existing dsh process without asking me.
 
 Procedure:
@@ -266,10 +266,11 @@ npx --yes github:Ychris12138/dsh-usage-stats --check
 - 自定义 monitor 默认要求 HTTPS、同源相对路径、手动 redirect 和 JSON 响应，body 上限为 1 MiB。
 - 发凭据前会筛选域名的 IPv4/IPv6 解析结果并固定一个允许的连接地址，优先使用公网地址；HTTPS 域名解析到 `198.18.0.0/15` 时可作为 Clash/Mihomo 等代理的 synthetic fake-IP 使用。字面量 `198.18/15`、其他私网/特殊地址仍默认拒绝，防止 DNS rebinding 绕过私网限制。
 - `usageBaseURL` 禁止内嵌 username/password；`Authorization`、`X-API-Key`、`API-Key` 等 header 必须由 credential ref 注入。
-- 五个端点仅接受 GET，并同时校验 peer socket 与 Host；支持 IPv4、IPv4-mapped IPv6 和 `[::1]:port`。
+- 五个端点仅接受 GET；回环路径同时校验 peer socket 与 Host，支持 IPv4、IPv4-mapped IPv6 和 `[::1]:port`。
+- 已安装并在线的 `dsh-remote-web-ui` 会把当前请求的配对设备 cookie 交给本插件校验（`remoteWebUiPairing` 服务）；有效配对设备在隧道或局域网下同样是允许路径，`stop()` 撤销后立即回到 403。未安装该插件时远程调用一律拒绝。
 - 用量缓存 `~/.dsh/storages/usage-stats-cache.json` 只保存聚合 Token、会话 id、不透明 revision 与折叠游标，不保存提示词、回复或文件路径。
 
-本机反向代理会让插件看到代理自身的回环地址。请勿把端点经反向代理暴露到局域网或公网；确需代理时必须在代理层增加可靠认证与访问控制。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
+经 `dsh-remote-web-ui` 配对后的手机或远程电脑可以正常打开用量面板：隧道由 cloudflared 拨回 `127.0.0.1`，请求携带公网 Host，仅靠回环围栏会被判为远程而返回 403，因此配对 cookie 是必要的第二重识别。不要把端点直接暴露给没有认证与访问控制的反向代理；那类请求仍然返回 403。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
 
 ## 正确性与数据口径 / Correctness
 
@@ -291,7 +292,7 @@ npx --yes github:Ychris12138/dsh-usage-stats --check
 | `GET` | `/api/usage-stats/balance?provider=<id>` | `0.1.x` 余额兼容路由 |
 | `GET` | `/api/usage-stats/subscriptions` | `0.1.x` Token Plan 兼容路由 |
 
-非 GET 返回 `405`，非回环请求返回 `403`；所有响应均为 JSON 并带 `Cache-Control: no-cache`。
+非 GET 返回 `405`；既非回环、也未携带有效配对设备 cookie 的请求返回 `403`；所有响应均为 JSON 并带 `Cache-Control: no-cache`。
 
 ## 开发与验证 / Development
 

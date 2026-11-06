@@ -1,7 +1,8 @@
 /**
  * dsh-usage-stats — server half.
  *
- * Registers five read-only, loopback-only endpoints on the web server:
+ * Registers five read-only endpoints on the web server — reachable from the
+ * desktop loopback and from a device paired through dsh-remote-web-ui:
  *   GET /api/usage-stats/usage         — per-day token usage across every session
  *   GET /api/usage-stats/providers     — configured providers + balance schemes
  *   GET /api/usage-stats/balance       — balance for one provider (?provider=<id>)
@@ -17,7 +18,12 @@
  * The endpoints live under the `/api` prefix as exact routes, so they win
  * over the connection plugin's `/api` prefix handler; each handler applies
  * its own peer-socket loopback fence (the exact routes bypass the RPC trust
- * fence); Host is checked only as an additional defense.
+ * fence); Host is checked only as an additional defense. A tunneled or LAN
+ * device paired through dsh-remote-web-ui is the second allow path: a live
+ * paired-device cookie (validated by that plugin's `remoteWebUiPairing`
+ * service, absent when it is not installed) identifies the caller. Remote
+ * callers without that cookie stay refused — pairing is identity, not a
+ * general "allow remote" switch.
  *
  * Usage aggregation is INCREMENTAL: per-session fold state (day/model
  * buckets plus the last usage sample) is cached in memory and persisted to
@@ -47,6 +53,12 @@ const PROVIDERS_PATH = "/api/usage-stats/providers";
 const BALANCE_PATH = "/api/usage-stats/balance";
 const SUBSCRIPTIONS_PATH = "/api/usage-stats/subscriptions";
 const ACCOUNT_PATH = "/api/usage-stats/account";
+/**
+ * Optional cordis service provided by dsh-remote-web-ui. Looked up per
+ * request (never injected) so this plugin still loads when that plugin is
+ * absent, and so a disable/revoke takes effect immediately.
+ */
+const PAIRING_SERVICE = "remoteWebUiPairing";
 const UPSTREAM_TIMEOUT_MS = 15000;
 const CACHE_VERSION = 3;
 
@@ -105,8 +117,35 @@ function isLoopbackHostHeader(req) {
 	return name === "localhost" || isLoopbackAddress(name);
 }
 
-/** Refuse non-loopback callers and non-GET methods before any work. */
-function rejectForeignCaller(req, res) {
+/**
+ * Whether a live paired-device cookie vouches for the caller.
+ *
+ * dsh-remote-web-ui mints the cookie from a one-time pairing token and
+ * revokes it on stop(), so it carries the same identity as the rest of the
+ * remote GUI. The service is optional and resolved per request: absent
+ * (`undefined`), disabled, or revoked all fall through to the loopback
+ * fence, and a throwing sibling can neither grant access nor 500 the route.
+ */
+function isPairedRemoteDevice(ctx, req) {
+	let service;
+	try {
+		service = ctx.get(PAIRING_SERVICE);
+	} catch {
+		return false;
+	}
+	if (service === null || service === void 0 || typeof service.isPairedDevice !== "function") return false;
+	try {
+		return service.isPairedDevice(req) === true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Refuse non-GET methods and callers that are neither the desktop loopback
+ * client nor a live paired remote device, before any work.
+ */
+function rejectForeignCaller(ctx, req, res) {
 	if (req.method !== "GET") {
 		res.writeHead(405, { "content-type": "application/json; charset=utf-8" });
 		res.end(JSON.stringify({ ok: false, error: "method-not-allowed" }));
@@ -114,6 +153,7 @@ function rejectForeignCaller(req, res) {
 	}
 	const peer = req.socket?.remoteAddress;
 	if (isLoopbackAddress(peer) && isLoopbackHostHeader(req)) return false;
+	if (isPairedRemoteDevice(ctx, req)) return false;
 	json(res, 403, { ok: false, error: "forbidden" });
 	return true;
 }
@@ -409,7 +449,7 @@ export async function collectUsage(ctx) {
 }
 
 async function handleUsage(ctx, req, res) {
-	if (rejectForeignCaller(req, res)) return;
+	if (rejectForeignCaller(ctx, req, res)) return;
 	try {
 		const result = await collectUsage(ctx);
 		json(res, 200, { ok: true, ...result });
@@ -460,7 +500,7 @@ async function configuredProviders(ctx) {
 }
 
 async function handleProviders(ctx, accounts, req, res) {
-	if (rejectForeignCaller(req, res)) return;
+	if (rejectForeignCaller(ctx, req, res)) return;
 	try {
 		json(res, 200, { ok: true, providers: await accounts.providerViews() });
 	} catch (error) {
@@ -482,7 +522,7 @@ async function selectedProviderId(req, accounts) {
 
 /** Unified account endpoint; cached by default, `refresh=1` forces upstream. */
 async function handleAccount(ctx, accounts, req, res) {
-	if (rejectForeignCaller(req, res)) return;
+	if (rejectForeignCaller(ctx, req, res)) return;
 	try {
 		const url = new URL(req.url ?? "/", "http://x");
 		const providerId = await selectedProviderId(req, accounts);
@@ -500,7 +540,7 @@ async function handleAccount(ctx, accounts, req, res) {
 
 /** Backward-compatible balance route delegated to the account registry. */
 async function handleBalance(ctx, accounts, req, res) {
-	if (rejectForeignCaller(req, res)) return;
+	if (rejectForeignCaller(ctx, req, res)) return;
 	try {
 		const providerId = await selectedProviderId(req, accounts);
 		const account = providerId === null ? null : await accounts.get(providerId);
@@ -550,7 +590,7 @@ async function handleBalance(ctx, accounts, req, res) {
 
 /** Query normalized percentage windows for subscription-style providers. */
 async function handleSubscriptions(ctx, accounts, req, res) {
-	if (rejectForeignCaller(req, res)) return;
+	if (rejectForeignCaller(ctx, req, res)) return;
 	try {
 		const subscriptions = (await accounts.subscriptionAccounts()).filter(Boolean).map((account) => (
 			account.adapter === "zai-token-plan" ? { ...account, id: "zai" } : account
