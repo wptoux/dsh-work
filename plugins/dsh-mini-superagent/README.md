@@ -86,8 +86,17 @@ worker 会话以**操作者本人身份**、按 profile 的默认权限运行（
 workspace 与 `workDir` 只是约定，**不是沙箱**；`report` 的参数校验只防误用，不防
 恶意。需要真隔离时，把整个 DSH 进程跑在独立 OS 账户/容器里。
 
-Host 栅栏假设服务只绑 loopback；若把 DSH 绑到 LAN 地址，需在处理器里补
-`req.socket.remoteAddress` 检查（不能只信 `Host`）。
+面板的两个路由在 web server 的 `/api` 信任栅栏之外，所以它们**复用 DSH 自己的
+准入**（`connection.requestRejection`：Host/Origin 栅栏 + 浏览器会话 cookie）：
+
+- **本机直连**：peer socket 是 loopback、Host 是 loopback、且没有代理头 → 放行
+  （`curl` 探活、本机浏览器都走这条路）。
+- **隧道/远程**：由 DSH 的 Host 栅栏与签名 cookie 判定；能打开 GUI 的同一个浏览器
+  会话就能读票据面板，没会话的远程访客一律 403。
+- `connection` 服务不可用时（非 web profile、测试）退回纯 loopback 栅栏。
+
+也就是说票据标题/摘要不会泄漏给**未认证**的远程访客，但已登录的隧道访问者可以看
+——这与 GUI 其余部分的信任边界完全一致，而不是另立一套。
 
 ## 运行运维
 

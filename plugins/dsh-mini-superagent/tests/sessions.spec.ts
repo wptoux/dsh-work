@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -29,7 +29,7 @@ const fakeHost = () => {
           prompted.push({ requestId, sessionId, mode, text: content[0]!.text }); events.push(`prompt:${sessionId}`)
         },
       },
-      workspace: { create: async () => ({ id: 'ws-1' }) },
+      workspace: { create: async (_cwd: string) => ({ id: 'ws-1' }) },
       decorated: async (sessionId: string, timeoutMs: number) => {
         decoratedCalls.push({ sessionId, timeoutMs }); events.push(`decorated:${sessionId}:${timeoutMs}`)
       },
@@ -132,6 +132,25 @@ describe('Sessions', () => {
     const hub = await sessions.ensureHub()
     expect(hub).not.toBe('mini-hub-deadbeef')
     expect(store.meta('hub_session')).toBe(hub)
+  })
+
+  it('creates the workspace directory before registering it', async () => {
+    const f = fakeHost()
+    let dirExisted: boolean | undefined
+    f.host.workspace.create = async (cwd: string) => {
+      // The kernel realpaths the cwd, so a missing directory fails registration.
+      dirExisted = existsSync(cwd)
+      return { id: 'ws-1' }
+    }
+    await new Sessions(f.host).ensureHub()
+    expect(dirExisted).toBe(true)
+    expect(existsSync(join(dir, 'superagent'))).toBe(true)
+  })
+
+  it('creates the ticket folder before prompting the worker', async () => {
+    const f = fakeHost()
+    await new Sessions(f.host).launch(ticket(), assignment())
+    expect(existsSync(join(dir, 'superagent', 'work', 't-1a2b3c4d'))).toBe(true)
   })
 
   it('creates the workspace once and reuses the stored id', async () => {

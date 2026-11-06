@@ -1,4 +1,5 @@
 import { mkdirSync } from 'node:fs'
+import type { IncomingMessage } from 'node:http'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -9,6 +10,7 @@ import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-workspace'
 import { lockSync } from 'proper-lockfile'
 import { z } from 'zod'
+import { admissionOf } from './admission.ts'
 import { Config, type MiniConfig } from './config.ts'
 import { Dispatcher } from './dispatcher.ts'
 import { Engine } from './engine.ts'
@@ -179,7 +181,17 @@ export async function apply(ctx: Context, config: MiniConfig): Promise<void> {
     const loop = dispatcher
     const recovered = engine.recover()
     ctx.logger.info(`mini-superagent recovered ${recovered} interrupted assignment(s)`)
-    routes.push(...registerRoutes(ctx, { sessions, engine }))
+    // The panel routes live outside the web server's `/api` fence, so they
+    // borrow the kernel's own admission (Host/Origin fence + signed browser
+    // session). That is what makes them reachable exactly where the GUI is —
+    // local loopback, or a trusted tunnel authority with a live session — and
+    // not from an unauthenticated remote visitor.
+    let admitted = admissionOf(ctx)
+    const admittedRequest = (request: IncomingMessage): boolean => {
+      admitted ??= admissionOf(ctx)
+      return admitted?.(request) === true
+    }
+    routes.push(...registerRoutes(ctx, { sessions, engine, admitted: admittedRequest }))
     void loop.tick().catch(error => { ctx.logger.warn(`mini-superagent dispatch tick failed: ${messageOf(error)}`) })
     loop.start(1000)
   } catch (error) {

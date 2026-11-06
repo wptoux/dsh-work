@@ -22,7 +22,7 @@ beforeEach(() => {
 })
 afterEach(() => { store.close(); rmSync(dir, { recursive: true, force: true }) })
 
-const mount = (ensureHub: () => Promise<string>) => {
+const mount = (ensureHub: () => Promise<string>, admitted?: (req: IncomingMessage) => boolean) => {
   const routes = new Map<string, Handler>()
   const ctx = {
     webServer: {
@@ -32,15 +32,27 @@ const mount = (ensureHub: () => Promise<string>) => {
       },
     },
   } as unknown as Context
-  const disposers = registerRoutes(ctx, { engine, sessions: { ensureHub } as unknown as Sessions })
+  const disposers = registerRoutes(ctx, {
+    engine,
+    sessions: { ensureHub } as unknown as Sessions,
+    ...(admitted === undefined ? {} : { admitted }),
+  })
   return { routes, disposers }
 }
 
-const call = async (handler: Handler, host: string | null = 'localhost:3080', extra: Record<string, string> = {}): Promise<{ status: number; json: unknown }> => {
+const call = async (
+  handler: Handler,
+  host: string | null = 'localhost:3080',
+  extra: Record<string, string> = {},
+  peer = '127.0.0.1',
+): Promise<{ status: number; json: unknown }> => {
   let status = 0
   let body = ''
   const res = { writeHead: (value: number) => { status = value }, end: (value: string) => { body = value } } as unknown as ServerResponse
-  await handler({ headers: { ...(host === null ? {} : { host }), ...extra } } as IncomingMessage, res)
+  await handler({
+    headers: { ...(host === null ? {} : { host }), ...extra },
+    socket: { remoteAddress: peer },
+  } as unknown as IncomingMessage, res)
   return { status, json: JSON.parse(body) as unknown }
 }
 
@@ -75,6 +87,36 @@ describe('routes', () => {
     expect([...routes.keys()]).toEqual(['/mini-superagent/api/hub', '/mini-superagent/api/health'])
     for (const dispose of disposers) dispose()
     expect(routes.size).toBe(0)
+  })
+
+  it('accepts a request the app-level admission already served (tunnel + browser session)', async () => {
+    const hosts: (string | undefined)[] = []
+    const { routes } = mount(async () => 'mini-hub-1', (req) => {
+      hosts.push(req.headers.host)
+      return true
+    })
+    // A tunneled request carries a foreign Host and proxy headers; the connection
+    // fence + signed browser cookie already vetted it, so the panel must not 403.
+    const response = await call(
+      routes.get('/mini-superagent/api/hub')!,
+      'abc.trycloudflare.com',
+      { 'cf-connecting-ip': '203.0.113.7', 'x-forwarded-proto': 'https' },
+      '127.0.0.1',
+    )
+    expect(response.status).toBe(200)
+    expect(hosts).toEqual(['abc.trycloudflare.com'])
+  })
+
+  it('refuses a loopback Host when the peer socket is not loopback', async () => {
+    const { routes } = mount(async () => 'mini-hub-1')
+    const response = await call(routes.get('/mini-superagent/api/health')!, '127.0.0.1:3080', {}, '203.0.113.9')
+    expect(response.status).toBe(403)
+  })
+
+  it('refuses instead of crashing when the admission check throws', async () => {
+    const { routes } = mount(async () => 'mini-hub-1', () => { throw new Error('boom') })
+    const response = await call(routes.get('/mini-superagent/api/health')!, 'abc.trycloudflare.com', { 'cf-connecting-ip': '203.0.113.7' })
+    expect(response.status).toBe(403)
   })
 
   it('rejects a non-loopback Host before touching sessions', async () => {

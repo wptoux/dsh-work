@@ -1,4 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { Store } from './store.ts'
 import type { Assignment, Ticket } from './types.ts'
 
@@ -47,6 +49,9 @@ export class Sessions {
   get workspaceDir(): string { return `${this.host.stateDir}/superagent` }
 
   async ensureWorkspace(): Promise<string> {
+    // The kernel canonicalizes a workspace cwd with `fs.realpath`, so the
+    // directory has to exist before the workspace can be registered.
+    await mkdir(this.workspaceDir, { recursive: true, mode: 0o700 })
     const known = this.host.store.meta('workspace')
     if (known !== undefined) return known
     if (this.workspacePromise === undefined) {
@@ -83,6 +88,9 @@ export class Sessions {
 
   async launch(ticket: Ticket, assignment: Assignment): Promise<void> {
     const workspaceId = await this.ensureWorkspace()
+    // The mandate tells the worker to prefix every command with this folder;
+    // create it first so the very first command does not fail on ENOENT.
+    await mkdir(join(this.workspaceDir, ticket.workDir), { recursive: true, mode: 0o700 })
     await this.host.session.create({ sessionId: assignment.sessionId, workspaceId, agentPreset: this.host.workerPreset })
     await this.host.session.rename({ sessionId: assignment.sessionId, title: `worker ${ticket.id}` })
     await this.host.decorated(assignment.sessionId, 5000)

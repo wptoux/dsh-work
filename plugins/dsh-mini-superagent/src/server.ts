@@ -8,6 +8,13 @@ import type { Sessions } from './sessions.ts'
 export interface RouteDeps {
   sessions: Sessions
   engine: Engine
+  /**
+   * App-level admission: true when DSH's own connection fence and browser
+   * session would serve this request (loopback, the bind address, a trusted
+   * tunnel authority — always with a signed browser cookie). When absent only
+   * the local loopback client is served.
+   */
+  admitted?: (request: IncomingMessage) => boolean
 }
 
 const writeJson = (res: ServerResponse, status: number, value: unknown): void => {
@@ -47,9 +54,43 @@ export function isLoopbackHost(host: string | undefined): boolean {
   return LOOPBACK_HOSTNAMES.has(name)
 }
 
-/** Refuse a request whose Host is loopback-spoofed or that arrived through a proxy/tunnel. */
-const fenced = (req: IncomingMessage, res: ServerResponse): boolean => {
-  if (isLoopbackHost(req.headers.host) && !PROXY_HEADERS.some(name => req.headers[name] !== undefined)) return false
+/** Reflect an IPv4/IPv6 loopback peer address. */
+const isLoopbackAddress = (address: string | undefined): boolean =>
+  address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
+
+/**
+ * Whether the desktop loopback client sent this request: a loopback peer
+ * socket, a loopback Host, and no proxy/tunnel markers. The peer check is the
+ * primary signal (a client cannot spoof it), the Host check keeps a
+ * loopback-bound proxy from relaying; forwarding headers veto both, because
+ * cloudflared connects from 127.0.0.1 and rewrites Host to the origin.
+ * @param req - incoming request.
+ * @returns true only for a genuinely local, direct request.
+ */
+export function isLoopbackClient(req: IncomingMessage): boolean {
+  if (PROXY_HEADERS.some(name => req.headers[name] !== undefined)) return false
+  const socket = req.socket as { remoteAddress?: string } | undefined
+  if (!isLoopbackAddress(socket?.remoteAddress)) return false
+  return isLoopbackHost(req.headers.host)
+}
+
+/** Whether the app-level admission seam (when injected) served this request. */
+const admittedByApp = (deps: RouteDeps, req: IncomingMessage): boolean => {
+  if (deps.admitted === undefined) return false
+  try {
+    return deps.admitted(req) === true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Refuse a request that is neither served by the app's own admission (which
+ * covers a tunneled GUI with a live browser session) nor a direct local call.
+ * The ticket titles/summaries never reach an unauthenticated remote visitor.
+ */
+const fenced = (deps: RouteDeps, req: IncomingMessage, res: ServerResponse): boolean => {
+  if (admittedByApp(deps, req) || isLoopbackClient(req)) return false
   writeJson(res, 403, { error: 'forbidden host' })
   return true
 }
@@ -57,12 +98,13 @@ const fenced = (req: IncomingMessage, res: ServerResponse): boolean => {
 /**
  * Registers the plugin's read-only HTTP surface and returns the route
  * disposers. `/hub` makes sure the hub session exists before answering, so a
- * sidebar panel can link to it on first load. Both routes are loopback-only:
- * a request arriving through the remote UI / tunnel is refused.
+ * sidebar panel can link to it on first load. Both routes sit outside the web
+ * server's `/api` fence, so they apply the same admission themselves (see
+ * `RouteDeps.admitted`); without that seam only the local client is served.
  */
 export function registerRoutes(ctx: Context, deps: RouteDeps): (() => void)[] {
   const hub = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-    if (fenced(req, res)) return
+    if (fenced(deps, req, res)) return
     try {
       const hubSessionId = await deps.sessions.ensureHub()
       writeJson(res, 200, { hubSessionId, tickets: deps.engine.listTickets(50) })
@@ -71,7 +113,7 @@ export function registerRoutes(ctx: Context, deps: RouteDeps): (() => void)[] {
     }
   }
   const health = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-    if (fenced(req, res)) return
+    if (fenced(deps, req, res)) return
     writeJson(res, 200, {
       ok: true,
       schemaVersion: deps.engine.schemaVersion,
