@@ -18,12 +18,12 @@
  * The endpoints live under the `/api` prefix as exact routes, so they win
  * over the connection plugin's `/api` prefix handler; each handler applies
  * its own peer-socket loopback fence (the exact routes bypass the RPC trust
- * fence); Host is checked only as an additional defense. A tunneled or LAN
- * device paired through dsh-remote-web-ui is the second allow path: a live
- * paired-device cookie (validated by that plugin's `remoteWebUiPairing`
- * service, absent when it is not installed) identifies the caller. Remote
- * callers without that cookie stay refused — pairing is identity, not a
- * general "allow remote" switch.
+ * fence); Host is checked only as an additional defense. Two identity paths
+ * admit a remote caller: a live paired-device cookie (validated by
+ * dsh-remote-web-ui's `remoteWebUiPairing` service) and the harness's own
+ * Connection gate -- the signed browser session every `/api` route already
+ * requires -- so a remote browser that can operate the GUI can render these
+ * read-only views. Remote callers that pass neither stay refused.
  *
  * Usage aggregation is INCREMENTAL: per-session fold state (day/model
  * buckets plus the last usage sample) is cached in memory and persisted to
@@ -59,6 +59,12 @@ const ACCOUNT_PATH = "/api/usage-stats/account";
  * absent, and so a disable/revoke takes effect immediately.
  */
 const PAIRING_SERVICE = "remoteWebUiPairing";
+/**
+ * The harness Connection service. Its `requestRejection` is the same Host +
+ * browser-authentication gate every `/api` route runs, so a remote browser
+ * that can operate the GUI can read these read-only views too.
+ */
+const CONNECTION_SERVICE = "connection";
 const UPSTREAM_TIMEOUT_MS = 15000;
 const CACHE_VERSION = 3;
 
@@ -142,8 +148,34 @@ function isPairedRemoteDevice(ctx, req) {
 }
 
 /**
+ * Whether the harness itself would admit this request to `/api`.
+ *
+ * `Connection.requestRejection` applies the Host/Origin trust fence and the
+ * signed browser-session (or API-credential) check that every `/api` route
+ * runs, so an authenticated remote GUI session is vouched for by the same
+ * mechanism as the rest of the app. It has no side effects for browser
+ * cookies (API credentials are only looked up, never created). The service is
+ * optional and resolved per request; a missing or throwing service denies.
+ */
+function isHarnessAuthenticated(ctx, req) {
+	let connection;
+	try {
+		connection = ctx.get(CONNECTION_SERVICE);
+	} catch {
+		return false;
+	}
+	if (connection === null || connection === void 0 || typeof connection.requestRejection !== "function") return false;
+	try {
+		return connection.requestRejection(req) === void 0;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Refuse non-GET methods and callers that are neither the desktop loopback
- * client nor a live paired remote device, before any work.
+ * client, a live paired remote device, nor an authenticated harness session,
+ * before any work.
  */
 function rejectForeignCaller(ctx, req, res) {
 	if (req.method !== "GET") {
@@ -154,6 +186,7 @@ function rejectForeignCaller(ctx, req, res) {
 	const peer = req.socket?.remoteAddress;
 	if (isLoopbackAddress(peer) && isLoopbackHostHeader(req)) return false;
 	if (isPairedRemoteDevice(ctx, req)) return false;
+	if (isHarnessAuthenticated(ctx, req)) return false;
 	json(res, 403, { ok: false, error: "forbidden" });
 	return true;
 }

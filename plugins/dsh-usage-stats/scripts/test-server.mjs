@@ -43,13 +43,13 @@ function makeResponse() {
 	};
 }
 
-function makeContext({ sessions, persistence, routes, settings, pairing } = {}) {
+function makeContext({ sessions, persistence, routes, settings, pairing, connection } = {}) {
 	return {
 		logger: { warn: () => {} },
 		credentials: { resolve: async () => void 0 },
 		webServer: { register: (entry) => { routes?.set(entry.path, entry.handler); return () => {}; } },
 		effect: (register) => register(),
-		get: (name) => name === "sessions" ? sessions : name === "sessionPersistence" ? persistence : name === "settings" ? settings : name === "remoteWebUiPairing" ? pairing : void 0
+		get: (name) => name === "sessions" ? sessions : name === "sessionPersistence" ? persistence : name === "settings" ? settings : name === "remoteWebUiPairing" ? pairing : name === "connection" ? connection : void 0
 	};
 }
 
@@ -135,6 +135,47 @@ async function testRemotePairingFence(root) {
 	const broken = makeResponse();
 	await brokenRoutes.get(brokenPlugin.USAGE_PATH)({ method: "GET", headers: { host: "usage.trycloudflare.com", cookie: liveCookie }, socket: { remoteAddress: "127.0.0.1" } }, broken);
 	assert.equal(broken.status, 403, "a throwing pairing service must fail closed");
+}
+
+async function testRemoteSessionFence(root) {
+	const plugin = await freshModule("session", join(root, "session"));
+	const routes = new Map();
+	const connection = {
+		requestRejection: (request) => request.headers.host === "usage.trycloudflare.com" && request.headers.cookie === "dsh_session=live" ? void 0 : 403
+	};
+	const sessions = { list: () => [] };
+	const persistence = { listSnapshots: async () => [], list: async () => [] };
+	await plugin.apply(makeContext({ sessions, persistence, routes, connection }), {}, { disableBackgroundRefresh: true });
+	const handler = routes.get(plugin.USAGE_PATH);
+
+	// A remote browser authenticated exactly like /api authenticates it: the
+	// trusted tunnel Host plus the signed browser-session cookie.
+	const authed = makeResponse();
+	await handler({ method: "GET", headers: { host: "usage.trycloudflare.com", cookie: "dsh_session=live" }, socket: { remoteAddress: "127.0.0.1" } }, authed);
+	assert.equal(authed.status, 200, "an authenticated harness session must pass the fence");
+
+	// Without the session cookie the harness gate rejects, so the route stays closed.
+	const anonymous = makeResponse();
+	await handler({ method: "GET", headers: { host: "usage.trycloudflare.com" }, socket: { remoteAddress: "127.0.0.1" } }, anonymous);
+	assert.equal(anonymous.status, 403, "an unauthenticated remote caller must stay refused");
+
+	// The harness gate's Host/Origin fence still applies to an untrusted Host.
+	const foreignHost = makeResponse();
+	await handler({ method: "GET", headers: { host: "attacker.example", cookie: "dsh_session=live" }, socket: { remoteAddress: "127.0.0.1" } }, foreignHost);
+	assert.equal(foreignHost.status, 403, "an untrusted Host must stay refused");
+
+	// A throwing connection service fails closed, never 500.
+	const brokenRoutes = new Map();
+	const brokenPlugin = await freshModule("session-broken", join(root, "session-broken"));
+	await brokenPlugin.apply(makeContext({
+		sessions,
+		persistence,
+		routes: brokenRoutes,
+		connection: { requestRejection: () => { throw new Error("connection exploded"); } }
+	}), {}, { disableBackgroundRefresh: true });
+	const broken = makeResponse();
+	await brokenRoutes.get(brokenPlugin.USAGE_PATH)({ method: "GET", headers: { host: "usage.trycloudflare.com", cookie: "dsh_session=live" }, socket: { remoteAddress: "127.0.0.1" } }, broken);
+	assert.equal(broken.status, 403, "a throwing connection service must fail closed");
 }
 
 async function testConfigValidation(root) {
@@ -304,6 +345,7 @@ const root = await mkdtemp(join(tmpdir(), "dsh-usage-stats-"));
 try {
 	await testRouteFence(root);
 	await testRemotePairingFence(root);
+	await testRemoteSessionFence(root);
 	await testConfigValidation(root);
 	await testLegacyZaiSubscriptionId(root);
 	await testBackgroundRefresh(root);
