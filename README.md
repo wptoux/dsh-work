@@ -6,7 +6,7 @@
 
 一套从社区 fork 而来的 DeepSeek Harness（dsh）Web 插件合集：基于实际使用需要挑选、裁剪，并做了精细化调整，让它们更贴合日常使用。
 
-**pnpm ≥ 9.5** · **6 款插件** · **MIT / Apache-2.0**
+**pnpm ≥ 9.5** · **2 款插件** · **MIT / Apache-2.0**
 
 ---
 
@@ -20,19 +20,7 @@
 
 ## 功能一览
 
-六个插件，覆盖统一移动端与 Web 体验、手机远程控制、增强侧边栏、用量统计、会话归档与模型列表保鲜：
-
-### dsh-ui-tweaks · 统一移动端与 Web 体验
-
-- **一套界面通用**：手机与电脑共用同一套 Web 界面，体验统一
-- **窄屏抽屉**：小屏自动把侧边栏收纳为抽屉式
-- **折叠已完成回合**：长对话更清爽，只保留最后一条回复
-
-### dsh-model-sync · 模型列表实时保鲜
-
-- **最新模型自动跟进**：把 pi-ai 静态目录路由就地接管为自维护路由，定时同步目录最新版本，新模型自动出现在选择器
-- **同名接管**：路由名不变，默认模型与旧会话照常工作
-- **可观测**：每次同步结果写入 `~/.dsh/storages/dsh-model-sync/status.json`
+两款插件，覆盖手机远程控制与用量统计：
 
 ### dsh-remote-web-ui · 手机远程控制
 
@@ -42,14 +30,6 @@
 - **自动隧道**：内置 cloudflared 隧道，随时随地访问
 - **会话可控**：实时设备状态，可随时撤销
 
-### dsh-better-sidebar · 增强侧边栏
-
-来源：[omdsh-dev/DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar)
-
-- **VSCode 风格**：资源管理器、编辑器、终端、git、浏览器
-- **按会话隔离**：每个对话独立，互不干扰
-- **可扩展**：开放 API，其他插件也能挂载标签页
-
 ### dsh-usage-stats · 用量统计
 
 来源：[Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats)
@@ -57,15 +37,21 @@
 - **用量热力图**：token 消耗一目了然
 - **余额与配额**：供应商余额、订阅配额集中展示
 
-### dsh-archive-manager · 会话归档管理
+### 已移除（DSH 0.2.2 原生已覆盖）
 
-来源：[z953218350/dsh-archive-manager](https://github.com/z953218350/dsh-archive-manager)
+以下四款曾收录于本仓库，因内核已提供等价的原生能力而移除：源码保留在 git 历史与 tag
+`plugins-2026.09.2`，另有一份整仓备份 `.git-backup/pre-plugin-removal-2026-11-06.bundle`。
 
-- 在设置页**预览、恢复、删除**已归档会话
+| 插件 | 移除原因 |
+|---|---|
+| `dsh-better-sidebar` | 0.2.x 原生右侧栏（`dsh-client-ui-sidebar-right` + `-files` / `-terminal` / `-documentpreview`）已覆盖文件树、终端、文档预览等同类用法 |
+| `dsh-archive-manager` | 内核已有会话归档的原生入口，无需设置页插件卡片 |
+| `dsh-model-sync` | 0.2.2 升级 pi-ai 1.3.0 并随内核同步模型目录，不再需要本地接管目录路由 |
+| `dsh-ui-tweaks` | 0.2.2 布局自带 `<768px` 侧栏抽屉（`data-sidebar-drawer`），与插件自建抽屉互斥 |
 
 ## 演示
 
-桌面端——统一 Web 界面与增强侧边栏，一套改代码、写 README 的日常用法：
+桌面端——统一 Web 界面与原生右侧栏，一套改代码、写 README 的日常用法：
 
 ![桌面端演示](assets/images/demo1.png)
 
@@ -102,24 +88,20 @@
    > `Cannot find package`。前两项补上后重跑同一命令即幂等；逐插件安装（见步骤 2 说明）
    > 只需 `allowBuilds` 一项。
 
-2. 安装整合包（6 款插件一次装齐）：
+2. 安装整合包（当前保留的 2 款插件一次装齐）：
 
    ```sh
    dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-work-all'
    ```
 
-   > `dsh-work-all` 是**聚合载具包**：dependencies 拉入全部 6 款插件，`cordis.patch.yml`
+   > `dsh-work-all` 是**聚合载具包**：dependencies 拉入这 2 款插件，`cordis.patch.yml`
    > 汇总它们的挂载行，一条命令全部就位（可与独立安装共存，机制见
    > `plugins/README.md` 的「聚合包」说明）。想按需挑选的话，改为逐个安装
    > （逐插件是直接 git 依赖，profile 只需 `allowBuilds` 两项、不用后两个配置）：
    >
    > ```sh
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar'
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync'
    > ```
    >
    > 想自己维护 profile 的话，等价的手写方式是编辑 `~/.dsh/profiles/web/package.json`：
@@ -127,11 +109,7 @@
    > ```json
    > "dependencies": {
    >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui",
-   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar",
-   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats",
-   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks",
-   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync"
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats"
    > }
    > ```
    >
@@ -142,7 +120,7 @@
 
 **升级**：把命令里的 tag（`plugins-2026.09.2`）换成新 tag 重跑 `dsh plugin ... add`
 （装的是整合包就重跑整合包命令，装的是单独插件就逐个重跑）。
-**回滚**：`dsh plugin --profile web remove dsh-work-all`（一次移出全部 6 款，并自动从
+**回滚**：`dsh plugin --profile web remove dsh-work-all`（一次移出全部 2 款，并自动从
 bundles 移除），或按插件名逐个 `remove`；也可换回旧 tag 重装。
 
 ## License

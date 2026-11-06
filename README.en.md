@@ -6,7 +6,7 @@
 
 A set of DeepSeek Harness (dsh) web plugins forked from the community — picked and trimmed for real-world use, with fine-tuning so they fit your daily workflow.
 
-**pnpm ≥ 9.5** · **6 plugins** · **MIT / Apache-2.0**
+**pnpm ≥ 9.5** · **2 plugins** · **MIT / Apache-2.0**
 
 ---
 
@@ -20,19 +20,7 @@ And in the AI era, changing code is cheap — when something interesting shows u
 
 ## Features
 
-Six plugins covering a unified mobile & web experience, mobile remote control, sidebar, usage stats, archive management, and live model-list sync:
-
-### dsh-ui-tweaks · Unified mobile & web experience
-
-- **One UI everywhere**: phones and desktop share the same web experience
-- **Narrow-screen drawer**: sidebar collapses into a drawer on small screens
-- **Fold completed turns**: keep long chats clean, showing only the last reply
-
-### dsh-model-sync · Live model list sync
-
-- **Auto-follows new models**: takes over a pi-ai static catalog route in place; a timer syncs the route's model list to the latest catalog version, so new models appear in the picker automatically
-- **Same-name takeover**: the route keeps its name — default model and existing sessions keep working
-- **Observable**: every sync result is written to `~/.dsh/storages/dsh-model-sync/status.json`
+Two plugins covering mobile remote control and usage statistics:
 
 ### dsh-remote-web-ui · Mobile remote control
 
@@ -42,14 +30,6 @@ Source: [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)
 - **Automatic tunnel**: built-in cloudflared tunnel, works from anywhere
 - **Session control**: live device status, revoke anytime
 
-### dsh-better-sidebar · Enhanced sidebar
-
-Source: [omdsh-dev/DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar)
-
-- **VSCode-style**: explorer, editor, terminal, git, browser
-- **Per-conversation isolation**: each session independent
-- **Extensible**: open API for other plugins to register tabs
-
 ### dsh-usage-stats · Usage statistics
 
 Source: [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats)
@@ -57,15 +37,22 @@ Source: [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-s
 - **Usage heatmap**: see token consumption at a glance
 - **Balances & quotas**: provider balances and subscription quotas in one place
 
-### dsh-archive-manager · Archive management
+### Removed (now native in DSH 0.2.2)
 
-Source: [z953218350/dsh-archive-manager](https://github.com/z953218350/dsh-archive-manager)
+These four used to live here and were removed once the kernel shipped equivalents: their
+sources remain in git history and tag `plugins-2026.09.2`, plus a whole-repo backup at
+`.git-backup/pre-plugin-removal-2026-11-06.bundle`.
 
-- **Preview, restore, delete** archived conversations from the settings page
+| Plugin | Why removed |
+|---|---|
+| `dsh-better-sidebar` | DSH 0.2.x ships a native right sidebar (`dsh-client-ui-sidebar-right` with `-files` / `-terminal` / `-documentpreview`) covering file tree, terminal and document preview |
+| `dsh-archive-manager` | Native archived-conversation entry, no settings-page plugin card needed |
+| `dsh-model-sync` | DSH 0.2.2 upgrades pi-ai to 1.3.0 and syncs the model catalog with the kernel; no local route takeover needed |
+| `dsh-ui-tweaks` | DSH 0.2.2's layout has a native `<768px` sidebar drawer (`data-sidebar-drawer`), which conflicts with the plugin's own drawer |
 
 ## Demo
 
-Desktop — the unified web UI with the enhanced sidebar, here editing this README:
+Desktop — the unified web UI with the native right sidebar, here editing this README:
 
 ![Desktop demo](assets/images/demo1.png)
 
@@ -107,14 +94,14 @@ maintenance) and initializes the profile on first use.
    > at boot. The first two are idempotent — fix and re-run the same command.
    > Per-plugin installs (see step 2 note) only need `allowBuilds`.
 
-2. Install the aggregate package (all 6 plugins at once):
+2. Install the aggregate package (both remaining plugins at once):
 
    ```sh
    dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-work-all'
    ```
 
    > `dsh-work-all` is an **aggregate carrier package**: its dependencies pull in
-   > all 6 plugins and its `cordis.patch.yml` collects their mount rows, so one
+   > all 2 plugins and its `cordis.patch.yml` collects their mount rows, so one
    > command installs everything (it can coexist with standalone installs; the
    > mechanics are documented in `plugins/README.md` under "聚合包"). To pick
    > only some plugins, install them individually instead (per-plugin installs
@@ -122,11 +109,7 @@ maintenance) and initializes the profile on first use.
    >
    > ```sh
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar'
    > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks'
-   > dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync'
    > ```
    >
    > The equivalent manual way, if you prefer to maintain the profile yourself,
@@ -135,11 +118,7 @@ maintenance) and initializes the profile on first use.
    > ```json
    > "dependencies": {
    >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui",
-   >   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar",
-   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats",
-   >   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager",
-   >   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks",
-   >   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync"
+   >   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats"
    > }
    > ```
    >
@@ -150,7 +129,7 @@ maintenance) and initializes the profile on first use.
 3. Restart dsh to apply: `Ctrl+C`, then `dsh web` again.
 
 **Upgrade**: re-run `dsh plugin ... add` with the tag (`plugins-2026.09.2`) replaced by the new one (the aggregate command if you installed the aggregate, or per-plugin commands).
-**Rollback**: `dsh plugin --profile web remove dsh-work-all` (removes all 6 plugins and the bundles entry at once), or remove plugins one by one; alternatively re-add with the old tag.
+**Rollback**: `dsh plugin --profile web remove dsh-work-all` (removes both plugins and the bundles entry at once), or remove plugins one by one; alternatively re-add with the old tag.
 
 ## License
 

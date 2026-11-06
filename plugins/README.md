@@ -11,12 +11,8 @@
 | 目录 | 包名 | 上游仓库 | 冻结 commit | 说明 |
 |---|---|---|---|---|
 | `dsh-remote-web-ui/` | `dsh-remote-web-ui` | https://github.com/zhu1090093659/dsh-web-ui（**已停止跟随**） | 本地自持（扁平化自 v0.3.2 `a3b44d9`） | 手机远程控制。**已裁剪**：从原 19 子包全家桶中单独提取并扁平化为单包（见下）。**2026-09-30 本地适配 DSH 0.2.0（版本 0.4.0）**：volatile Config + `configForms`/`plugins.item` + 图标改名，不再跟踪上游 |
-| `dsh-better-sidebar/` | `dsh-better-sidebar` | https://github.com/omdsh-dev/DSH-better-sidebar | `754974a`（tag v0.19.0） | 增强侧边栏。**v0.19.0 为官方 DSH 0.1.5-rc.1 适配版**（原生右栏 `dsh-client-ui-sidebar-right` 表面，own right panel 已退役），**需内核 ≥0.1.5-rc.1**，见「已知本地改动」 |
 | `dsh-usage-stats/` | `dsh-usage-stats` | https://github.com/Ychris12138/dsh-usage-stats | `8373659`（v0.2.5） | 用量统计，lib/ 已入库，无需构建 |
-| `dsh-archive-manager/` | `dsh-archive-manager` | https://github.com/z953218350/dsh-archive-manager | `9e611af`（= 已发布的 npm 1.0.7） | 会话归档管理（设置页归档卡片），lib/ 已入库，无需构建 |
-| `dsh-ui-tweaks/` | `dsh-ui-tweaks` | 本仓库自研（无上游） | — | 窄屏移动端适配：手机侧栏抽屉（≤767px 悬浮鲸鱼图标展开覆盖式抽屉）+ 收敛顶栏 + 输入区单行 + 隐藏 dock 统计/悬停时间。**2026-10-30 适配 DSH 0.2.1-rc.2（版本 0.2.0）**：布局帧改锚 `data-rightbar-col`、会话内容改 `data-conversation-content`、顶栏保留原生右栏开关并隐藏标题/标签、dock 改 `[data-composer-dock]`。**折叠功能已移除**（DSH 0.1.5 原生「对话显示:紧凑」同效且默认开启，见「已知本地改动」）。**2026-11-06：DSH 0.2.2 内核自带 `<768px` 侧栏抽屉（layout 的 `data-sidebar-drawer` + 遮罩），与本插件自建抽屉互斥，已从 web profile 停用，源码保留** |
-| `dsh-model-sync/` | `dsh-model-sync` | 本仓库自研（无上游） | — | 模型列表**实时保鲜**：把 pi-ai 静态目录路由就地接管为自维护路由，定时同步最新模型列表（见 `dsh-model-sync/README.md`） |
-| `dsh-work-all/` | `dsh-work-all` | 本仓库自研（无上游） | — | 全家桶**聚合载具包**：汇总其余 6 款插件的挂载行，一条命令装齐全部（见「聚合包」章节） |
+| `dsh-work-all/` | `dsh-work-all` | 本仓库自研（无上游） | — | **聚合载具包**：汇总当前保留的 2 款插件的挂载行，一条命令装齐（见「聚合包」章节） |
 
 > 已移除：**dshmarket**（插件市场，与"冻结"策略冲突——唯一的用途就是发现/安装新插件，
 > 冻结后不再需要）。如需恢复，从 `~/.dsh/work` 的 `.git-backup/dsh-market.bundle`（含本地
@@ -34,11 +30,9 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
 ```json
 // ~/.dsh/profiles/web/package.json
 "dependencies": {
-  "dsh-remote-web-ui": "link:../../../dsh-work/plugins/dsh-remote-web-ui",
-  "dsh-better-sidebar":      "link:../../../dsh-work/plugins/dsh-better-sidebar",
-  "dsh-usage-stats":         "link:../../../dsh-work/plugins/dsh-usage-stats",
-  "dsh-archive-manager":     "link:../../../dsh-work/plugins/dsh-archive-manager",
-  "dsh-model-sync":         "link:../../../dsh-work/plugins/dsh-model-sync"
+  "dsh-remote-web-ui":    "link:../../../dsh-work/plugins/dsh-remote-web-ui",
+  "dsh-usage-stats":      "link:../../../dsh-work/plugins/dsh-usage-stats",
+  "dsh-mini-superagent":  "link:/root/dsh-work/plugins/dsh-mini-superagent"
 }
 ```
 
@@ -51,12 +45,14 @@ profile 依赖指向本地目录（symlink，改源码即生效）。路径用**
 > 本地开发永远走上面这几条直连 `link:`。
 
 `dsh.profile.bundles` 同步列出这些包（+ 内核自带的 `dsh-base`、`dsh-web-app`）。
-**2026-11-06 起 `dsh-ui-tweaks` 已停用**：DSH 0.2.2 内核原生提供 `<768px` 侧栏抽屉，
-插件自建抽屉会与内核争抢同一列宽度，故从依赖与 bundles 中移除（源码仍在本仓库）。
+**2026-11-06：已移除 4 款插件**（`dsh-better-sidebar`、`dsh-archive-manager`、
+`dsh-model-sync`、`dsh-ui-tweaks`）——内核 0.2.2 已提供等价原生能力（原生右侧栏、
+归档入口、随内核同步的模型目录、`<768px` 原生侧栏抽屉），其中 ui-tweaks 的自建抽屉还会
+与内核争抢同一列宽度。源码保留在 git 历史与 tag `plugins-2026.09.2`。
 
 **依赖模型（重要）**：pnpm 对 `link:` 依赖采用"插件目录自管依赖"——profile 的 lockfile
 只记录 link 本身，**每个插件目录必须自带完整 node_modules**（含原生二进制）。所以：
-`dsh-remote-web-ui/`、`dsh-better-sidebar/` 各自 `pnpm install` 过，cloudflared /
+`dsh-remote-web-ui/`、`dsh-mini-superagent/` 各自 `pnpm install` 过，cloudflared /
 node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得在对应目录重装。
 
 ## GitHub 安装（对外分发）
@@ -64,7 +60,7 @@ node-pty 等二进制都在各自的 node_modules 里；改完依赖声明记得
 除本地 `link:` 外，本仓库支持直接以 GitHub 子目录依赖安装（pnpm ≥9.5），版本固定，
 适合换机器 / 分享给他人。两条路线：
 
-- **方式 A（推荐）：整合包一条命令**——装 `dsh-work-all`，6 款插件一次全部就位
+- **方式 A（推荐）：整合包一条命令**——装 `dsh-work-all`，2 款插件一次全部就位
   （机制见「聚合包（dsh-work-all）」章节）；
 - **方式 B：按需逐插件**——只装需要的子包，profile 保持默认布局（无需额外配置）。
 
@@ -109,7 +105,7 @@ profile dir + reconcile 安装态）。
 3. 重启 dsh。
 
 **升级**：把命令里的 tag 换成新 tag 重跑。
-**回滚**：`dsh plugin --profile web remove dsh-work-all`（一次移出全部 6 款并自动从
+**回滚**：`dsh plugin --profile web remove dsh-work-all`（一次移出全部 2 款并自动从
 `bundles` 移除）；或换回旧 tag 重装。
 
 ### 方式 B：按需逐插件安装
@@ -131,11 +127,7 @@ profile dir + reconcile 安装态）。
 
    ```sh
    dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar'
    dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks'
-   dsh plugin --profile web add 'github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync'
    ```
 
 3. 重启 dsh。
@@ -149,11 +141,7 @@ profile dir + reconcile 安装态）。
 > // ~/.dsh/profiles/web/package.json
 > "dependencies": {
 >   "dsh-remote-web-ui":   "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-remote-web-ui",
->   "dsh-better-sidebar":  "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-better-sidebar",
->   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats",
->   "dsh-archive-manager": "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-archive-manager",
->   "dsh-ui-tweaks":       "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-ui-tweaks",
->   "dsh-model-sync":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-model-sync"
+>   "dsh-usage-stats":     "github:wptoux/dsh-work#plugins-2026.09.2&path:plugins/dsh-usage-stats"
 > }
 > ```
 >
@@ -169,30 +157,23 @@ profile dir + reconcile 安装态）。
 
 ## 聚合包（dsh-work-all）
 
-全家桶**聚合载具包**：本包没有自有插件逻辑（无 src / lib / 构建步骤），`dependencies`
-以 git 子目录引用（与整仓 tag 同源，版本固定不漂移）拉入全部 6 款子插件，
-`cordis.patch.yml` 汇总各子包的挂载行。装它 = 6 款插件一次全部就位；`dsh plugin` 会自动
+**聚合载具包**：本包没有自有插件逻辑（无 src / lib / 构建步骤），`dependencies`
+以 git 子目录引用（与整仓 tag 同源，版本固定不漂移）拉入当前保留的 2 款子插件，
+`cordis.patch.yml` 汇总各子包的挂载行。装它 = 2 款插件一次全部就位；`dsh plugin` 会自动
 把它加进 `dsh.profile.bundles`。
 
-- **行 id 命名空间**：6 行挂载 id 统一带 `dsh-work-` 前缀（`dsh-work-remote-web-ui` 等），
+- **行 id 命名空间**：2 行挂载 id 统一带 `dsh-work-` 前缀（`dsh-work-remote-web-ui` 等），
   与同名插件的独立安装**共存**不冲突——host/client 半区按包名去重，只挂载一次。代价：
   按 id 写的 profile 配置行要改用带前缀的 id（如 remote-web-ui 的 `autoTunnel` 行写成
   `dsh-work-remote-web-ui`）。
-- **better-sidebar 双挂载守卫**：它注册 `/sidebar/api` 路由，双挂载会直接启动失败。
-  聚合包行**不带守卫**，由独立包自带的行守卫负责：聚合包排在独立包之前（标准安装顺序，
-  独立包后装、追加在 bundles 末尾）时，独立行自动退让、聚合包生效；反向（先独立后聚合）
-  是上游已知限制，会双挂载启动失败。聚合行若也加守卫，两个 disabled 表达式会互相递归
-  评估导致 loader 栈溢出（实测）。其余 5 款无此问题（loader 容忍同名多来源，第二个为
-  空操作）。两来源并存无额外收益，建议只保留一个。
 - **client 半区**：Web client bundle 注册表按 **loader 已挂载的行**（`ctx.loader.entries()`，
   而非 bundles 列表）扫描 `dsh.client` 声明（内核 `packages/client/modules`），因此子包
   不必出现在 `dsh.profile.bundles` 里，client 半区照常被发现、bundle 照常下发。
 - **手写维护（无生成器）**：新增/移除插件时，必须**同步**更新本包的 `cordis.patch.yml`
   （增删挂载行）与 `package.json`（增删依赖），避免聚合包与子包漂移。
 - **发版联动**：本包 dependencies 里的 tag 与整仓 tag 同源——每次发版（打新
-  `plugins-YYYY.MM.N`）时，把 6 条依赖的 tag 一并升到新 tag 并提交（`dsh-model-sync` 自首个
-  包含它的新 tag 起才可从聚合包安装）。
-- **本地接线不参与**：本地 profile 保持 6 条 `link:` 直连（见「接线方式」）；不要把本包
+  `plugins-YYYY.MM.N`）时，把 2 条依赖的 tag 一并升到新 tag 并提交。
+- **本地接线不参与**：本地 profile 保持 3 条 `link:` 直连（见「接线方式」）；不要把本包
   link 进本地 profile——link: 语义不安装子包，等于拿到一个空壳。
 
 ## 日常维护流程
@@ -204,10 +185,8 @@ profile dir + reconcile 安装态）。
    同步工具，src 就是事实源）。
 2. 重新构建：
    - `dsh-remote-web-ui`：`cd ~/dsh-work/plugins/dsh-remote-web-ui && pnpm build`
-   - `dsh-better-sidebar`：`cd ~/dsh-work/plugins/dsh-better-sidebar && pnpm build`
+   - `dsh-mini-superagent`：`cd ~/dsh-work/plugins/dsh-mini-superagent && pnpm build`
    - `dsh-usage-stats`：无构建步骤（lib/ 已入库）
-   - `dsh-archive-manager`：无构建步骤（lib/ 已入库）
-   - `dsh-model-sync`：`cd ~/dsh-work/plugins/dsh-model-sync && pnpm build`（测试：`pnpm test`）
 3. **重启 dsh 服务**（`Ctrl+C` 后重新 `dsh web`，或退出后 `dsh web`）使改动生效。
    临时验证可以用 `dsh --profile web --dump-config`（只读，不打扰运行中的服务）。
 4. 提交（Conventional Commits，无 emoji）——**在统一仓库根提交**：
@@ -218,7 +197,7 @@ profile dir + reconcile 安装态）。
 
 - 快速自检：`node -e "require('<目录>/lib/index.js')"`（host 半区能加载即可）。
 - 完整验证：重启 dsh 后确认对应功能正常（remote-web-ui：手机扫码配对 + 自动隧道；
-  better-sidebar：侧边栏渲染；usage-stats：面板数据更新）。
+  usage-stats：面板数据更新；mini-superagent：侧栏面板与 worker 会话）。
 - 崩溃回溯：`~/.dsh/sessions/` 下最近会话的日志。
 
 ### 回滚（改坏了怎么办）
@@ -285,7 +264,7 @@ profile dir + reconcile 安装态）。
     `mobileEnterToSend` 配置。二维码/配对链接统一为 `/?pair=...`（单一链接，手机与电脑
     共用），面板「手机链接 / 电脑链接」两行合并为「配对链接」一行；手机配对后运行完整
     Web GUI（非 loopback 走 `/remote` 门控通道），小屏布局自 DSH 0.2.2 起由内核原生
-    抽屉负责（`dsh-ui-tweaks` 已停用）。
+    抽屉负责（`dsh-ui-tweaks` 已移除）。
   - **DSH 0.1.5 适配**（本地大改）：host settings 迁移到 `ctx.settings.installSection`
     （`installSettingsSection`/`settingsNamespace` 已删，命名空间改裸字符串）；`inject`
     收窄为 `['webServer','settings']`。**按用户决策退役三组 0.1.1 时代的控制面**：
@@ -323,41 +302,14 @@ profile dir + reconcile 安装态）。
     的 Origin 围栏解析不了直接 403（页面只剩 "forbidden"）。现把 `Origin: null` 视同
     无 Origin（Host 围栏已绑定；`sec-fetch-site: cross-site` 仍拒绝；两枚 cookie 均
     SameSite 受限，跨站请求带不上凭据）。测试 98→99。**需用户重启 dsh web 后生效**。
-- `dsh-ui-tweaks`（本仓库自研，**2026-11-06 起在 web profile 停用**）：
-  - **停用原因**：DSH 0.2.2 的 `dsh-client-ui-layout` 新增原生窄屏抽屉（`viewport < 768`
-    时给布局帧加 `data-sidebar-drawer`、渲染遮罩、维护 `narrowExpanded`），与本插件
-    "把第一列宽度归零 + 自建悬浮鲸鱼触发器 + 自建遮罩"的实现互斥，同时启用会让移动端
-    布局打架。恢复方式见本节末尾。
-  - **DSH 0.2.1-rc.2 适配（2026-10-30，版本 0.2.0）**：0.2.x 重排外壳后旧选择器全部失配
-    （`data-details-collapsed` → `data-rightbar-collapsed`、`data-chat-flow` →
-    `data-conversation-content`、`.FJxK0a*` / `p-xYUq_*` 哈希全换、会话 header 被拆成
-    titleRow + tabs 且 corner 承载原生右栏开关）。现改为：布局帧按 `data-rightbar-col`
-    锚定三列；会话 header 只隐藏标题/模式/工具/标签并保留 corner，顶栏 min-height 收到
-    40px 且 corner 重新右对齐；composer dock 整块隐藏（覆盖无 `data-composer-stat`
-    的上下文占用 pill）；悬停时间按 `_timeStart` / `_timeEnd` 后缀匹配；抽屉打开时隐藏
-    悬浮鲸鱼按钮（避免盖住 0.2.x 抽屉品牌行，关闭走原生 Collapse 按钮/遮罩）。
-    **激活前提：内核 0.2.0-rc.1 ~ 0.2.1.x；profile `dsh.profile.bundles` 需含
-    `dsh-ui-tweaks`（0.2.2 起停用，见上）**。
-  - **恢复方式（若内核回退到 0.2.1.x 或官方抽屉被关闭）**：在
-    `~/.dsh/profiles/web/package.json` 的 dependencies 加回
-    `"dsh-ui-tweaks": "link:../../../dsh-work/plugins/dsh-ui-tweaks"`、bundles 数组加回
-    `dsh-ui-tweaks`，再 `cd ~/.dsh/profiles/web && pnpm install`，重启 dsh web。
-  - **窄屏侧边栏抽屉**（本 fork 定制，保留）：视口 ≤767px 时把宿主左侧边栏（含 56px 图标栏）
-    彻底隐藏，左上角浮出 DeepSeek 小鲸鱼 logo 按钮，点击经官方 `ctx.layout.toggleSidebar()`
-    把侧边栏展开为覆盖式抽屉（带遮罩）；≥768px 保持宿主原生行为。纯 DOM + CSS（自有
-    `data-dsh-mobile-*` 标记 + 宿主 `data-sidebar-collapsed` 状态），不动内核。
-  - **窄屏输入区单行**（保留）：≤767px 时 composer 底部工具行强制单行（选择器为宿主
-    composer 卡 hash 类 `uV2eYG_*`，0.1.5 / 0.2.1 下验证仍匹配）。
-  - **已完成回合折叠已移除**（0.1.5 迁移）：0.1.0 的「已处理」DOM 折叠与 DSH 0.1.5 原生
-    「对话显示 › 紧凑」（`ui-chat.transcriptView`，默认 `compact`，渲染层折叠已完成回合
-    过程内容）目标行重叠、同时启用冲突；按"用原生、删折叠"决定整体删除 `fold-*` 模块
-    （含 `session-source` 与 6 个折叠测试）。该折叠若日后要加回，可从 git 历史恢复并
-    处理与原生 transcriptView 的共存。**激活前提：内核 ≥0.1.5-rc.1**。
-- `dsh-better-sidebar`：**整体接回官方 v0.19.0**（0.15.2 → 0.19.0，含 DSH 0.1.5-rc.1 适配：host 半边 settings 走
-  `ctx.settings.register/describe/update`、客户端改用原生 `ctx.sidebarRight` / `ctx.sidebarRightTabs` 表面并退役自有右栏）。
-  本地改动仅恢复 **lib/ 入库惯例**（上游 .gitignore 忽略 lib/，本仓库发版需要 lib 现构建入库，已删该行）；
-  挂载行 `cordis.patch.yml` 与 0.15.2 逐字一致（`better-sidebar` 行 id + 双挂载守卫不变）。**激活前提：DSH 内核
-  ≥0.1.5-rc.1**（0.1.1-rc.2 无原生右栏服务，v0.19.0 无自有面板可退化）。
+- **已于 2026-11-06 移除的 4 款插件**（`dsh-ui-tweaks`、`dsh-better-sidebar`、
+  `dsh-archive-manager`、`dsh-model-sync`）：内核 0.2.2 已提供等价原生能力——内置
+  `<768px` 侧栏抽屉（`dsh-client-ui-layout` 的 `data-sidebar-drawer`）、原生右侧栏
+  （含 file tree / terminal / document preview 标签）、归档入口，以及随内核升级同步的
+  pi-ai 模型目录。它们的源码、构建产物与本地改动说明保留在 git 历史与 tag
+  `plugins-2026.09.2`，整仓备份见 `.git-backup/pre-plugin-removal-2026-11-06.bundle`。
+  恢复方式：`git checkout <旧 commit> -- plugins/<目录>` 后按「接线方式」重新 link 并
+  `pnpm install`（ui-tweaks 在 0.2.2 下会与原生抽屉冲突，不建议恢复）。
 - `dsh-usage-stats`：**本地适配 DSH 0.1.3+ 持久化 API**：`readFrom` → `open('read')`+`SessionHandle.read`（语义等价，
   含 inclusive-seq/游标/contiguity 判定），`list()` 回退按 0.1.5 `SessionPersistenceSnapshot{header,revision}` 形状映射。
   上游 v0.3.2 仍调 `readFrom` 且改用 `@ychris12138/` scope（与 fork 裸名冲突），故保持冻结 0.2.5 基座打补丁。
@@ -367,14 +319,6 @@ profile dir + reconcile 安装态）。
    `session.events.length` 在 0.1.5 下 TypeError → `/api/usage-stats/usage` HTTP 500。现改经
    `snapshotEvents` 读取（其它形状 warn+skip，永不 500），回归测试见 `scripts/test-live-fold.mjs`
    （`npm run test:livefold`）。**激活前提：内核 ≥0.1.5**。
-- `dsh-archive-manager`：去掉 `@mlgbnb/` 上游 scope 改名 `dsh-archive-manager`（package.json、
-  cordis patch、预构建 lib 里的 client bundle id 一并替换）；README 安装说明为上游文档，
-  本 fork 内不适用（本地 link 安装）。
-  **DSH 0.1.3+ 会话日志名适配**（本地补丁）：新增 `resolveSessionLog()` 优先最高
-  `session.vN.jsonl[.zstd]`、回退 legacy `session.jsonl[.zstd]`；预览/元数据/`hasDataFile` 全面走它。
-  上游 1.0.8-1.0.10 仅补 DSH_HOME 支持、未适配版本化文件名，故保持冻结 1.0.7 基座打补丁。
-  **激活前提：内核 ≥0.1.3+**。
-
 ## 备注
 
 - **统一仓库**：插件源码由 `~/dsh-work` 这一个 git 仓库管理（提交 70881db 起步）。

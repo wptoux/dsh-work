@@ -21,12 +21,9 @@ git 统一管理，运行时经 web profile 的 `link:` 依赖直接挂载。
 ```
 plugins/
 ├── dsh-remote-web-ui/    # 单包（扁平化自全家桶）：手机远程控制
-├── dsh-better-sidebar/   # 增强侧边栏
 ├── dsh-usage-stats/      # 用量统计（lib/ 入库，无需构建）
-├── dsh-archive-manager/  # 会话归档管理（lib/ 入库，无需构建）
-├── dsh-model-sync/    # 模型列表实时保鲜（src 构建，lib/ 入库）
 ├── dsh-mini-superagent/  # 自研实验：本地票据 + 隔离 worker 会话（非上游冻结）
-├── dsh-work-all/         # 全家桶聚合载具包（无 src/lib/构建，手写维护）
+├── dsh-work-all/         # 聚合载具包（无 src/lib/构建，手写维护）
 └── README.md             # 维护手册：流程/回滚/更新上游/恢复已删组件
 ```
 
@@ -49,7 +46,7 @@ commit、不参与上游同步，只按本仓库的构建与提交规则维护�
 3. **依赖模型**：pnpm 对 `link:` 依赖采用"插件目录自管依赖"。改动某插件
    `package.json` 的 dependencies 后，**必须在该目录内重装**：
    `cd plugins/<目录> && pnpm install`，并确认原生二进制就位（如 `dsh-remote-web-ui` 的
-   cloudflared 隧道二进制、`dsh-better-sidebar` 的 node-pty）。
+   cloudflared 隧道二进制）。
 4. **提交**：仓库根 `git add plugins/<目录> && git commit`，Conventional Commits、无
    emoji、不夹带构建产物；提交前 `git status` 干净（仅预期文件）。
 5. **上上游同步禁令**：不在任何插件子目录执行 `git fetch/push`（它们已无 .git，不应
@@ -64,7 +61,7 @@ commit、不参与上游同步，只按本仓库的构建与提交规则维护�
 - 安装语法：`github:wptoux/dsh-work#<tag>&path:plugins/<目录>`（pnpm ≥9.5）。
 - 发版三步：① 改 `src/` 并 `pnpm build`；② 提交源码 + `lib/`（lib/ 必须与 src 同步）；
   ③ 打整仓 tag：`git tag plugins-YYYY.MM.N` 并 `git push origin main --tags`。
-- **聚合包联动**：发版打新 tag 时，把 `plugins/dsh-work-all/package.json` 里 6 条依赖的
+- **聚合包联动**：发版打新 tag 时，把 `plugins/dsh-work-all/package.json` 里 2 条依赖的
   tag 一并升到新 tag 并提交（与整仓 tag 同源，见 `plugins/README.md`「聚合包」）。
 - 禁止 `fetch/push` 上游插件仓库；push 仅限自有 origin。
 - 完整安装文档见 `plugins/README.md` 的「GitHub 安装」章节。
@@ -74,11 +71,7 @@ commit、不参与上游同步，只按本仓库的构建与提交规则维护�
 | 插件 | 构建 | 自检 |
 |---|---|---|
 | `dsh-remote-web-ui` | `cd plugins/dsh-remote-web-ui && pnpm build` | `node -e "require('./lib/index.js')"` |
-| `dsh-better-sidebar` | `cd plugins/dsh-better-sidebar && pnpm build` | `node -e "require('./lib/index.js')"` |
 | `dsh-usage-stats` | 无需构建 | lib/ 已入库 |
-| `dsh-archive-manager` | 无需构建 | lib/ 已入库 |
-| `dsh-ui-tweaks` | `cd plugins/dsh-ui-tweaks && pnpm build` | `node -e "require('./lib/index.js')"` |
-| `dsh-model-sync` | `cd plugins/dsh-model-sync && pnpm build` | `node -e "require('./lib/index.js')"` + `pnpm test` |
 | `dsh-mini-superagent` | `cd plugins/dsh-mini-superagent && pnpm build` | `node -e "import('./lib/index.js')"` + `pnpm test` |
 | `dsh-work-all` | 无需构建（纯载具，无 lib） | —（`cordis.patch.yml` + `package.json` 手写维护） |
 
@@ -88,7 +81,7 @@ commit、不参与上游同步，只按本仓库的构建与提交规则维护�
 2. `dsh --profile web --dump-config`（只读）确认 layer 栈正常、无报错；
 3. `git status --short` 干净；
 4. 需要重启才生效的改动，在报告里明确标注，交给用户重启验证；
-5. 功能级验证（扫码配对 / 侧边栏渲染 / 用量面板）以用户重启后的反馈为准，不要
+5. 功能级验证（扫码配对 / 用量面板 / 侧栏面板）以用户重启后的反馈为准，不要
    依据构建成功就断言 UI 正常。
 
 ## 修改插件的注意事项

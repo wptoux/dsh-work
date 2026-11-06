@@ -21,14 +21,14 @@ actions.
 > **This fork removed the standalone `/m/` mobile surface**: phones and
 > computers use the same pairing link (a `/api/pair/open?token=...`
 > bootstrap URL) and both run the full Web GUI after pairing (the
-> narrow-screen layout comes from `dsh-ui-tweaks` — the sidebar collapses
-> to a whale-logo drawer at the top-left).
+> narrow-screen layout comes from the kernel's native drawer — below 768px
+> the sidebar becomes an overlay drawer).
 
 ## What it does
 
 - **Entry**: a phone icon beside the settings button in both the expanded sidebar and narrow rail; its tooltip and accessible label say "Remote access".
 - **Panel**: "Remote access" title, "Pair a phone or another computer to access this workspace remotely" subtitle, a "Pair a device" card with the status area ("Waiting for a device" + status badge), a large QR code, one **unified pairing link** (a `/api/pair/open?token=...` bootstrap URL) with a copy button, plus Stop / Refresh QR actions and an authorized-device list (a device name inferred from User-Agent, online/offline, last active time, per-device unpair). Credential-bearing device ids and raw User-Agent values are never rendered. The link carries one single-use token that dies as soon as any device pairs.
-- **Device side (the same path for phones and computers)**: scanning the QR or opening the copied link runs a two-hop bootstrap — the `/api/pair/open` hop consumes the one-time, time-limited token and sets the HttpOnly device cookie, then redirects to the harness's native launch-token URL (`/?token=...`), which exchanges it for the browser-session cookie and lands the device on the **full Web GUI** — workspaces, sessions, chat, model switching. Fresh devices no longer receive a `workspace` query parameter (the native index exchange redirects to the clean root); a direct `/?workspace=<id>` link still deep-links an already-authorized browser. Phones get the narrow-screen layout from `dsh-ui-tweaks` (the sidebar hides, leaving a small whale logo at the top-left that opens the sidebar as a drawer overlay).
+- **Device side (the same path for phones and computers)**: scanning the QR or opening the copied link runs a two-hop bootstrap — the `/api/pair/open` hop consumes the one-time, time-limited token and sets the HttpOnly device cookie, then redirects to the harness's native launch-token URL (`/?token=...`), which exchanges it for the browser-session cookie and lands the device on the **full Web GUI** — workspaces, sessions, chat, model switching. Fresh devices no longer receive a `workspace` query parameter (the native index exchange redirects to the clean root); a direct `/?workspace=<id>` link still deep-links an already-authorized browser. Phones get the narrow-screen layout from the kernel's native drawer (below 768px the sidebar becomes an overlay drawer).
 - **Security**: one active one-time token (a refresh invalidates the old
   link; an accepted token cannot be reused; tokens expire). 停止 revokes
   every paired device and the current token — a revoked device is no longer
@@ -71,7 +71,7 @@ actions.
 - A DSH installation whose `dsh` CLI supports profiles (`dsh --profile`,
   `dsh plugin`) — the profile/bundle mechanism this package rides on.
 - For LAN use the server must be reachable from the phone: start with
-  `dsh web --host 0.0.0.0`. With the default `127.0.0.1` bind the panel
+  `dsh web --host <your LAN IP>`. With the default `127.0.0.1` bind the panel
   shows an explicit explanation instead of a dead QR code — unless a public
   base URL is configured (see "Remote access over the internet" below),
   which makes the QR reachable from anywhere without rebinding. The panel's
@@ -86,7 +86,7 @@ actions.
   tunnel is free and anonymous.
 - Phones need nothing installed: they open the plugin's pairing link and run
   the full Web GUI in the browser (the narrow-screen layout comes from
-  `dsh-ui-tweaks`).
+  the kernel's native drawer).
 
 ## Install
 
@@ -117,13 +117,12 @@ mounts both halves.
 
 ## Use
 
-1. `dsh web --host 0.0.0.0` (the printed LAN URL confirms reachability).
+1. `dsh web --host <your LAN IP>` (the printed LAN URL confirms reachability). Note the kernel rejects a `0.0.0.0` wildcard bind.
 2. Click the phone icon → the panel mints a fresh one-time QR.
 3. Scan with the phone (or open the copied link): the phone consumes the
    token, bounces through the native launch-token exchange, and lands in
-   the **full Web GUI**. On a narrow screen the layout comes from
-   `dsh-ui-tweaks` — the sidebar hides automatically, leaving a small whale
-   logo at the top-left that opens the sidebar as a drawer overlay;
+   the **full Web GUI**. On a narrow screen the kernel's native drawer
+   takes over — below 768px the sidebar becomes an overlay drawer;
    workspaces, sessions, chat, and model switching are exactly the desktop's.
 4. **Pair another device (a computer or a phone — the same link)**: copy the
    link and open it in a browser on that device (LAN URL or tunnel URL).

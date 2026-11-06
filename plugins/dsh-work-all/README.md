@@ -1,11 +1,15 @@
 # dsh-work-all
 
-dsh-work 全家桶**聚合载具包**：安装这一个包 = 5 款插件（remote-web-ui / better-sidebar /
-usage-stats / archive-manager / ui-tweaks）一次性全部就位。
+dsh-work **聚合载具包**：安装这一个包 = 当前保留的 2 款插件（remote-web-ui /
+usage-stats）一次性全部就位。
 
 本包**没有自己的插件逻辑**（纯载具）：`dependencies` 以 git 子目录引用拉入全部子包，
 `cordis.patch.yml` 汇总各子包的挂载行。DSH loader 从 profile 顶层按行 `name:` 解析子包
 （pnpm 默认 hoisted 布局下传递依赖可达顶层），装完自动挂载。
+
+> **2026-11-06 起插件家族缩减为 2 款**：`dsh-better-sidebar`、`dsh-archive-manager`、
+> `dsh-model-sync`、`dsh-ui-tweaks` 已移除（DSH 0.2.2 提供等价原生能力）。源码保留在
+> git 历史与 tag `plugins-2026.09.2`。
 
 ## 安装
 
@@ -17,7 +21,6 @@ mkdir -p ~/.dsh/profiles/web
 cat > ~/.dsh/profiles/web/pnpm-workspace.yaml <<'EOF'
 allowBuilds:
   cloudflared: true
-  node-pty: true
 blockExoticSubdeps: false
 nodeLinker: hoisted
 EOF
@@ -39,13 +42,9 @@ dsh web   # 重启生效
 
 - 聚合包行 id 统一带 `dsh-work-` 前缀，可与同名插件的独立安装**共存**：loader 不会因
   重复 id 拒绝，host/client 半区按包名去重，只挂载一次。
-- better-sidebar 是个例外（注册 `/sidebar/api` 路由，双挂载会直接启动失败）：聚合包行
-  **不带守卫**，由独立包自带的行守卫负责——当聚合包在 `dsh.profile.bundles` 里排在独立包
-  之前（标准安装顺序：先装聚合包、之后再补装独立包）时，独立行自动退让、聚合包生效；
-  反向（先独立后聚合）是上游已知限制，会双挂载启动失败（聚合行若也加守卫，两个 disabled
-  表达式会互相递归评估，loader 直接栈溢出，已实测）。两个来源并存没有额外收益，
-  建议只保留一个。
+- 按 id 写的 profile 配置行需改用带前缀的 id（例如 remote-web-ui 的 `autoTunnel`
+  要写成 `dsh-work-remote-web-ui` 行）。
 - 本包是**手写维护**（无生成器）：后续新增/移除插件时，需同步修改本包的
   `cordis.patch.yml` 与 `package.json` dependencies。
-- 本地开发（`~/dsh-work` 源码即改即生效）仍走 profile 直连 5 条 `link:`，**不要**把本包
+- 本地开发（`~/dsh-work` 源码即改即生效）仍走 profile 直连 3 条 `link:`，**不要**把本包
   link 进本地 profile 当开发接线——本包只用于对外分发 / 换机器 / 一次性装齐。
